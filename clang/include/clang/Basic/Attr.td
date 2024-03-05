@@ -4483,3 +4483,10 @@ def CountedBy : InheritableAttr {
       void setCountedByFieldLoc(SourceRange Loc) { CountedByFieldLoc = Loc; }
   }];
 }
+
+def Wraps : Attr {
+  let Spellings = [Clang<"wraps">];
+  // let Args = []; // NO ARGS
+  let Subjects = SubjectList<[Var, TypedefName]>;
+  let Documentation = [Undocumented];
+}

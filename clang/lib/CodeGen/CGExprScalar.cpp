@@ -95,6 +95,7 @@ struct BinOpInfo {
   BinaryOperator::Opcode Opcode; // Opcode of BinOp to perform
   FPOptions FPFeatures;
   const Expr *E;      // Entire expr, for error unsupported.  May not be binop.
+  llvm::SmallVector<bool, 2> Wraps = {false, false};
 
   /// Check if the binop can result in integer overflow.
   bool mayHaveIntegerOverflow() const {
@@ -145,6 +146,14 @@ struct BinOpInfo {
     if (const auto *UnOp = dyn_cast<UnaryOperator>(E))
       return UnOp->getSubExpr()->getType()->isFixedPointType();
     return false;
+  }
+
+  bool LHSWraps() const {
+    return Wraps[0];
+  }
+
+  bool RHSWraps() const {
+    return Wraps[1];
   }
 };
 
@@ -724,7 +733,20 @@ public:
 
   // Binary Operators.
   Value *EmitMul(const BinOpInfo &Ops) {
+    /// testing
+    // Value *lhs = Ops.LHS;
+    llvm::errs() << "EmitMul ...\n";
+    // const auto *DRE = dyn_cast<DeclRefExpr>(Ops.E);
+    // const ValueDecl *VD =  Ops.E->getAsBuiltinConstantDeclRef(CGF.getContext());
+    // if (DRE) {
+    //   llvm::errs() << "DRE ....\n";
+    // }
+    // llvm::errs() << "DRE: " << DRE << "\n";
+    // llvm::errs() << "VD: " << VD << "\n";
+    /// end testing
     if (Ops.Ty->isSignedIntegerOrEnumerationType()) {
+      if (Ops.LHSWraps())
+        return Builder.CreateMul(Ops.LHS, Ops.RHS, "mul");
       switch (CGF.getLangOpts().getSignedOverflowBehavior()) {
       case LangOptions::SOB_Defined:
         if (!CGF.SanOpts.has(SanitizerKind::SignedIntegerOverflow))
@@ -3286,6 +3308,9 @@ Value *ScalarExprEmitter::EmitPromoted(const Expr *E, QualType PromotionType) {
 
 BinOpInfo ScalarExprEmitter::EmitBinOps(const BinaryOperator *E,
                                         QualType PromotionType) {
+  /// TESTING
+    llvm::errs() << "EmitBinOps ...\n";
+  /// END TESTING
   TestAndClearIgnoreResultAssign();
   BinOpInfo Result;
   Result.LHS = CGF.EmitPromotedScalarExpr(E->getLHS(), PromotionType);
@@ -3297,6 +3322,22 @@ BinOpInfo ScalarExprEmitter::EmitBinOps(const BinaryOperator *E,
   Result.Opcode = E->getOpcode();
   Result.FPFeatures = E->getFPFeaturesInEffect(CGF.getLangOpts());
   Result.E = E;
+  
+  // Expr *lhs = E->getLHS()->IgnoreImpCasts();
+  llvm::SmallVector<Expr*, 2> Both = {E->getLHS(), E->getRHS()};
+  bool isRHS = false;
+  for (Expr* OneOf : Both) {
+    if (auto *DRE = dyn_cast<DeclRefExpr>(OneOf->IgnoreImpCasts())) {
+      if (auto *VD = dyn_cast<VarDecl>(DRE->getDecl())) {
+        Result.Wraps[isRHS] = VD->hasAttr<WrapsAttr>();
+      }
+    }
+    isRHS = true;
+  }
+
+  llvm::errs() << "Result.Wraps: " << Result.Wraps[0] << " " << Result.Wraps[1] << "\n";
+
+
   return Result;
 }
 
