@@ -3309,7 +3309,7 @@ Value *ScalarExprEmitter::EmitPromoted(const Expr *E, QualType PromotionType) {
 BinOpInfo ScalarExprEmitter::EmitBinOps(const BinaryOperator *E,
                                         QualType PromotionType) {
   /// TESTING
-    llvm::errs() << "EmitBinOps ...\n";
+  llvm::errs() << "EmitBinOps ...\n";
   /// END TESTING
   TestAndClearIgnoreResultAssign();
   BinOpInfo Result;
@@ -3330,6 +3330,13 @@ BinOpInfo ScalarExprEmitter::EmitBinOps(const BinaryOperator *E,
     if (auto *DRE = dyn_cast<DeclRefExpr>(OneOf->IgnoreImpCasts())) {
       if (auto *VD = dyn_cast<VarDecl>(DRE->getDecl())) {
         Result.Wraps[isRHS] = VD->hasAttr<WrapsAttr>();
+        // StringRef Name = DRE->getDecl()->getType().getBaseTypeIdentifier()->getName();
+        if (const Type* _Type = OneOf->getType().getTypePtrOrNull()) {
+          llvm::errs() << "_Type->hasAttr(attr::Wraps): " <<
+            _Type->hasAttr(clang::attr::Wraps) << "\t";
+          Result.Wraps[isRHS] |= _Type->hasAttr(clang::attr::Wraps);
+        }
+        llvm::errs() << "isRHS: " << isRHS << "\n";
       }
     }
     isRHS = true;

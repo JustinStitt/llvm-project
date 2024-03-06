@@ -6923,6 +6923,15 @@ static void HandleBTFTypeTagAttribute(QualType &Type, const ParsedAttr &Attr,
       ::new (Ctx) BTFTypeTagAttr(Ctx, Attr, BTFTypeTag), Type);
 }
 
+static void handleWrapsAttr(QualType &Type, const ParsedAttr &Attr,
+                                 TypeProcessingState &State) {
+  llvm::errs() << "AddWrapsAttr Type ... \n";
+  Sema &S = State.getSema();
+  ASTContext &Ctx = S.Context;
+  Type = State.getAttributedType(::new (Ctx) WrapsAttr(Ctx, Attr), Type, Type);
+
+}
+
 /// HandleAddressSpaceTypeAttribute - Process an address_space attribute on the
 /// specified type.  The attribute contains 1 argument, the id of the address
 /// space for the type.
@@ -8911,6 +8920,9 @@ static void processTypeAttrs(TypeProcessingState &state, QualType &type,
     case ParsedAttr::AT_BTFTypeTag:
       HandleBTFTypeTagAttribute(type, attr, state);
       attr.setUsedAsTypeAttr();
+      break;
+    case ParsedAttr::AT_Wraps:
+      handleWrapsAttr(type, attr, state);
       break;
 
     case ParsedAttr::AT_MayAlias:
