@@ -95,7 +95,6 @@ struct BinOpInfo {
   BinaryOperator::Opcode Opcode; // Opcode of BinOp to perform
   FPOptions FPFeatures;
   const Expr *E;      // Entire expr, for error unsupported.  May not be binop.
-  llvm::SmallVector<bool, 2> Wraps = {false, false};
 
   /// Check if the binop can result in integer overflow.
   bool mayHaveIntegerOverflow() const {
@@ -147,13 +146,28 @@ struct BinOpInfo {
       return UnOp->getSubExpr()->getType()->isFixedPointType();
     return false;
   }
+  
+  /// Does at least one of LHS or RHS have the Wraps attribute?
+  bool oneOfWraps() const {
+    llvm::errs() << "oneOfWraps() ... \n";
 
-  bool LHSWraps() const {
-    return Wraps[0];
-  }
+    const BinaryOperator *BO = dyn_cast<BinaryOperator>(E);
 
-  bool RHSWraps() const {
-    return Wraps[1];
+    llvm::SmallVector<Expr*, 2> Both = {BO->getLHS(), BO->getRHS()};
+
+    bool Result = false;
+  
+    for (const Expr* oneOf : Both) {
+      if (auto *DRE = dyn_cast<DeclRefExpr>(oneOf->IgnoreImpCasts())) {
+        if (auto *VD = dyn_cast<VarDecl>(DRE->getDecl())) 
+          Result |= VD->hasAttr<WrapsAttr>();
+        if (auto *TypePtr = oneOf->getType().getTypePtrOrNull())
+          Result |= TypePtr->hasAttr(clang::attr::Wraps);
+      }
+    }
+    
+    llvm::errs() << "oneOfWraps() Result -> " << Result << "\n";
+    return Result;
   }
 };
 
@@ -733,19 +747,10 @@ public:
 
   // Binary Operators.
   Value *EmitMul(const BinOpInfo &Ops) {
-    /// testing
-    // Value *lhs = Ops.LHS;
     llvm::errs() << "EmitMul ...\n";
-    // const auto *DRE = dyn_cast<DeclRefExpr>(Ops.E);
-    // const ValueDecl *VD =  Ops.E->getAsBuiltinConstantDeclRef(CGF.getContext());
-    // if (DRE) {
-    //   llvm::errs() << "DRE ....\n";
-    // }
-    // llvm::errs() << "DRE: " << DRE << "\n";
-    // llvm::errs() << "VD: " << VD << "\n";
-    /// end testing
+
     if (Ops.Ty->isSignedIntegerOrEnumerationType()) {
-      if (Ops.LHSWraps())
+      if (Ops.oneOfWraps())
         return Builder.CreateMul(Ops.LHS, Ops.RHS, "mul");
       switch (CGF.getLangOpts().getSignedOverflowBehavior()) {
       case LangOptions::SOB_Defined:
@@ -779,7 +784,8 @@ public:
                                        RHSMatTy->getNumColumns());
       return MB.CreateScalarMultiply(Ops.LHS, Ops.RHS);
     }
-
+    
+    // TODO: support WrapsAttr for unsigned types
     if (Ops.Ty->isUnsignedIntegerType() &&
         CGF.SanOpts.has(SanitizerKind::UnsignedIntegerOverflow) &&
         !CanElideOverflowCheck(CGF.getContext(), Ops))
@@ -3323,28 +3329,6 @@ BinOpInfo ScalarExprEmitter::EmitBinOps(const BinaryOperator *E,
   Result.FPFeatures = E->getFPFeaturesInEffect(CGF.getLangOpts());
   Result.E = E;
   
-  // Expr *lhs = E->getLHS()->IgnoreImpCasts();
-  llvm::SmallVector<Expr*, 2> Both = {E->getLHS(), E->getRHS()};
-  bool isRHS = false;
-  for (Expr* OneOf : Both) {
-    if (auto *DRE = dyn_cast<DeclRefExpr>(OneOf->IgnoreImpCasts())) {
-      if (auto *VD = dyn_cast<VarDecl>(DRE->getDecl())) {
-        Result.Wraps[isRHS] = VD->hasAttr<WrapsAttr>();
-        // StringRef Name = DRE->getDecl()->getType().getBaseTypeIdentifier()->getName();
-        if (const Type* _Type = OneOf->getType().getTypePtrOrNull()) {
-          llvm::errs() << "_Type->hasAttr(attr::Wraps): " <<
-            _Type->hasAttr(clang::attr::Wraps) << "\t";
-          Result.Wraps[isRHS] |= _Type->hasAttr(clang::attr::Wraps);
-        }
-        llvm::errs() << "isRHS: " << isRHS << "\n";
-      }
-    }
-    isRHS = true;
-  }
-
-  llvm::errs() << "Result.Wraps: " << Result.Wraps[0] << " " << Result.Wraps[1] << "\n";
-
-
   return Result;
 }
 
@@ -3354,6 +3338,8 @@ LValue ScalarExprEmitter::EmitCompoundAssignLValue(
                                                    Value *&Result) {
   QualType LHSTy = E->getLHS()->getType();
   BinOpInfo OpInfo;
+
+  llvm::errs() << "EmitCompoundAssignLValue ... \n";
 
   if (E->getComputationResultType()->isAnyComplexType())
     return CGF.EmitScalarCompoundAssignWithComplex(E, Result);

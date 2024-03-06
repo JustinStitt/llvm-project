@@ -6929,7 +6929,6 @@ static void handleWrapsAttr(QualType &Type, const ParsedAttr &Attr,
   Sema &S = State.getSema();
   ASTContext &Ctx = S.Context;
   Type = State.getAttributedType(::new (Ctx) WrapsAttr(Ctx, Attr), Type, Type);
-
 }
 
 /// HandleAddressSpaceTypeAttribute - Process an address_space attribute on the
