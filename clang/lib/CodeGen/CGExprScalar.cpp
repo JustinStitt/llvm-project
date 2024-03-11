@@ -148,26 +148,26 @@ struct BinOpInfo {
   }
   
   /// Does at least one of LHS or RHS have the Wraps attribute?
-  bool oneOfWraps() const {
+  bool oneOfWraps(CodeGenFunction& CGF) const {
     llvm::errs() << "oneOfWraps() ... \n";
-
+    ASTContext &Ctx = CGF.getContext();
     const BinaryOperator *BO = dyn_cast<BinaryOperator>(E);
+    llvm::SmallVector<Expr *, 2> Both = {BO->getLHS(), BO->getRHS()};
 
-    llvm::SmallVector<Expr*, 2> Both = {BO->getLHS(), BO->getRHS()};
-
-    bool Result = false;
-  
-    for (const Expr* oneOf : Both) {
-      if (auto *DRE = dyn_cast<DeclRefExpr>(oneOf->IgnoreImpCasts())) {
-        if (auto *VD = dyn_cast<VarDecl>(DRE->getDecl())) 
-          Result |= VD->hasAttr<WrapsAttr>();
-        if (auto *TypePtr = oneOf->getType().getTypePtrOrNull())
-          Result |= TypePtr->hasAttr(clang::attr::Wraps);
-      }
+    for (const Expr *oneOf : Both) {
+      if (auto *TypePtr = oneOf->IgnoreParenImpCasts()
+                               ->getType().getTypePtrOrNull())
+        if (TypePtr->hasAttr(attr::Wraps)) {
+          auto Ty = Ctx.getAttributedType(attr::Wraps,
+                                          BO->getType(),
+                                          BO->getType());
+          const_cast<BinaryOperator*>(BO)->setType(Ty);
+          BO->dump();
+          return true;
+        }
     }
-    
-    llvm::errs() << "oneOfWraps() Result -> " << Result << "\n";
-    return Result;
+
+    return false;
   }
 };
 
@@ -748,9 +748,10 @@ public:
   // Binary Operators.
   Value *EmitMul(const BinOpInfo &Ops) {
     llvm::errs() << "EmitMul ...\n";
+    Ops.E->dump();
 
     if (Ops.Ty->isSignedIntegerOrEnumerationType()) {
-      if (Ops.oneOfWraps())
+      if (Ops.oneOfWraps(CGF))
         return Builder.CreateMul(Ops.LHS, Ops.RHS, "mul");
       switch (CGF.getLangOpts().getSignedOverflowBehavior()) {
       case LangOptions::SOB_Defined:

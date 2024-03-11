@@ -4484,7 +4484,7 @@ def CountedBy : InheritableAttr {
   }];
 }
 
-def Wraps : TypeAttr {
+def Wraps : DeclOrTypeAttr {
   let Spellings = [Clang<"wraps">];
   // let Args = []; // NO ARGS
   let Subjects = SubjectList<[Var, TypedefName]>;

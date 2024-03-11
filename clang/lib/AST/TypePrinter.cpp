@@ -1904,6 +1904,7 @@ void TypePrinter::printAttributedAfter(const AttributedType *T,
   case attr::AArch64SVEPcs: OS << "aarch64_sve_pcs"; break;
   case attr::AMDGPUKernelCall: OS << "amdgpu_kernel"; break;
   case attr::IntelOclBicc: OS << "inteloclbicc"; break;
+  case attr::Wraps: OS << "wraps"; break;
   case attr::PreserveMost:
     OS << "preserve_most";
     break;
