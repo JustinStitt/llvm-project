@@ -146,15 +146,25 @@ struct BinOpInfo {
       return UnOp->getSubExpr()->getType()->isFixedPointType();
     return false;
   }
-  
+
   /// Does at least one of LHS or RHS have the Wraps attribute?
   bool oneOfWraps(CodeGenFunction& CGF) const {
-    llvm::errs() << "oneOfWraps() ... \n";
     ASTContext &Ctx = CGF.getContext();
     const BinaryOperator *BO = dyn_cast<BinaryOperator>(E);
+
+    // We need to handle UnaryOperator if BinOpInfo not from BinaryOperator.
+    if (!BO) {
+      if (auto *UO = dyn_cast<UnaryOperator>(E))
+        if (auto *UOType = UO->getType().getTypePtrOrNull())
+          return UOType->hasAttr(attr::Wraps);
+      llvm_unreachable("BinOpInfo not provided by either a UnaryOperator "
+                       "or a BinaryOperator!");
+    }
+
     llvm::SmallVector<Expr *, 2> Both = {BO->getLHS(), BO->getRHS()};
 
     for (const Expr *oneOf : Both) {
+      if (!oneOf) continue;
       if (auto *TypePtr = oneOf->IgnoreParenImpCasts()
                                ->getType().getTypePtrOrNull())
         if (TypePtr->hasAttr(attr::Wraps)) {
@@ -747,8 +757,10 @@ public:
 
   // Binary Operators.
   Value *EmitMul(const BinOpInfo &Ops) {
-    llvm::errs() << "EmitMul ...\n";
-    Ops.E->dump();
+    if ((Ops.Ty->isSignedIntegerOrEnumerationType() ||
+      Ops.Ty->isUnsignedIntegerType())              &&
+      Ops.oneOfWraps(CGF))
+      return Builder.CreateMul(Ops.LHS, Ops.RHS, "mul");
 
     if (Ops.Ty->isSignedIntegerOrEnumerationType()) {
       if (Ops.oneOfWraps(CGF))
@@ -786,7 +798,6 @@ public:
       return MB.CreateScalarMultiply(Ops.LHS, Ops.RHS);
     }
     
-    // TODO: support WrapsAttr for unsigned types
     if (Ops.Ty->isUnsignedIntegerType() &&
         CGF.SanOpts.has(SanitizerKind::UnsignedIntegerOverflow) &&
         !CanElideOverflowCheck(CGF.getContext(), Ops))
@@ -2714,6 +2725,9 @@ ScalarExprEmitter::EmitScalarPrePostIncDec(const UnaryOperator *E, LValue LV,
   } else if (type->isIntegerType()) {
     QualType promotedType;
     bool canPerformLossyDemotionCheck = false;
+    BinOpInfo Ops = (createBinOpInfoFromIncDec(E, value, isInc,
+                     E->getFPFeaturesInEffect(CGF.getLangOpts())));
+
     if (CGF.getContext().isPromotableIntegerType(type)) {
       promotedType = CGF.getContext().getPromotedIntegerType(type);
       assert(promotedType != type && "Shouldn't promote to the same type.");
@@ -2756,10 +2770,12 @@ ScalarExprEmitter::EmitScalarPrePostIncDec(const UnaryOperator *E, LValue LV,
       // Note that signed integer inc/dec with width less than int can't
       // overflow because of promotion rules; we're just eliding a few steps
       // here.
-    } else if (E->canOverflow() && type->isSignedIntegerOrEnumerationType()) {
+    } else if (E->canOverflow() && type->isSignedIntegerOrEnumerationType() &&
+               !Ops.oneOfWraps(CGF)) {
       value = EmitIncDecConsiderOverflowBehavior(E, value, isInc);
     } else if (E->canOverflow() && type->isUnsignedIntegerType() &&
-               CGF.SanOpts.has(SanitizerKind::UnsignedIntegerOverflow)) {
+               CGF.SanOpts.has(SanitizerKind::UnsignedIntegerOverflow) &&
+               !Ops.oneOfWraps(CGF)) {
       value = EmitOverflowCheckedBinOp(createBinOpInfoFromIncDec(
           E, value, isInc, E->getFPFeaturesInEffect(CGF.getLangOpts())));
     } else {
@@ -3315,9 +3331,6 @@ Value *ScalarExprEmitter::EmitPromoted(const Expr *E, QualType PromotionType) {
 
 BinOpInfo ScalarExprEmitter::EmitBinOps(const BinaryOperator *E,
                                         QualType PromotionType) {
-  /// TESTING
-  llvm::errs() << "EmitBinOps ...\n";
-  /// END TESTING
   TestAndClearIgnoreResultAssign();
   BinOpInfo Result;
   Result.LHS = CGF.EmitPromotedScalarExpr(E->getLHS(), PromotionType);
@@ -3339,8 +3352,6 @@ LValue ScalarExprEmitter::EmitCompoundAssignLValue(
                                                    Value *&Result) {
   QualType LHSTy = E->getLHS()->getType();
   BinOpInfo OpInfo;
-
-  llvm::errs() << "EmitCompoundAssignLValue ... \n";
 
   if (E->getComputationResultType()->isAnyComplexType())
     return CGF.EmitScalarCompoundAssignWithComplex(E, Result);
@@ -3539,7 +3550,8 @@ Value *ScalarExprEmitter::EmitDiv(const BinOpInfo &Ops) {
     if ((CGF.SanOpts.has(SanitizerKind::IntegerDivideByZero) ||
          CGF.SanOpts.has(SanitizerKind::SignedIntegerOverflow)) &&
         Ops.Ty->isIntegerType() &&
-        (Ops.mayHaveIntegerDivisionByZero() || Ops.mayHaveIntegerOverflow())) {
+        (Ops.mayHaveIntegerDivisionByZero() || Ops.mayHaveIntegerOverflow()) &&
+        !Ops.oneOfWraps(CGF)) {
       llvm::Value *Zero = llvm::Constant::getNullValue(ConvertType(Ops.Ty));
       EmitUndefinedBehaviorIntegerDivAndRemCheck(Ops, Zero, true);
     } else if (CGF.SanOpts.has(SanitizerKind::FloatDivideByZero) &&
@@ -3588,7 +3600,8 @@ Value *ScalarExprEmitter::EmitRem(const BinOpInfo &Ops) {
   if ((CGF.SanOpts.has(SanitizerKind::IntegerDivideByZero) ||
        CGF.SanOpts.has(SanitizerKind::SignedIntegerOverflow)) &&
       Ops.Ty->isIntegerType() &&
-      (Ops.mayHaveIntegerDivisionByZero() || Ops.mayHaveIntegerOverflow())) {
+      (Ops.mayHaveIntegerDivisionByZero() || Ops.mayHaveIntegerOverflow()) &&
+      !Ops.oneOfWraps(CGF)) {
     CodeGenFunction::SanitizerScope SanScope(&CGF);
     llvm::Value *Zero = llvm::Constant::getNullValue(ConvertType(Ops.Ty));
     EmitUndefinedBehaviorIntegerDivAndRemCheck(Ops, Zero, false);
@@ -3953,6 +3966,11 @@ Value *ScalarExprEmitter::EmitAdd(const BinOpInfo &op) {
       op.RHS->getType()->isPointerTy())
     return emitPointerArithmetic(CGF, op, CodeGenFunction::NotSubtraction);
 
+  if ((op.Ty->isSignedIntegerOrEnumerationType() ||
+      op.Ty->isUnsignedIntegerType())            &&
+      op.oneOfWraps(CGF))
+      return Builder.CreateAdd(op.LHS, op.RHS, "add");
+
   if (op.Ty->isSignedIntegerOrEnumerationType()) {
     switch (CGF.getLangOpts().getSignedOverflowBehavior()) {
     case LangOptions::SOB_Defined:
@@ -4109,6 +4127,10 @@ Value *ScalarExprEmitter::EmitFixedPointBinOp(const BinOpInfo &op) {
 Value *ScalarExprEmitter::EmitSub(const BinOpInfo &op) {
   // The LHS is always a pointer if either side is.
   if (!op.LHS->getType()->isPointerTy()) {
+    if ((op.Ty->isSignedIntegerOrEnumerationType() ||
+        op.Ty->isUnsignedIntegerType())            &&
+        op.oneOfWraps(CGF))
+        return Builder.CreateSub(op.LHS, op.RHS, "sub");
     if (op.Ty->isSignedIntegerOrEnumerationType()) {
       switch (CGF.getLangOpts().getSignedOverflowBehavior()) {
       case LangOptions::SOB_Defined:
@@ -4259,7 +4281,8 @@ Value *ScalarExprEmitter::EmitShl(const BinOpInfo &Ops) {
   bool SanitizeSignedBase = CGF.SanOpts.has(SanitizerKind::ShiftBase) &&
                             Ops.Ty->hasSignedIntegerRepresentation() &&
                             !CGF.getLangOpts().isSignedOverflowDefined() &&
-                            !CGF.getLangOpts().CPlusPlus20;
+                            !CGF.getLangOpts().CPlusPlus20 &&
+                            !Ops.oneOfWraps(CGF);
   bool SanitizeUnsignedBase =
       CGF.SanOpts.has(SanitizerKind::UnsignedShiftBase) &&
       Ops.Ty->hasUnsignedIntegerRepresentation();
