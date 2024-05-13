@@ -221,6 +221,20 @@ New Compiler Flags
 - ``-fexperimental-modules-reduced-bmi`` enables the Reduced BMI for C++20 named modules.
   See the document of standard C++ modules for details.
 
+- ``-fno-sanitize-negation-overflow`` disables integer overflow sanitizer
+  instrumentation for negations. Also introduced is
+  ``-fsanitize-negation-overflow``, however, this particular flag is less
+  useful as the default behavior of the integer overflow sanitizers is already
+  to instrument negations.
+
+  Disabling negation overflow instrumentation is most useful for users who
+  consider the default behavior too noisy, as demonstrated in the following
+  example:
+
+  .. code-block:: c
+
+  unsigned long A = -1UL; // -fsanitize=unsigned-integer-overflow warning!
+
 Deprecated Compiler Flags
 -------------------------
 

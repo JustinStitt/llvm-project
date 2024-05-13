@@ -4079,6 +4079,11 @@ defm virtual_function_elimination : BoolFOption<"virtual-function-elimination",
 def fwrapv : Flag<["-"], "fwrapv">, Group<f_Group>,
   Visibility<[ClangOption, CC1Option]>,
   HelpText<"Treat signed integer overflow as two's complement">;
+defm sanitize_negation_overflow : BoolFOption<"sanitize-negation-overflow",
+  LangOpts<"IgnoreNegationOverflow">, DefaultFalse,
+  PosFlag<SetFalse, [], [], "Enable integer overflow sanitizer instrumentation for negation">,
+  NegFlag<SetTrue, [], [], "Disable integer overflow sanitizer instrumentation for negation">,
+  BothFlags<[], [ClangOption, CC1Option]>>;
 def fwritable_strings : Flag<["-"], "fwritable-strings">, Group<f_Group>,
   Visibility<[ClangOption, CC1Option]>,
   HelpText<"Store string literals as writable data">,

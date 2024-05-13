@@ -6803,6 +6803,8 @@ void Clang::ConstructJob(Compilation &C, const JobAction &JA,
   Args.AddLastArg(CmdArgs, options::OPT_ftime_report);
   Args.AddLastArg(CmdArgs, options::OPT_ftime_report_EQ);
   Args.AddLastArg(CmdArgs, options::OPT_ftrapv);
+  Args.AddLastArg(CmdArgs, options::OPT_fsanitize_negation_overflow);
+  Args.AddLastArg(CmdArgs, options::OPT_fno_sanitize_negation_overflow);
   Args.AddLastArg(CmdArgs, options::OPT_malign_double);
   Args.AddLastArg(CmdArgs, options::OPT_fno_temp_file);
 
