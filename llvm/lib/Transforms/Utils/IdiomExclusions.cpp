@@ -7,12 +7,6 @@
 
 using namespace llvm;
 
-namespace {
-  enum class OverflowExtractKind {
-    Sum, Overflow
-  };
-} // namespace
-
 static bool IsSignedAddOverflowIntrinsic(const IntrinsicInst *II) {
   return II->getIntrinsicID() == Intrinsic::sadd_with_overflow;
 }
@@ -60,9 +54,11 @@ PreservedAnalyses IdiomExclusionsPass::run(Function &F,
     InstrinsicOperandValue->dump();
   }
 
-  // check where the AddIntrinsic value (result) is then used
-  /* const Use *AddIntrinsicUse = dyn_cast<Use>(AddIntrinsic); */
-  /* const Use &AddIntrinsicUse = AddIntrinsic->getOperandUse(); */
+
+
+  const Value *SumValue = nullptr;
+  const Value *OverflowValue = nullptr;
+
   for (const Use &IntrinsicUse : AddIntrinsic->uses()) {
 
     /* const Instruction *Instr = dyn_cast<Instruction>(IntrinsicUse.getUser()); */
@@ -70,7 +66,7 @@ PreservedAnalyses IdiomExclusionsPass::run(Function &F,
     /* Instr->dump(); */
 
     const ExtractValueInst *EVI =
-      dyn_cast<ExtractValueInst>(IntrinsicUse.getUser()); 
+      dyn_cast<ExtractValueInst>(IntrinsicUse.getUser());
 
     EVI->dump();
 
@@ -86,22 +82,65 @@ PreservedAnalyses IdiomExclusionsPass::run(Function &F,
       return PreservedAnalyses::all();
     }
 
-    OverflowExtractKind Kind;
     switch (Indices[EVI->getAggregateOperandIndex()]) {
       case 0:
-        Kind = OverflowExtractKind::Sum;
+        SumValue = IntrinsicUse.getUser();
         break;
       case 1:
-        Kind = OverflowExtractKind::Overflow;
+        OverflowValue = IntrinsicUse.getUser();
         break;
       default:
         errs() << "bad index in extractvalue!\n";
         return PreservedAnalyses::all();
     }
 
-    errs() << "OverflowExtractKind: " << (unsigned)Kind << "\n";
+  }
 
+  if (!SumValue || !OverflowValue) {
+    errs() << "Didn't find one of SumValue or OverflowValue!\n";
+    return PreservedAnalyses::all();
+  }
+
+  errs() << "SumValue: "; SumValue->dump();
+  errs() << "OverflowValue: "; OverflowValue->dump();
+
+  const BasicBlock *BBSucc = nullptr;
+
+  for (const User *OverflowUser : OverflowValue->users()) {
+    if (const BranchInst *BI = dyn_cast<BranchInst>(OverflowUser)) {
+      if (BI->getNumSuccessors() != 2) continue;
+      BBSucc = BI->getSuccessor(1); // If no overflow
+    }
+  }
+
+  if (!BBSucc) {
+    errs() << "Didn't find BasicBlock successor for overflow case!\n";
+    return PreservedAnalyses::all();
+  }
+
+  errs() << "BBSucc->dump(): "; BBSucc->dump();
+
+  const PHINode *Phi = dyn_cast<PHINode>(BBSucc->getIterator()->begin());
+
+  if (!Phi) {
+    errs() << "Failed to convert first instruction of BBSucc to Phi node!\n";
+    return PreservedAnalyses::all();
+  }
+
+  if(const ICmpInst *Comp = dyn_cast<ICmpInst>(BBSucc->getFirstNonPHI())) {
+    /* Signed Less Than or Unsigned Less Than */
+    if (Comp->getSignedPredicate() == ICmpInst::Predicate::ICMP_SLT ||
+        Comp->getSignedPredicate() == ICmpInst::Predicate::ICMP_ULT) {
+      bool LHSMatchesSum = Comp->getOperand(0) == SumValue;
+      bool RHSMatchesPhi = Comp->getOperand(1) == Phi;
+      errs() << "Same Operand{0}: " << LHSMatchesSum << "\n";
+      errs() << "Same Operand{1}: " << RHSMatchesPhi << "\n";
+      if (LHSMatchesSum && RHSMatchesPhi) {
+        errs() << "Found IDIOM EXCLUSION matching if (a + b < a)\n";
+      }
+    }
   }
 
   return PreservedAnalyses::all();
 }
+
