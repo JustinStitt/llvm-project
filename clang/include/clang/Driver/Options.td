@@ -2558,6 +2558,11 @@ defm sanitize_stats : BoolOption<"f", "sanitize-stats",
           "Disable">,
   BothFlags<[], [ClangOption], " sanitizer statistics gathering.">>,
   Group<f_clang_Group>;
+defm sanitize_overflow_idioms : BoolOption<"f", "sanitize-overflow-idioms",
+  CodeGenOpts<"SanitizeOverflowIdioms">, DefaultTrue,
+  PosFlag<SetTrue, [], [], "Enable the instrumentation of common overflow idioms">,
+  NegFlag<SetFalse, [], [], "Disable the instrumentation of common overflow idioms">>,
+  BothFlags<[], [CC1Option]>;
 def fsanitize_thread_memory_access : Flag<["-"], "fsanitize-thread-memory-access">,
                                      Group<f_clang_Group>,
                                      HelpText<"Enable memory access instrumentation in ThreadSanitizer (default)">;

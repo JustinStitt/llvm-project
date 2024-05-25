@@ -7,7 +7,6 @@
 #include "llvm/IR/IntrinsicInst.h"
 #include "llvm/IR/Intrinsics.h"
 #include "llvm/IR/PassManager.h"
-#include "llvm/Transforms/Scalar/SimplifyCFG.h"
 
 using namespace llvm;
 
@@ -33,16 +32,19 @@ bool isAPlusBCMPAOrB(BasicBlock *BB, ExtractValueInst *Sum,
     if (!dyn_cast<ICmpInst>(SU))
       return false;
 
-    const Value *OtherValue;
+    // Given that the comparison resembles some permutation of a + b < a,
+    // OtherValue represents the non-addition side of the comparison
+    Value *OtherValue;
 
     for (unsigned Idx = 0; Idx < SU->getNumOperands(); ++Idx)
       if (SU->getOperand(Idx) != Sum)
         OtherValue = SU->getOperand(Idx);
 
-    // Determine if OtherValue was a constituent of the Sum to begin with...
+    // Determine if OtherValue was a part of the Sum to begin with...
     // Easy, OtherValue is equal to one of the addends
     if (is_contained(WOI->args(), OtherValue))
       continue;
+
     // Harder... OtherValue may be a 'load' or 'phi' instruction
     if (const PHINode *Phi = dyn_cast<PHINode>(OtherValue)) {
       if (is_contained(WOI->args(),
@@ -50,7 +52,7 @@ bool isAPlusBCMPAOrB(BasicBlock *BB, ExtractValueInst *Sum,
         continue;
       }
     } else if (const LoadInst *OtherL = dyn_cast<LoadInst>(OtherValue)) {
-      /* errs() << "OtherValue was a LoadInst!\n"; */
+      // Ensure the pointer references one of the addends from the sum
       auto PointerOperandMatches = [&](const Use &U) {
         const LoadInst *L = dyn_cast<LoadInst>(&U);
         return L && OtherL->getPointerOperand() == L->getPointerOperand();
@@ -105,37 +107,37 @@ IdiomExclusionsPass::checkOverflowIntstructions(Function &F,
       }
     }
 
-    for (User *U : Overflow->users()) {
-      BranchInst *B = dyn_cast<BranchInst>(U);
-      if (!B)
-        continue;
+    Instruction *Terminator = WOI->getParent()->getTerminator();
+    assert(Terminator && "Malformed BasicBlock containing Overflow intrinsic");
 
-      // overflow intrinsic always should have two successors
-      if (B->getNumSuccessors() != 2)
-        continue;
+    BranchInst *Br = dyn_cast<BranchInst>(Terminator);
 
-      // Which successor handles the non-overflow case
-      BasicBlock *LikelyNonOverflowPath = nullptr;
+    assert(Br->getNumSuccessors() == 2 &&
+           "A BasicBlock with an overflow intrinsic should have a terminator "
+           "with two successors");
 
-      for (unsigned I = 0; I < B->getNumSuccessors(); ++I) {
-        BasicBlock *Succ = B->getSuccessor(I);
-        if (!any_of(*Succ, [](const Instruction &Inst) {
-              return isa<CallInst>(Inst);
-            })) {
-          LikelyNonOverflowPath = Succ;
-        }
+    BasicBlock *NonOverflowBB = nullptr;
+    BasicBlock *OverflowBB = nullptr;
+
+    for (unsigned I = 0; I < Br->getNumSuccessors(); ++I) {
+      BasicBlock *Succ = Br->getSuccessor(I);
+      if (any_of(*Succ,
+                 [](const Instruction &Inst) { return isa<CallInst>(Inst); })) {
+        OverflowBB = Succ;
+      } else {
+        NonOverflowBB = Succ;
       }
+    }
 
-      if (!LikelyNonOverflowPath)
-        continue;
+    assert(NonOverflowBB && OverflowBB &&
+           "Both of these BasicBlocks should be defined");
 
-      // if (a + b < a)
-      if (isAPlusBCMPAOrB(LikelyNonOverflowPath, Sum, WOI)) {
-        B->setSuccessor(0, LikelyNonOverflowPath);
-        B->setSuccessor(1, LikelyNonOverflowPath);
-        continue;
-      }
-
+    // case like: if (a + b < a)
+    if (isAPlusBCMPAOrB(NonOverflowBB, Sum, WOI)) {
+      BranchInst::Create(NonOverflowBB, Br);
+      NonOverflowBB->removePredecessor(OverflowBB,
+                                       /*KeepOneInputPHIs=*/false);
+      Br->eraseFromParent();
     }
 
     assert(Sum && Overflow &&
@@ -158,7 +160,7 @@ PreservedAnalyses IdiomExclusionsPass::run(Function &F,
   /* PA.preserveSet<CFGAnalyses>(); */
   /* return PA; */
   /* auto &PA = AM.getResult<SimplifyCFGPass>(F); */
-  return PreservedAnalyses::none();
+  return PreservedAnalyses::all();
 
   /* if (Removable.empty()) */
   /*   return PreservedAnalyses::all(); */

@@ -260,6 +260,8 @@ CODEGENOPT(SanitizeMemoryParamRetval, 1, 0) ///< Enable detection of uninitializ
                                             ///< in MemorySanitizer
 CODEGENOPT(SanitizeMemoryUseAfterDtor, 1, 0) ///< Enable use-after-delete detection
                                              ///< in MemorySanitizer
+CODEGENOPT(SanitizeOverflowIdioms, 1, 1) ///< Enable/Disable instrumentation of
+                                         ///< common overflow idioms
 CODEGENOPT(SanitizeCfiCrossDso, 1, 0) ///< Enable cross-dso support in CFI.
 CODEGENOPT(SanitizeMinimalRuntime, 1, 0) ///< Use "_minimal" sanitizer runtime for
                                          ///< diagnostics.

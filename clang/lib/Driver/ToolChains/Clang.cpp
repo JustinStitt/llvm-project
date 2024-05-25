@@ -6972,6 +6972,10 @@ void Clang::ConstructJob(Compilation &C, const JobAction &JA,
   if (Args.hasArg(options::OPT_nogpulib))
     CmdArgs.push_back("-nogpulib");
 
+  if (Args.hasArg(options::OPT_fno_sanitize_overflow_idioms)) {
+    CmdArgs.push_back("-fno-sanitize-overflow-idioms");
+  }
+
   if (Arg *A = Args.getLastArg(options::OPT_fcf_protection_EQ)) {
     CmdArgs.push_back(
         Args.MakeArgString(Twine("-fcf-protection=") + A->getValue()));
