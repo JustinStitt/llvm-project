@@ -1362,6 +1362,8 @@ void SanitizerArgs::addArgs(const ToolChain &TC, const llvm::opt::ArgList &Args,
 
   if (!SanitizeOverflowIdioms) {
     CmdArgs.push_back("-fno-sanitize-overflow-idioms");
+    CmdArgs.push_back("-mllvm");
+    CmdArgs.push_back("-disable-overflow-idioms-sanitization");
   }
 
   // MSan: Workaround for PR16386.

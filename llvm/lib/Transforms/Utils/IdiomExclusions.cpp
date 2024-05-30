@@ -29,7 +29,7 @@ bool isAPlusBCMPAOrB(BasicBlock *BB, ExtractValueInst *Sum,
     return false;
 
   for (const User *SU : Sum->users()) {
-    if (!dyn_cast<ICmpInst>(SU))
+    if (!isa<ICmpInst>(SU))
       return false;
 
     // Given that the comparison resembles some permutation of a + b < a,
@@ -138,6 +138,7 @@ IdiomExclusionsPass::checkOverflowIntstructions(Function &F,
       NonOverflowBB->removePredecessor(OverflowBB,
                                        /*KeepOneInputPHIs=*/false);
       Br->eraseFromParent();
+      RemovableOverflowIntrinsics.push_back(WOI);
     }
 
     assert(Sum && Overflow &&
@@ -150,24 +151,6 @@ IdiomExclusionsPass::checkOverflowIntstructions(Function &F,
 PreservedAnalyses IdiomExclusionsPass::run(Function &F,
                                            FunctionAnalysisManager &AM) {
   SmallVector<WithOverflowInst *> Removable = checkOverflowIntstructions(F, AM);
-
   errs() << "Count of removable WOI's: " << Removable.size() << "\n";
-  for (const WithOverflowInst *WOI : Removable) {
-    WOI->dump();
-    errs() << "---\n";
-  }
-  /* PreservedAnalyses PA; */
-  /* PA.preserveSet<CFGAnalyses>(); */
-  /* return PA; */
-  /* auto &PA = AM.getResult<SimplifyCFGPass>(F); */
-  return PreservedAnalyses::all();
-
-  /* if (Removable.empty()) */
-  /*   return PreservedAnalyses::all(); */
-
-  /* for (WithOverflowInst *WOI : Removable) { */
-  /* } */
-
-  // TODO: otherwise, if we removed stuff we need to invalidate some analyses
-  /* return PreservedAnalyses::all(); // ... but assume we don't for now */
+  return PreservedAnalyses::none();
 }

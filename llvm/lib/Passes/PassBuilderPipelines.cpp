@@ -130,6 +130,7 @@
 #include "llvm/Transforms/Utils/CanonicalizeAliases.h"
 #include "llvm/Transforms/Utils/CountVisits.h"
 #include "llvm/Transforms/Utils/EntryExitInstrumenter.h"
+#include "llvm/Transforms/Utils/IdiomExclusions.h"
 #include "llvm/Transforms/Utils/InjectTLIMappings.h"
 #include "llvm/Transforms/Utils/LibCallsShrinkWrap.h"
 #include "llvm/Transforms/Utils/Mem2Reg.h"
@@ -275,6 +276,11 @@ static cl::opt<bool> FlattenedProfileUsed(
 static cl::opt<bool> EnableOrderFileInstrumentation(
     "enable-order-file-instrumentation", cl::init(false), cl::Hidden,
     cl::desc("Enable order file instrumentation (default = off)"));
+
+static cl::opt<bool> DisableOverflowIdiomSanitization(
+    "disable-overflow-idioms-sanitization", cl::init(false), cl::Hidden,
+    cl::desc("Remove sanitizer instrumentation from overflow idioms "
+             "(default = off)"));
 
 static cl::opt<bool>
     EnableMatrix("enable-matrix", cl::init(false), cl::Hidden,
@@ -1089,6 +1095,8 @@ PassBuilder::buildModuleSimplificationPipeline(OptimizationLevel Level,
     EarlyFPM.addPass(LowerExpectIntrinsicPass());
     EarlyFPM.addPass(SimplifyCFGPass());
     EarlyFPM.addPass(SROAPass(SROAOptions::ModifyCFG));
+    if (DisableOverflowIdiomSanitization)
+      EarlyFPM.addPass(IdiomExclusionsPass());
     EarlyFPM.addPass(EarlyCSEPass());
     if (Level == OptimizationLevel::O3)
       EarlyFPM.addPass(CallSiteSplittingPass());
