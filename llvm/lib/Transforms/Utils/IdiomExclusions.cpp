@@ -11,19 +11,32 @@
 using namespace llvm;
 
 namespace {
-bool isAddOverflowIntrinsic(const WithOverflowInst *WOI) {
-  if (!WOI)
-    return false;
 
+enum class OverflowIdiomTy {
+  BasePlusOffsetCompareToBase, /*    if(a + b < a) {...} */
+  WhileDec,                    /*    while(i--)    {...} */
+};
+
+struct OverflowIdiomInfo {
+  OverflowIdiomTy Ty;
+  WithOverflowInst *WOI;
+  BasicBlock *OverflowHandler;
+  BasicBlock *Cont;
+};
+
+bool isAddOverflowIntrinsic(const WithOverflowInst *WOI) {
   return WOI->getIntrinsicID() == Intrinsic::sadd_with_overflow ||
          WOI->getIntrinsicID() == Intrinsic::uadd_with_overflow;
 }
 
-bool isAPlusBCMPAOrB(BasicBlock *BB, ExtractValueInst *Sum,
-                     WithOverflowInst *WOI) {
-  assert(BB);
-  assert(Sum);
-  assert(WOI);
+bool doesMatchBasePlusOffsetCompareToBaseIdiom(BasicBlock *BB,
+                                               ExtractValueInst *Sum,
+                                               WithOverflowInst *WOI) {
+  if (!BB || !Sum || !WOI)
+    return false;
+
+  if (!isAddOverflowIntrinsic(WOI))
+    return false;
 
   if (!Sum->isUsedInBasicBlock(BB))
     return false;
@@ -67,32 +80,23 @@ bool isAPlusBCMPAOrB(BasicBlock *BB, ExtractValueInst *Sum,
   return true;
 }
 
-} // namespace
+SmallVector<OverflowIdiomInfo> findOverflowIdioms(Function &F) {
 
-/* Return the Overflow intrinsics that can be removed */
-SmallVector<WithOverflowInst *>
-IdiomExclusionsPass::checkOverflowIntstructions(Function &F,
-                                                FunctionAnalysisManager &AM) {
-  // TODO: Expand to sub for stuff like "while (x--)"
-  SmallVector<WithOverflowInst *> AddOverflowInstrinsics;
-  SmallVector<WithOverflowInst *> RemovableOverflowIntrinsics;
+  SmallVector<WithOverflowInst *> OverflowInstrinsics;
+  SmallVector<OverflowIdiomInfo> Infos;
 
-  // Locate the CallInstr's, looking specifically for add overflow intrinsics
   for (Instruction &Inst : instructions(F)) {
     WithOverflowInst *WOI = dyn_cast<WithOverflowInst>(&Inst);
-    if (WOI && isAddOverflowIntrinsic(WOI)) {
-      AddOverflowInstrinsics.push_back(WOI);
+    if (WOI) {
+      OverflowInstrinsics.push_back(WOI);
     }
   }
 
-  if (AddOverflowInstrinsics.empty())
-    return RemovableOverflowIntrinsics;
+  if (OverflowInstrinsics.empty())
+    return Infos;
 
-  errs() << "AddOverflowInstrinsics.size(): " << AddOverflowInstrinsics.size()
-         << "\n";
-
-  for (WithOverflowInst *WOI : AddOverflowInstrinsics) {
-    ExtractValueInst *Sum = nullptr;
+  for (WithOverflowInst *WOI : OverflowInstrinsics) {
+    ExtractValueInst *Result = nullptr;
     ExtractValueInst *Overflow = nullptr;
 
     for (User *U : WOI->users()) {
@@ -100,12 +104,15 @@ IdiomExclusionsPass::checkOverflowIntstructions(Function &F,
         assert(EVI->getNumIndices() == 1 &&
                "This aggregate should only have 1 index");
         if (EVI->getIndices()[0] == 0)
-          Sum = EVI;
+          Result = EVI;
         else if (EVI->getIndices()[0] == 1) {
           Overflow = EVI;
         }
       }
     }
+
+    if (Overflow->users().empty())
+      continue;
 
     Instruction *Terminator = WOI->getParent()->getTerminator();
     assert(Terminator && "Malformed BasicBlock containing Overflow intrinsic");
@@ -116,41 +123,55 @@ IdiomExclusionsPass::checkOverflowIntstructions(Function &F,
            "A BasicBlock with an overflow intrinsic should have a terminator "
            "with two successors");
 
-    BasicBlock *NonOverflowBB = nullptr;
-    BasicBlock *OverflowBB = nullptr;
+    /* Assume true branch is Cont and false branch is OverflowHandler */
+    BasicBlock *Cont = Br->getSuccessor(0);
+    BasicBlock *OverflowHandler = Br->getSuccessor(1);
 
-    for (unsigned I = 0; I < Br->getNumSuccessors(); ++I) {
-      BasicBlock *Succ = Br->getSuccessor(I);
-      if (any_of(*Succ,
-                 [](const Instruction &Inst) { return isa<CallInst>(Inst); })) {
-        OverflowBB = Succ;
-      } else {
-        NonOverflowBB = Succ;
-      }
+    /* The overflow-handling block will only have one predecessor,
+     * change our assumption from above if we got it wrong */
+    if (Br->getSuccessor(0)->hasNPredecessors(1)) {
+      OverflowHandler = Br->getSuccessor(0);
+      Cont = Br->getSuccessor(1);
     }
 
-    assert(NonOverflowBB && OverflowBB &&
-           "Both of these BasicBlocks should be defined");
-
-    // case like: if (a + b < a)
-    if (isAPlusBCMPAOrB(NonOverflowBB, Sum, WOI)) {
-      BranchInst::Create(NonOverflowBB, Br);
-      NonOverflowBB->removePredecessor(OverflowBB,
-                                       /*KeepOneInputPHIs=*/false);
-      Br->eraseFromParent();
-      RemovableOverflowIntrinsics.push_back(WOI);
+    if (doesMatchBasePlusOffsetCompareToBaseIdiom(Cont, Result, WOI)) {
+      OverflowIdiomInfo Info{
+          OverflowIdiomTy::BasePlusOffsetCompareToBase,
+          WOI,
+          OverflowHandler,
+          Cont,
+      };
+      Infos.push_back(std::move(Info));
     }
-
-    assert(Sum && Overflow &&
-           "These should've been set if WOI had valid users");
   }
 
-  return RemovableOverflowIntrinsics;
+  return Infos;
 }
+
+/// Remove the edge that connects the BasicBlock containing the overflow
+/// intrinsic to the overflow-handling BasicBlock. Now there is a single edge
+/// to the non-overflow handling BasicBlock.
+void removeEdgeToOverflowHandler(OverflowIdiomInfo &Info) {
+  Instruction *Terminator = Info.WOI->getParent()->getTerminator();
+  assert(Terminator && "Malformed BasicBlock containing Overflow intrinsic");
+  BranchInst *Br = dyn_cast<BranchInst>(Terminator);
+  BranchInst::Create(Info.Cont, Br);
+  Info.Cont->removePredecessor(Info.OverflowHandler,
+                               /*KeepOneInputPHIs=*/false);
+  Br->eraseFromParent();
+}
+
+} // namespace
 
 PreservedAnalyses IdiomExclusionsPass::run(Function &F,
                                            FunctionAnalysisManager &AM) {
-  SmallVector<WithOverflowInst *> Removable = checkOverflowIntstructions(F, AM);
-  errs() << "Count of removable WOI's: " << Removable.size() << "\n";
+  SmallVector<OverflowIdiomInfo> Infos = findOverflowIdioms(F);
+
+  if (Infos.empty())
+    return PreservedAnalyses::all();
+
+  for (OverflowIdiomInfo &Info : Infos)
+    removeEdgeToOverflowHandler(Info);
+
   return PreservedAnalyses::none();
 }
