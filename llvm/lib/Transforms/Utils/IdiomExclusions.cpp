@@ -2,6 +2,7 @@
 #include "llvm/Analysis/ValueTracking.h"
 #include "llvm/IR/Analysis.h"
 #include "llvm/IR/CFG.h"
+#include "llvm/IR/DataLayout.h"
 #include "llvm/IR/InstIterator.h"
 #include "llvm/IR/Instructions.h"
 #include "llvm/IR/Intrinsics.h"
@@ -19,127 +20,6 @@ enum class OverflowIdiomTy {
   WhileDec,                    /*    while(i--)    {...} */
 };
 
-/*struct OverflowIdiomInfo {*/
-/*  OverflowIdiomTy Ty;*/
-/*  BasicBlock *Overflow;*/
-/*  BasicBlock *Cont;*/
-/*};*/
-
-/*bool isAddOverflowIntrinsic(const WithOverflowInst *WOI) {*/
-/*  return WOI->getIntrinsicID() == Intrinsic::sadd_with_overflow ||*/
-/*         WOI->getIntrinsicID() == Intrinsic::uadd_with_overflow;*/
-/*}*/
-
-/*bool doesMatchBasePlusOffsetCompareToBaseIdiom(BasicBlock *BB,*/
-/*                                               ExtractValueInst *Sum,*/
-/*                                               WithOverflowInst *WOI) {*/
-/*  if (!BB || !Sum || !WOI)*/
-/*    return false;*/
-/**/
-/*  if (!isAddOverflowIntrinsic(WOI))*/
-/*    return false;*/
-/**/
-/*  if (!Sum->isUsedInBasicBlock(BB))*/
-/*    return false;*/
-/**/
-/*  for (const User *SU : Sum->users()) {*/
-/*    if (!isa<ICmpInst>(SU))*/
-/*      return false;*/
-/**/
-/*    // Given that the comparison resembles some permutation of a + b < a,*/
-/*    // OtherValue represents the non-addition side of the comparison*/
-/*    Value *OtherValue;*/
-/**/
-/*    for (unsigned Idx = 0; Idx < SU->getNumOperands(); ++Idx)*/
-/*      if (SU->getOperand(Idx) != Sum)*/
-/*        OtherValue = SU->getOperand(Idx);*/
-/**/
-/*    // Determine if OtherValue was a part of the Sum to begin with...*/
-/*    // Easy, OtherValue is equal to one of the addends*/
-/*    if (is_contained(WOI->args(), OtherValue))*/
-/*      continue;*/
-/**/
-/*    // Harder... OtherValue may be a 'load' or 'phi' instruction*/
-/*    if (const PHINode *Phi = dyn_cast<PHINode>(OtherValue)) {*/
-/*      if (is_contained(WOI->args(),*/
-/*                       Phi->getIncomingValueForBlock(WOI->getParent()))) {*/
-/*        continue;*/
-/*      }*/
-/*    } else if (const LoadInst *OtherL = dyn_cast<LoadInst>(OtherValue)) {*/
-/*      // Ensure the pointer references one of the addends from the sum*/
-/*      auto PointerOperandMatches = [&](const Use &U) {*/
-/*        const LoadInst *L = dyn_cast<LoadInst>(&U);*/
-/*        return L && OtherL->getPointerOperand() == L->getPointerOperand();*/
-/*      };*/
-/**/
-/*      if (any_of(WOI->args(), PointerOperandMatches))*/
-/*        continue;*/
-/*    }*/
-/*    return false;*/
-/*  }*/
-/**/
-/*  return true;*/
-/*}*/
-
-/*SmallVector<OverflowIdiomInfo> findOverflowIdioms(Function &F) {*/
-/**/
-/*  SmallVector<OverflowIdiomInfo> Infos;*/
-/**/
-/*  for (Instruction &I : instructions(F)) {*/
-/*    WithOverflowInst *WOI = dyn_cast<WithOverflowInst>(&I);*/
-/*    if (!WOI)*/
-/*      continue;*/
-/**/
-/*    ExtractValueInst *Result = nullptr;*/
-/*    ExtractValueInst *Overflow = nullptr;*/
-/**/
-/*    for (User *U : WOI->users()) {*/
-/*      if (auto *EVI = dyn_cast<ExtractValueInst>(U)) {*/
-/*        assert(EVI->getNumIndices() == 1 &&*/
-/*               "This aggregate should only have 1 index");*/
-/*        if (EVI->getIndices()[0] == 0)*/
-/*          Result = EVI;*/
-/*        else if (EVI->getIndices()[0] == 1) {*/
-/*          Overflow = EVI;*/
-/*        }*/
-/*      }*/
-/*    }*/
-/**/
-/*    if (!Overflow || Overflow->users().empty())*/
-/*      continue;*/
-/**/
-/*    Instruction *Br = WOI->getParent()->getTerminator();*/
-/*    assert(Br && Br->getNumSuccessors() == 2 &&*/
-/*           "A BasicBlock with an overflow intrinsic should have a terminator "*/
-/*           "with two successors");*/
-/**/
-/*    // Assume true branch is Cont and false branch is OverflowHandler *///
-/*    BasicBlock *Cont = Br->getSuccessor(0);*/
-/*    BasicBlock *OverflowHandler = Br->getSuccessor(1);*/
-/**/
-/*    // TODO: what if Cont only has 1 predecessor too, does this happen when the*/
-/*    // handler block is trapping?*/
-/*    // The overflow-handling block will only have one predecessor,//
-//     * change our assumption from above if we got it wrong ////
-//    if (Br->getSuccessor(0)->hasNPredecessors(1)) {*/
-/*      OverflowHandler = Br->getSuccessor(0);*/
-/*      Cont = Br->getSuccessor(1);*/
-/*    }*/
-/**/
-/*    if (doesMatchBasePlusOffsetCompareToBaseIdiom(Cont, Result, WOI)) {*/
-/*      OverflowIdiomInfo Info{*/
-/*          OverflowIdiomTy::BasePlusOffsetCompareToBase,*/
-/*          WOI,*/
-/*          OverflowHandler,*/
-/*          Cont,*/
-/*      };*/
-/*      Infos.push_back(std::move(Info));*/
-/*    }*/
-/*  }*/
-/**/
-/*  return Infos;*/
-/*}*/
-
 /// Remove the edge that connects the BasicBlock containing the overflow
 /// intrinsic to the overflow-handling BasicBlock. Now there is a single edge
 /// to the non-overflow handling BasicBlock.
@@ -153,6 +33,8 @@ void removeEdgeToOverflowHandler(Instruction *I) {
   for (const BasicBlock *BB : predecessors(I->getParent())) {
     const Instruction *Br = BB->getTerminator();
     assert(Br && "Malformed basic block has no terminator");
+    // TODO: what if Cont only has 1 predecessor too, does this happen when
+    // the*/ handler block is trapping?*/
     if (Br->getNumSuccessors() == 1)
       Overflow = const_cast<BasicBlock *>(BB);
     else if (Br->getNumSuccessors() == 2)
@@ -170,87 +52,95 @@ void removeEdgeToOverflowHandler(Instruction *I) {
   Entry->getTerminator()->eraseFromParent();
 }
 
-} // namespace
+bool GEPOffsetsMatch(const GetElementPtrInst *GEP, Value *V,
+                     const DataLayout &DL) {
+  const GetElementPtrInst *Other = dyn_cast<GetElementPtrInst>(V);
 
-SmallVector<Instruction *> NewMatching(Function &F) {
+  if (!GEP || !Other)
+    return false;
+
+  if (getUnderlyingObject(GEP) != getUnderlyingObject(Other))
+    return false;
+
+  return GEP->getPointerOffsetFrom(getUnderlyingObject(GEP), DL) ==
+         Other->getPointerOffsetFrom(getUnderlyingObject(Other), DL);
+}
+
+bool matchesLHSorRHS(Value *LHS, Value *RHS, Value *V, const DataLayout &DL) {
+  Value *LHSPtr, *RHSPtr;
+  LoadInst *L = dyn_cast<LoadInst>(V);
+
+  if (match(LHS, m_Load(m_Value(LHSPtr)))) {
+    LoadInst *LHSLoad = dyn_cast<LoadInst>(LHSPtr);
+    if (LHSLoad && L && L->getPointerOperand() == LHSLoad->getPointerOperand())
+      return true;
+  }
+
+  if (match(RHS, m_Load(m_Value(RHSPtr)))) {
+    LoadInst *RHSLoad = dyn_cast<LoadInst>(RHSPtr);
+    if (RHSLoad && L && L->getPointerOperand() == RHSLoad->getPointerOperand())
+      return true;
+  }
+
+  if (GetElementPtrInst *GEP = dyn_cast<GetElementPtrInst>(V))
+    if (GEPOffsetsMatch(GEP, LHSPtr, DL) || GEPOffsetsMatch(GEP, RHSPtr, DL))
+      return true;
+
+  return V == LHSPtr || V == RHSPtr;
+}
+
+SmallVector<Instruction *> matchesBasePlusOffsetCompareToBase(Function &F) {
   SmallVector<Instruction *> MatchingInstructions;
   const DataLayout &DL = F.getParent()->getDataLayout();
 
   for (Instruction &I : instructions(F)) {
     Value *CmpOther;
     Value *LHS, *RHS;
-    Value *SomeLoad;
+    Value *OtherValue;
     ICmpInst::Predicate Pred;
 
+    // Try to find patterns that match: if (a + b < a)
+    // TODO: what if there is an overflow intrinsic but it isn't used in the
+    // non-overflow/overflow scheme? It's just sort of "there" and not handled
+    // by UBSAN or other.
     if (match(&I, m_c_ICmp(Pred,
-                           m_ExtractValue<0>(
+                           m_ExtractValue<0>(m_CombineOr(
                                m_Intrinsic<Intrinsic::uadd_with_overflow>(
-                                   m_Value(LHS), m_Value(RHS))),
+                                   m_Value(LHS), m_Value(RHS)),
+                               m_Intrinsic<Intrinsic::sadd_with_overflow>(
+                                   m_Value(LHS), m_Value(RHS)))),
                            m_Value(CmpOther)))) {
-      errs() << "strip dump LHS: "; LHS->stripInBoundsOffsets()->dump();
-      errs() << "strip dump RHS: "; RHS->stripInBoundsOffsets()->dump();
-      errs() << "strip dump CmpOther: "; CmpOther->stripInBoundsOffsets()->dump();
-      /*CmpOther->getUnderlyingObject()*/
-      errs() << "underlying CmpOther: "; getUnderlyingObject(CmpOther)->dump();
+
+      // Predicates like >=, <=, ==, and != don't match the idiom
+      if (ICmpInst::isNonStrictPredicate(Pred) || Pred == ICmpInst::ICMP_EQ ||
+          Pred == ICmpInst::ICMP_NE)
+        continue;
+
+      // The commutative nature of m_c_ICmp means a predicate matching our
+      // pattern should be {U,S}LT.
+      if (Pred != ICmpInst::Predicate::ICMP_ULT &&
+          Pred != ICmpInst::Predicate::ICMP_SLT)
+        continue;
 
       if (CmpOther == LHS || CmpOther == RHS) {
-        errs() << "Matched first cond\n";
         MatchingInstructions.push_back(&I);
         continue;
       }
-      LoadInst *RHSLoad = dyn_cast<LoadInst>(RHS);
-      LoadInst *LHSLoad = dyn_cast<LoadInst>(LHS);
-      auto IsValueOneOfLHSorRHSPtrOp = [&](Value *L) {
-        // check GEP
-        errs() << "L: "; L->dump();
-        if (GetElementPtrInst *GEP = dyn_cast<GetElementPtrInst>(L)) {
-          auto ByteOffset =
-              GEP->getPointerOffsetFrom(getUnderlyingObject(GEP), DL);
-          if (GetElementPtrInst *LHSGEP = dyn_cast<GetElementPtrInst>(LHSLoad->getPointerOperand())) {
-            if ((getUnderlyingObject(LHSGEP) == getUnderlyingObject(GEP)) && (ByteOffset == LHSGEP->getPointerOffsetFrom(getUnderlyingObject(LHSGEP), DL))) {
-              errs() << "LHSGEP match\n";
-              return true;
-            }
-          }
-          if (GetElementPtrInst *RHSGEP = dyn_cast<GetElementPtrInst>(RHSLoad->getPointerOperand())) {
-            if ((getUnderlyingObject(RHSGEP) == getUnderlyingObject(GEP)) && (ByteOffset == RHSGEP->getPointerOffsetFrom(getUnderlyingObject(RHSGEP), DL))) {
-              errs() << "RHSGEP match\n";
-              return true;
-            }
-          }
-          /*errs() << "GEP: "; GEP->dump();*/
-          /*errs() << "LHSLoad: "; LHSLoad->dump();*/
-          /*errs() << "LHSLoad underlying: "; getUnderlyingObject(LHSLoad)->dump();*/
-          /*errs() << "RHSLoad: "; RHSLoad->dump();*/
-          /*errs() << "ByteOffset: " << ByteOffset << "\n";*/
-          return getUnderlyingObject(GEP) == getUnderlyingObject(LHSLoad->getPointerOperand());
-        }
 
-        return (LHSLoad && L == LHSLoad->getPointerOperand()) ||
-               (RHSLoad && L == RHSLoad->getPointerOperand());
-      };
-      if (match(CmpOther, m_Load(m_Value(SomeLoad)))) {
-        LoadInst *LL = dyn_cast<LoadInst>(CmpOther);
-        /*errs() << "no-strip dump CmpOther2: "; LL->getPointerOperand()->dump();*/
-        /*errs() << "strip dump CmpOther2: "; LL->getPointerOperand()->stripInBoundsOffsets()->dump();*/
-        errs() << "underlying CmpOther 2: "; getUnderlyingObject(LL->getPointerOperand())->dump();
-        errs() << "underlying LHS: "; getUnderlyingObject(LHS->stripPointerCasts())->dump();
-        errs() << "underlying RHS: "; getUnderlyingObject(RHS)->dump();
-        if (IsValueOneOfLHSorRHSPtrOp(SomeLoad)) {
-          errs() << "Matched second cond\n";
+      if (match(CmpOther, m_Load(m_Value(OtherValue)))) {
+        if (matchesLHSorRHS(LHS, RHS, OtherValue, DL)) {
           MatchingInstructions.push_back(&I);
           continue;
         }
-
       }
+
       if (PHINode *Phi = dyn_cast<PHINode>(CmpOther)) {
         if (Phi->getNumIncomingValues() != 2)
           continue; // no match
         LoadInst *Phi0 = dyn_cast<LoadInst>(Phi->getIncomingValue(0));
         LoadInst *Phi1 = dyn_cast<LoadInst>(Phi->getIncomingValue(1));
-        if (IsValueOneOfLHSorRHSPtrOp(Phi0->getPointerOperand()) ||
-            IsValueOneOfLHSorRHSPtrOp(Phi1->getPointerOperand())) {
-          errs() << "Phi match\n";
+        if (matchesLHSorRHS(LHS, RHS, Phi0->getPointerOperand(), DL) ||
+            matchesLHSorRHS(LHS, RHS, Phi1->getPointerOperand(), DL)) {
           MatchingInstructions.push_back(&I);
           continue;
         }
@@ -261,10 +151,13 @@ SmallVector<Instruction *> NewMatching(Function &F) {
   return MatchingInstructions;
 }
 
+} // namespace
+
 PreservedAnalyses IdiomExclusionsPass::run(Function &F,
                                            FunctionAnalysisManager &AM) {
   errs() << "Running IdiomExclusionsPass\n";
-  SmallVector<Instruction *> MatchingInstructions = NewMatching(F);
+  SmallVector<Instruction *> MatchingInstructions =
+      matchesBasePlusOffsetCompareToBase(F);
   for (Instruction *I : MatchingInstructions)
     removeEdgeToOverflowHandler(I);
 
