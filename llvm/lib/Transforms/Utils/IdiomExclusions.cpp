@@ -45,7 +45,6 @@ void removeEdgeToOverflowHandler(Instruction *I) {
   }
 
   assert(Entry && Cont && Overflow);
-  /*errs() << "Wanting to change/remove: "; Cont->getTerminator()->dump();*/
   BranchInst::Create(Cont, Entry->getTerminator());
   Cont->removePredecessor(Overflow,
                           /*KeepOneInputPHIs=*/false);
