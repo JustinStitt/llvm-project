@@ -5,49 +5,63 @@
 #include "llvm/IR/DataLayout.h"
 #include "llvm/IR/InstIterator.h"
 #include "llvm/IR/Instructions.h"
+#include "llvm/IR/IntrinsicInst.h"
 #include "llvm/IR/Intrinsics.h"
 #include "llvm/IR/PassManager.h"
 #include "llvm/IR/PatternMatch.h"
-#include "llvm/Support/ErrorHandling.h"
 
 using namespace llvm;
 using namespace llvm::PatternMatch;
 
 namespace {
 
-enum class OverflowIdiomTy {
+enum class OverflowIdiomKind {
   BasePlusOffsetCompareToBase, /*    if(a + b < a) {...} */
   WhileDec,                    /*    while(i--)    {...} */
+};
+
+struct OverflowIdiomInfo {
+  OverflowIdiomKind Kind;
+  WithOverflowInst *WOI;
+  BasicBlock *Entry;
+  BasicBlock *Overflow;
+  BasicBlock *Cont;
+
+  OverflowIdiomInfo() = delete;
+
+  OverflowIdiomInfo(OverflowIdiomKind Kind, WithOverflowInst *WOI,
+                    Instruction &I)
+      : Kind(Kind), WOI(WOI) {
+    Entry = WOI->getParent();
+    Cont = I.getParent();
+    BranchInst *Br = dyn_cast<BranchInst>(Entry->getTerminator());
+
+    assert(Br && "Malformed BasicBlock containing WOI");
+    assert(Br->getNumSuccessors() == 2);
+
+    Overflow =
+        Br->getSuccessor(0) == Cont ? Br->getSuccessor(1) : Br->getSuccessor(0);
+  }
 };
 
 /// Remove the edge that connects the BasicBlock containing the overflow
 /// intrinsic to the overflow-handling BasicBlock. Now there is a single edge
 /// to the non-overflow handling BasicBlock.
-void removeEdgeToOverflowHandler(Instruction *I) {
-  if (!I)
-    return;
-  BasicBlock *Cont = I->getParent();
-  BasicBlock *Entry = nullptr;
-  BasicBlock *Overflow = nullptr;
+void removeEdgeToOverflowHandler(const OverflowIdiomInfo &Info) {
+  BasicBlock *Entry = Info.Entry;
+  BasicBlock *Cont = Info.Cont;
+  BasicBlock *Overflow = Info.Overflow;
 
-  for (const BasicBlock *BB : predecessors(I->getParent())) {
-    const Instruction *Br = BB->getTerminator();
-    assert(Br && "Malformed basic block has no terminator");
-    // TODO: what if Cont only has 1 predecessor too, does this happen when
-    // the*/ handler block is trapping?*/
-    if (Br->getNumSuccessors() == 1)
-      Overflow = const_cast<BasicBlock *>(BB);
-    else if (Br->getNumSuccessors() == 2)
-      Entry = const_cast<BasicBlock *>(BB);
-    else
-      llvm_unreachable(
-          "Must be 1 or 2 successors in overflow handling pattern");
-  }
+  assert(Overflow);
+  assert(Cont);
+  assert(Entry);
 
-  assert(Entry && Cont && Overflow);
   BranchInst::Create(Cont, Entry->getTerminator());
-  Cont->removePredecessor(Overflow,
-                          /*KeepOneInputPHIs=*/false);
+
+  // Handling overflows in non-recoverable modes means we have no edge to Cont
+  if (Overflow->getUniqueSuccessor() == Cont)
+    Cont->removePredecessor(Overflow,
+                            /*KeepOneInputPHIs=*/false);
   Entry->getTerminator()->eraseFromParent();
 }
 
@@ -88,27 +102,30 @@ bool matchesLHSorRHS(Value *LHS, Value *RHS, Value *V, const DataLayout &DL) {
   return V == LHSPtr || V == RHSPtr;
 }
 
-SmallVector<Instruction *> matchesBasePlusOffsetCompareToBase(Function &F) {
-  SmallVector<Instruction *> MatchingInstructions;
+SmallVector<OverflowIdiomInfo> matchesBasePlusOffsetCompareToBase(Function &F) {
+  SmallVector<OverflowIdiomInfo> MatchedOverflowIdioms;
   const DataLayout &DL = F.getParent()->getDataLayout();
 
   for (Instruction &I : instructions(F)) {
     Value *CmpOther;
     Value *LHS, *RHS;
     Value *OtherValue;
+    WithOverflowInst *WOI;
     ICmpInst::Predicate Pred;
 
     // Try to find patterns that match: if (a + b < a)
     // TODO: what if there is an overflow intrinsic but it isn't used in the
     // non-overflow/overflow scheme? It's just sort of "there" and not handled
-    // by UBSAN or other.
-    if (match(&I, m_c_ICmp(Pred,
-                           m_ExtractValue<0>(m_CombineOr(
-                               m_Intrinsic<Intrinsic::uadd_with_overflow>(
-                                   m_Value(LHS), m_Value(RHS)),
-                               m_Intrinsic<Intrinsic::sadd_with_overflow>(
-                                   m_Value(LHS), m_Value(RHS)))),
+    // by UBSAN or other. Essentially, how can we ensure that the Overflow
+    // handling BasicBlock is actually handling the overflow?
+    if (match(&I, m_c_ICmp(Pred, m_ExtractValue<0>(m_WithOverflowInst(WOI)),
                            m_Value(CmpOther)))) {
+
+      if (!match(WOI, m_CombineOr(m_Intrinsic<Intrinsic::uadd_with_overflow>(
+                                      m_Value(LHS), m_Value(RHS)),
+                                  m_Intrinsic<Intrinsic::sadd_with_overflow>(
+                                      m_Value(LHS), m_Value(RHS)))))
+        continue;
 
       // Predicates like >=, <=, ==, and != don't match the idiom
       if (ICmpInst::isNonStrictPredicate(Pred) || Pred == ICmpInst::ICMP_EQ ||
@@ -121,14 +138,16 @@ SmallVector<Instruction *> matchesBasePlusOffsetCompareToBase(Function &F) {
           Pred != ICmpInst::Predicate::ICMP_SLT)
         continue;
 
+      OverflowIdiomInfo Info(OverflowIdiomKind::BasePlusOffsetCompareToBase, WOI, I);
+
       if (CmpOther == LHS || CmpOther == RHS) {
-        MatchingInstructions.push_back(&I);
+        MatchedOverflowIdioms.push_back(std::move(Info));
         continue;
       }
 
       if (match(CmpOther, m_Load(m_Value(OtherValue)))) {
         if (matchesLHSorRHS(LHS, RHS, OtherValue, DL)) {
-          MatchingInstructions.push_back(&I);
+          MatchedOverflowIdioms.push_back(std::move(Info));
           continue;
         }
       }
@@ -140,14 +159,14 @@ SmallVector<Instruction *> matchesBasePlusOffsetCompareToBase(Function &F) {
         LoadInst *Phi1 = dyn_cast<LoadInst>(Phi->getIncomingValue(1));
         if (matchesLHSorRHS(LHS, RHS, Phi0->getPointerOperand(), DL) ||
             matchesLHSorRHS(LHS, RHS, Phi1->getPointerOperand(), DL)) {
-          MatchingInstructions.push_back(&I);
+          MatchedOverflowIdioms.push_back(std::move(Info));
           continue;
         }
       }
     }
   }
 
-  return MatchingInstructions;
+  return MatchedOverflowIdioms;
 }
 
 } // namespace
@@ -155,10 +174,15 @@ SmallVector<Instruction *> matchesBasePlusOffsetCompareToBase(Function &F) {
 PreservedAnalyses IdiomExclusionsPass::run(Function &F,
                                            FunctionAnalysisManager &AM) {
   errs() << "Running IdiomExclusionsPass\n";
-  SmallVector<Instruction *> MatchingInstructions =
+
+  SmallVector<OverflowIdiomInfo> OverflowIdioms =
       matchesBasePlusOffsetCompareToBase(F);
-  for (Instruction *I : MatchingInstructions)
-    removeEdgeToOverflowHandler(I);
+
+  if (OverflowIdioms.empty())
+    return PreservedAnalyses::all();
+
+  for (const OverflowIdiomInfo &Info: OverflowIdioms)
+    removeEdgeToOverflowHandler(Info);
 
   return PreservedAnalyses::none();
 }
