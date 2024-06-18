@@ -16,7 +16,7 @@ using namespace llvm::PatternMatch;
 namespace {
 
 enum class OverflowIdiomKind {
-  BasePlusOffsetCompareToBase, /*    if(a + b < a) {...} */
+  BasePlusOffsetCompareToBase, /*    if(a + b u< a) {...} */
   WhileDec,                    /*    while(i--)    {...} */
 };
 
@@ -121,10 +121,8 @@ SmallVector<OverflowIdiomInfo> matchesBasePlusOffsetCompareToBase(Function &F) {
     if (match(&I, m_c_ICmp(Pred, m_ExtractValue<0>(m_WithOverflowInst(WOI)),
                            m_Value(CmpOther)))) {
 
-      if (!match(WOI, m_CombineOr(m_Intrinsic<Intrinsic::uadd_with_overflow>(
-                                      m_Value(LHS), m_Value(RHS)),
-                                  m_Intrinsic<Intrinsic::sadd_with_overflow>(
-                                      m_Value(LHS), m_Value(RHS)))))
+      if (!match(WOI, m_Intrinsic<Intrinsic::uadd_with_overflow>(m_Value(LHS),
+                                                                 m_Value(RHS))))
         continue;
 
       // Predicates like >=, <=, ==, and != don't match the idiom
@@ -133,12 +131,12 @@ SmallVector<OverflowIdiomInfo> matchesBasePlusOffsetCompareToBase(Function &F) {
         continue;
 
       // The commutative nature of m_c_ICmp means a predicate matching our
-      // pattern should be {U,S}LT.
-      if (Pred != ICmpInst::Predicate::ICMP_ULT &&
-          Pred != ICmpInst::Predicate::ICMP_SLT)
+      // pattern should be ULT.
+      if (Pred != ICmpInst::Predicate::ICMP_ULT)
         continue;
 
-      OverflowIdiomInfo Info(OverflowIdiomKind::BasePlusOffsetCompareToBase, WOI, I);
+      OverflowIdiomInfo Info(OverflowIdiomKind::BasePlusOffsetCompareToBase,
+                             WOI, I);
 
       if (CmpOther == LHS || CmpOther == RHS) {
         MatchedOverflowIdioms.push_back(std::move(Info));
@@ -181,7 +179,7 @@ PreservedAnalyses IdiomExclusionsPass::run(Function &F,
   if (OverflowIdioms.empty())
     return PreservedAnalyses::all();
 
-  for (const OverflowIdiomInfo &Info: OverflowIdioms)
+  for (const OverflowIdiomInfo &Info : OverflowIdioms)
     removeEdgeToOverflowHandler(Info);
 
   return PreservedAnalyses::none();

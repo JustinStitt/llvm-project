@@ -2,8 +2,7 @@
 // RUN: %clang %s -O2 -fsanitize=signed-integer-overflow,unsigned-integer-overflow -fno-sanitize-overflow-idioms -fwrapv -S -emit-llvm -o - | FileCheck %s
 // CHECK-NOT: br{{.*}}overflow
 
-extern int a, b, c;
-extern unsigned u, v, w;
+extern unsigned a, b, c;
 
 void basic_commutativity(void) {
   if (a + b < a)
@@ -53,24 +52,24 @@ void pointers(unsigned *P1, unsigned *P2, unsigned V1) {
 }
 
 struct OtherStruct {
-  int foo, bar;
+  unsigned foo, bar;
 };
 
 struct MyStruct {
-  int base, offset;
+  unsigned base, offset;
   struct OtherStruct os;
 };
 
+extern struct MyStruct ms;
+
 void structs(void) {
-  struct MyStruct ms;
-  if (ms.base + ms.offset > ms.base)
-    c = 9;;
+  if (ms.base + ms.offset < ms.base)
+    c = 9;
 }
 
 void nestedstructs(void) {
-  struct MyStruct ms;
   if (ms.os.foo + ms.os.bar < ms.os.foo)
-    c = 9;;
+    c = 9;
 }
 
 // Normally, this would be folded into a simple call to the overflow handler
@@ -79,10 +78,5 @@ void constants(void) {
   unsigned base = 4294967295;
   unsigned offset = 1;
   if (base + offset < base)
-    c = 9;
-}
-
-void constants_inline(void) {
-  if (4294967295 + 1 < 4294967295)
     c = 9;
 }

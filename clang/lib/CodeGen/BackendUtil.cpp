@@ -673,8 +673,7 @@ static void addSanitizers(const Triple &TargetTriple,
           SancovOpts, CodeGenOpts.SanitizeCoverageAllowlistFiles,
           CodeGenOpts.SanitizeCoverageIgnorelistFiles));
     }
-    if (LangOpts.Sanitize.hasOneOf(SanitizerKind::SignedIntegerOverflow |
-                                   SanitizerKind::UnsignedIntegerOverflow) &&
+    if (LangOpts.Sanitize.has(SanitizerKind::UnsignedIntegerOverflow) &&
         !CodeGenOpts.SanitizeOverflowIdioms) {
       FunctionPassManager FPM;
       FPM.addPass(IdiomExclusionsPass());
