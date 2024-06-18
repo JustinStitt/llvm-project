@@ -1,12 +1,9 @@
 // RUN: %clang %s -O2 -fsanitize=signed-integer-overflow,unsigned-integer-overflow -fno-sanitize-overflow-idioms -S -emit-llvm -o - | FileCheck %s
-// RUN: %clang %s -O2 -fsanitize=signed-integer-overflow,unsigned-integer-overflow -fno-sanitize-overflow-idioms -fwrapv -S -emit-llvm -o - | FileCheck --check-prefix=WRAPV %s
+// RUN: %clang %s -O2 -fsanitize=signed-integer-overflow,unsigned-integer-overflow -fno-sanitize-overflow-idioms -fwrapv -S -emit-llvm -o - | FileCheck %s
 // CHECK-NOT: br{{.*}}overflow
-// WRAPV-NOT: br{{.*}}overflow
 
 extern int a, b, c;
 extern unsigned u, v, w;
-
-extern int some(void);
 
 void basic_commutativity(void) {
   if (a + b < a)
@@ -74,4 +71,18 @@ void nestedstructs(void) {
   struct MyStruct ms;
   if (ms.os.foo + ms.os.bar < ms.os.foo)
     c = 9;;
+}
+
+// Normally, this would be folded into a simple call to the overflow handler
+// and a store. Excluding this idiom results in just a call to the store.
+void constants(void) {
+  unsigned base = 4294967295;
+  unsigned offset = 1;
+  if (base + offset < base)
+    c = 9;
+}
+
+void constants_inline(void) {
+  if (4294967295 + 1 < 4294967295)
+    c = 9;
 }
