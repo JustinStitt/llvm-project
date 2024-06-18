@@ -1,8 +1,23 @@
+// Ensure some common idioms don't trigger the overflow sanitizers when
+// -fno-sanitize-overflow-idioms is enabled. In many cases, overflow warnings
+// caused by these idioms are seen as "noise" and result in users turning off
+// sanitization all together.
+
+// A pattern like "if (a + b < a)" simply checks for overflow and usually means
+// the user is trying to handle it gracefully.
+
+// Similarly, a pattern resembling "while (i--)" is extremely common and
+// warning on its inevitable overflow can be seen as superfluous. Do note that
+// using "i" in future calculations can be tricky because it will still
+// wrap-around. Using -fno-sanitize-overflow-idioms or not doesn't change this
+// fact -- we just won't warn/trap with sanitizers.
+
 // RUN: %clang %s -O2 -fsanitize=signed-integer-overflow,unsigned-integer-overflow -fno-sanitize-overflow-idioms -S -emit-llvm -o - | FileCheck %s
 // RUN: %clang %s -O2 -fsanitize=signed-integer-overflow,unsigned-integer-overflow -fno-sanitize-overflow-idioms -fwrapv -S -emit-llvm -o - | FileCheck %s
 // CHECK-NOT: br{{.*}}overflow
 
 extern unsigned a, b, c;
+extern void some(void);
 
 void basic_commutativity(void) {
   if (a + b < a)
@@ -79,4 +94,12 @@ void constants(void) {
   unsigned offset = 1;
   if (base + offset < base)
     c = 9;
+}
+
+void common_while(unsigned i) {
+  // This post-decrement usually causes overflow sanitizers to trip on the very
+  // last operation.
+  while (i--) {
+    some();
+  }
 }

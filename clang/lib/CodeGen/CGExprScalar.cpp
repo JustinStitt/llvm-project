@@ -25,6 +25,7 @@
 #include "clang/AST/DeclObjC.h"
 #include "clang/AST/Expr.h"
 #include "clang/AST/RecordLayout.h"
+#include "clang/AST/ParentMapContext.h"
 #include "clang/AST/StmtVisitor.h"
 #include "clang/Basic/CodeGenOptions.h"
 #include "clang/Basic/TargetInfo.h"
@@ -2877,6 +2878,16 @@ ScalarExprEmitter::EmitScalarPrePostIncDec(const UnaryOperator *E, LValue LV,
   } else if (type->isIntegerType()) {
     QualType promotedType;
     bool canPerformLossyDemotionCheck = false;
+
+    // Does this match the pattern of while(i--) {...}? If so, and if
+    // SanitizeOverflowIdioms is disabled, we don't want to enable sanitizer.
+    bool disableSanitizer =
+        (!isInc && !isPre && !CGF.CGM.getCodeGenOpts().SanitizeOverflowIdioms &&
+         llvm::all_of(CGF.getContext().getParentMapContext().getParents(*E),
+                      [&](const DynTypedNode &Parent) -> bool {
+                        return Parent.get<WhileStmt>();
+                      }));
+
     if (CGF.getContext().isPromotableIntegerType(type)) {
       promotedType = CGF.getContext().getPromotedIntegerType(type);
       assert(promotedType != type && "Shouldn't promote to the same type.");
@@ -2936,11 +2947,10 @@ ScalarExprEmitter::EmitScalarPrePostIncDec(const UnaryOperator *E, LValue LV,
     } else if (E->canOverflow() && type->isSignedIntegerOrEnumerationType()) {
       value = EmitIncDecConsiderOverflowBehavior(E, value, isInc);
     } else if (E->canOverflow() && type->isUnsignedIntegerType() &&
-               CGF.SanOpts.has(SanitizerKind::UnsignedIntegerOverflow)) {
-      if (isInc || isPre || CGF.CGM.getCodeGenOpts().SanitizeOverflowIdioms) {
-        value = EmitOverflowCheckedBinOp(createBinOpInfoFromIncDec(
-            E, value, isInc, E->getFPFeaturesInEffect(CGF.getLangOpts())));
-      }
+               CGF.SanOpts.has(SanitizerKind::UnsignedIntegerOverflow) &&
+               !disableSanitizer) {
+      value = EmitOverflowCheckedBinOp(createBinOpInfoFromIncDec(
+          E, value, isInc, E->getFPFeaturesInEffect(CGF.getLangOpts())));
     } else {
       llvm::Value *amt = llvm::ConstantInt::get(value->getType(), amount, true);
       value = Builder.CreateAdd(value, amt, isInc ? "inc" : "dec");
