@@ -12,8 +12,14 @@
 // wrap-around. Using -fno-sanitize-overflow-idioms or not doesn't change this
 // fact -- we just won't warn/trap with sanitizers.
 
+// Another common pattern that, in some cases, is found to be too noisy is
+// unsigned negation, for example:
+// unsigned long A = -1UL;
+
 // RUN: %clang %s -O2 -fsanitize=signed-integer-overflow,unsigned-integer-overflow -fno-sanitize-overflow-idioms -S -emit-llvm -o - | FileCheck %s
 // RUN: %clang %s -O2 -fsanitize=signed-integer-overflow,unsigned-integer-overflow -fno-sanitize-overflow-idioms -fwrapv -S -emit-llvm -o - | FileCheck %s
+// RUN: %clang %s -O2 -fsanitize=signed-integer-overflow,unsigned-integer-overflow -fno-sanitize-overflow-idioms -S -emit-llvm -o - | FileCheck %s --check-prefix=NEGATION
+// RUN: %clang %s -O2 -fsanitize=signed-integer-overflow,unsigned-integer-overflow -fno-sanitize-overflow-idioms -fsanitize-negation-overflow -S -emit-llvm -o - | FileCheck %s --check-prefix=NEGATIONOV
 // CHECK-NOT: br{{.*}}overflow
 
 extern unsigned a, b, c;
@@ -102,4 +108,16 @@ void common_while(unsigned i) {
   while (i--) {
     some();
   }
+}
+
+// NEGATION-LABEL,NEGATIONOV-LABEL: define{{.*}}negation_overflow
+// NEGATION-NOT: negate_overflow
+// NEGATIONOV: negate_overflow
+// Normally, these assignments would trip the unsigned overflow sanitizer.
+void negation_overflow(void) {
+  unsigned long A = -1UL;
+  unsigned long B = -2UL;
+  unsigned long C = -3UL;
+  unsigned long D = -1337UL;
+  (void)A;(void)B;(void)C;(void)D;
 }
