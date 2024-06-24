@@ -94,7 +94,7 @@ void nestedstructs(void) {
 }
 
 // Normally, this would be folded into a simple call to the overflow handler
-// and a store. Excluding this idiom results in just a call to the store.
+// and a store. Excluding this idiom results in just a store.
 void constants(void) {
   unsigned base = 4294967295;
   unsigned offset = 1;
