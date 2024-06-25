@@ -844,7 +844,7 @@ void CodeGenFunction::EmitTypeCheck(TypeCheckKind TCK, SourceLocation Loc,
                                                      Out);
 
     // Contained in NoSanitizeList based on the mangled type.
-    if (!CGM.getContext().getNoSanitizeList().containsType(SanitizerKind::Vptr,
+    if (!CGM.getContext().getSanitizeIgnorelist().containsType(SanitizerKind::Vptr,
                                                            Out.str())) {
       // Load the vptr, and mix it with TypeHash.
       llvm::Value *TypeHash =

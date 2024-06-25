@@ -57,9 +57,9 @@
 #include "clang/Basic/LangOptions.h"
 #include "clang/Basic/Linkage.h"
 #include "clang/Basic/Module.h"
-#include "clang/Basic/NoSanitizeList.h"
 #include "clang/Basic/ObjCRuntime.h"
 #include "clang/Basic/ProfileList.h"
+#include "clang/Basic/SanitizerSpecialCaseList.h"
 #include "clang/Basic/SourceLocation.h"
 #include "clang/Basic/SourceManager.h"
 #include "clang/Basic/Specifiers.h"
@@ -883,7 +883,12 @@ ASTContext::ASTContext(LangOptions &LOpts, SourceManager &SM,
       DependentBitIntTypes(this_()), SubstTemplateTemplateParmPacks(this_()),
       ArrayParameterTypes(this_()), CanonTemplateTemplateParms(this_()),
       SourceMgr(SM), LangOpts(LOpts),
-      NoSanitizeL(new NoSanitizeList(LangOpts.NoSanitizeFiles, SM)),
+      SanitizeIgnorelist(SanitizerSpecialCaseList::createOrDie(
+          LangOpts.SanitizeIgnorelistFiles,
+          SM.getFileManager().getVirtualFileSystem())),
+      SanitizeAllowlist(SanitizerSpecialCaseList::createOrDie(
+          LangOpts.SanitizeAllowlistFiles,
+          SM.getFileManager().getVirtualFileSystem())),
       XRayFilter(new XRayFunctionFilter(LangOpts.XRayAlwaysInstrumentFiles,
                                         LangOpts.XRayNeverInstrumentFiles,
                                         LangOpts.XRayAttrListFiles, SM)),

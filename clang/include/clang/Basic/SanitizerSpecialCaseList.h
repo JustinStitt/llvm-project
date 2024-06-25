@@ -17,6 +17,7 @@
 #include "clang/Basic/LLVM.h"
 #include "clang/Basic/Sanitizers.h"
 #include "llvm/ADT/StringRef.h"
+#include "clang/Basic/SourceManager.h"
 #include "llvm/Support/SpecialCaseList.h"
 #include <memory>
 #include <vector>
@@ -56,6 +57,21 @@ protected:
   };
 
   std::vector<SanitizerSection> SanitizerSections;
+
+public:
+  // inSection wrappers
+  bool containsGlobal(SanitizerMask Mask, StringRef GlobalName,
+                      StringRef Category = StringRef()) const;
+  bool containsType(SanitizerMask Mask, StringRef MangledTypeName,
+                    StringRef Category = StringRef()) const;
+  bool containsFunction(SanitizerMask Mask, StringRef FunctionName) const;
+  bool containsFile(SanitizerMask Mask, StringRef FileName,
+                    StringRef Category = StringRef()) const;
+  bool containsMainFile(SanitizerMask Mask, StringRef FileName,
+                        StringRef Category = StringRef()) const;
+  bool containsLocation(SanitizerMask Mask, SourceLocation Loc,
+                        SourceManager &SM,
+                        StringRef Category = StringRef()) const;
 };
 
 } // end namespace clang

@@ -2338,6 +2338,12 @@ def fsanitize_ignorelist_EQ : Joined<["-"], "fsanitize-ignorelist=">,
 def : Joined<["-"], "fsanitize-blacklist=">,
   Group<f_clang_Group>, Flags<[HelpHidden]>, Alias<fsanitize_ignorelist_EQ>,
   HelpText<"Alias for -fsanitize-ignorelist=">;
+def fsanitize_allowlist_EQ : Joined<["-"], "fsanitize-allowlist=">,
+  Group<f_clang_Group>, HelpText<"Path to allowlist file for sanitizers">;
+def : Joined<["-"], "fsanitize-whitelist=">,
+  Group<f_clang_Group>, Flags<[HelpHidden]>, Alias<fsanitize_allowlist_EQ>,
+  HelpText<"Alias for -fsanitize-allowlist=">;
+
 
 def fsanitize_system_ignorelist_EQ : Joined<["-"], "fsanitize-system-ignorelist=">,
   HelpText<"Path to system ignorelist file for sanitizers">,
@@ -2347,6 +2353,11 @@ def fno_sanitize_ignorelist : Flag<["-"], "fno-sanitize-ignorelist">,
   Group<f_clang_Group>, HelpText<"Don't use ignorelist file for sanitizers">;
 def : Flag<["-"], "fno-sanitize-blacklist">,
   Group<f_clang_Group>, Flags<[HelpHidden]>, Alias<fno_sanitize_ignorelist>;
+def fno_sanitize_allowlist : Flag<["-"], "fno-sanitize-allowlist">,
+  Group<f_clang_Group>, HelpText<"Don't use allowlist file for sanitizers">;
+def : Flag<["-"], "fno-sanitize-whitelist">,
+  Group<f_clang_Group>, Flags<[HelpHidden]>, Alias<fno_sanitize_allowlist>;
+
 
 def fsanitize_coverage : CommaJoined<["-"], "fsanitize-coverage=">,
   Group<f_clang_Group>,

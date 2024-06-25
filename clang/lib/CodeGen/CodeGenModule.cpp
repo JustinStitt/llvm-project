@@ -3407,56 +3407,87 @@ void CodeGenModule::AddGlobalAnnotations(const ValueDecl *D,
     Annotations.push_back(EmitAnnotateAttr(GV, I, D->getLocation()));
 }
 
-bool CodeGenModule::isInNoSanitizeList(SanitizerMask Kind, llvm::Function *Fn,
-                                       SourceLocation Loc) const {
-  const auto &NoSanitizeL = getContext().getNoSanitizeList();
-  // NoSanitize by function name.
-  if (NoSanitizeL.containsFunction(Kind, Fn->getName()))
+bool CodeGenModule::isInSanitizeList(SanitizerMask Kind, llvm::Function *Fn,
+                                     SourceLocation Loc,
+                                     bool isAllowlist) const {
+  const auto &SanitizeList = isAllowlist ? getContext().getSanitizeAllowlist()
+                                         : getContext().getSanitizeIgnorelist();
+  // By function name.
+  if (SanitizeList.containsFunction(Kind, Fn->getName()))
     return true;
-  // NoSanitize by location. Check "mainfile" prefix.
+  // By location. Check "mainfile" prefix.
   auto &SM = Context.getSourceManager();
   FileEntryRef MainFile = *SM.getFileEntryRefForID(SM.getMainFileID());
-  if (NoSanitizeL.containsMainFile(Kind, MainFile.getName()))
+  if (SanitizeList.containsMainFile(Kind, MainFile.getName()))
     return true;
 
-  // Check "src" prefix.
+  // By "src" prefix.
   if (Loc.isValid())
-    return NoSanitizeL.containsLocation(Kind, Loc);
+    return SanitizeList.containsLocation(Kind, Loc,
+                                         getContext().getSourceManager());
   // If location is unknown, this may be a compiler-generated function. Assume
   // it's located in the main file.
-  return NoSanitizeL.containsFile(Kind, MainFile.getName());
+  return SanitizeList.containsFile(Kind, MainFile.getName());
 }
 
-bool CodeGenModule::isInNoSanitizeList(SanitizerMask Kind,
-                                       llvm::GlobalVariable *GV,
-                                       SourceLocation Loc, QualType Ty,
-                                       StringRef Category) const {
-  const auto &NoSanitizeL = getContext().getNoSanitizeList();
-  if (NoSanitizeL.containsGlobal(Kind, GV->getName(), Category))
+bool CodeGenModule::isInSanitizeList(SanitizerMask Kind,
+                                     llvm::GlobalVariable *GV,
+                                     SourceLocation Loc, QualType Ty,
+                                     bool isAllowlist,
+                                     StringRef Category) const {
+  const auto &SanitizeList = isAllowlist ? getContext().getSanitizeAllowlist()
+                                         : getContext().getSanitizeIgnorelist();
+  if (SanitizeList.containsGlobal(Kind, GV->getName(), Category))
     return true;
   auto &SM = Context.getSourceManager();
-  if (NoSanitizeL.containsMainFile(
+  if (SanitizeList.containsMainFile(
           Kind, SM.getFileEntryRefForID(SM.getMainFileID())->getName(),
           Category))
     return true;
-  if (NoSanitizeL.containsLocation(Kind, Loc, Category))
+  if (SanitizeList.containsLocation(Kind, Loc, SM, Category))
     return true;
 
   // Check global type.
   if (!Ty.isNull()) {
     // Drill down the array types: if global variable of a fixed type is
-    // not sanitized, we also don't instrument arrays of them.
+    // allowed or ignored by sanitizer, we also check arrays of that type.
     while (auto AT = dyn_cast<ArrayType>(Ty.getTypePtr()))
       Ty = AT->getElementType();
     Ty = Ty.getCanonicalType().getUnqualifiedType();
     // Only record types (classes, structs etc.) are ignored.
     if (Ty->isRecordType()) {
       std::string TypeStr = Ty.getAsString(getContext().getPrintingPolicy());
-      if (NoSanitizeL.containsType(Kind, TypeStr, Category))
+      if (SanitizeList.containsType(Kind, TypeStr, Category))
         return true;
     }
   }
   return false;
+}
+
+bool CodeGenModule::isInSanitizeIgnorelist(SanitizerMask Kind,
+                                           llvm::Function *Fn,
+                                           SourceLocation Loc) const {
+  return isInSanitizeList(Kind, Fn, Loc, /*isAllowlist=*/false);
+}
+
+bool CodeGenModule::isInSanitizeIgnorelist(SanitizerMask Kind,
+                                           llvm::GlobalVariable *GV,
+                                           SourceLocation Loc, QualType Ty,
+                                           StringRef Category) const {
+  return isInSanitizeList(Kind, GV, Loc, Ty, /*isAllowlist=*/false, Category);
+}
+
+bool CodeGenModule::isInSanitizeAllowlist(SanitizerMask Kind,
+                                          llvm::Function *Fn,
+                                          SourceLocation Loc) const {
+  return isInSanitizeList(Kind, Fn, Loc, /*isAllowlist=*/true);
+}
+
+bool CodeGenModule::isInSanitizeAllowlist(SanitizerMask Kind,
+                                          llvm::GlobalVariable *GV,
+                                          SourceLocation Loc, QualType Ty,
+                                          StringRef Category) const {
+  return isInSanitizeList(Kind, GV, Loc, Ty, /*isAllowlist=*/true, Category);
 }
 
 bool CodeGenModule::imbueXRayAttrs(llvm::Function *Fn, SourceLocation Loc,

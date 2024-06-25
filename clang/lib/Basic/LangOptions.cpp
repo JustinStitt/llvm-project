@@ -38,7 +38,8 @@ void LangOptions::resetNonModularOptions() {
   NoHonorNaNs = FastMath;
 
   // These options do not affect AST generation.
-  NoSanitizeFiles.clear();
+  SanitizeIgnorelistFiles.clear();
+  SanitizeAllowlistFiles.clear();
   XRayAlwaysInstrumentFiles.clear();
   XRayNeverInstrumentFiles.clear();
 

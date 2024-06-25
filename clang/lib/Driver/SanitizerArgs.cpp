@@ -694,6 +694,13 @@ SanitizerArgs::SanitizerArgs(const ToolChain &TC,
       options::OPT_fno_sanitize_ignorelist,
       clang::diag::err_drv_malformed_sanitizer_ignorelist, DiagnoseErrors);
 
+  // Parse -f(no-)?sanitize-allowlist options.
+  // This also validates special case lists format.
+  parseSpecialCaseListArg(
+      D, Args, UserAllowlistFiles, options::OPT_fsanitize_allowlist_EQ,
+      options::OPT_fno_sanitize_allowlist,
+      clang::diag::err_drv_malformed_sanitizer_allowlist, DiagnoseErrors);
+
   // Parse -f[no-]sanitize-memory-track-origins[=level] options.
   if (AllAddedKinds & SanitizerKind::Memory) {
     if (Arg *A =
@@ -1257,6 +1264,8 @@ void SanitizerArgs::addArgs(const ToolChain &TC, const llvm::opt::ArgList &Args,
                         "-fsanitize-ignorelist=", UserIgnorelistFiles);
   addSpecialCaseListOpt(Args, CmdArgs,
                         "-fsanitize-system-ignorelist=", SystemIgnorelistFiles);
+  addSpecialCaseListOpt(Args, CmdArgs,
+                        "-fsanitize-allowlist=", UserAllowlistFiles);
 
   if (OverflowPatternExclusions)
     Args.AddAllArgs(
