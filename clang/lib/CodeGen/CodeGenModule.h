@@ -1430,7 +1430,7 @@ public:
 
   bool isInNoSanitizeList(SanitizerMask Kind, llvm::Function *Fn,
                           SourceLocation Loc) const;
-  bool isInNoSanitizeList(SanitizerMask Kind, QualType Ty) const;
+
   bool isInNoSanitizeList(SanitizerMask Kind, llvm::GlobalVariable *GV,
                           SourceLocation Loc, QualType Ty,
                           StringRef Category = StringRef()) const;

@@ -3380,7 +3380,6 @@ void CodeGenModule::AddGlobalAnnotations(const ValueDecl *D,
 bool CodeGenModule::isInNoSanitizeList(SanitizerMask Kind, llvm::Function *Fn,
                                        SourceLocation Loc) const {
   const auto &NoSanitizeL = getContext().getNoSanitizeList();
-
   // NoSanitize by function name.
   if (NoSanitizeL.containsFunction(Kind, Fn->getName()))
     return true;
@@ -3396,11 +3395,6 @@ bool CodeGenModule::isInNoSanitizeList(SanitizerMask Kind, llvm::Function *Fn,
   // If location is unknown, this may be a compiler-generated function. Assume
   // it's located in the main file.
   return NoSanitizeL.containsFile(Kind, MainFile.getName());
-}
-
-bool CodeGenModule::isInNoSanitizeList(SanitizerMask Kind, QualType Ty) const {
-  const auto &NoSanitizeL = getContext().getNoSanitizeList();
-  return NoSanitizeL.containsType(Kind, Ty.getAsString());
 }
 
 bool CodeGenModule::isInNoSanitizeList(SanitizerMask Kind,

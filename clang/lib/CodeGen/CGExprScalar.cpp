@@ -28,7 +28,6 @@
 #include "clang/AST/ParentMapContext.h"
 #include "clang/AST/StmtVisitor.h"
 #include "clang/Basic/CodeGenOptions.h"
-#include "clang/Basic/Sanitizers.h"
 #include "clang/Basic/TargetInfo.h"
 #include "llvm/ADT/APFixedPoint.h"
 #include "llvm/IR/CFG.h"
@@ -191,14 +190,6 @@ static bool IsWidenedIntegerOp(const ASTContext &Ctx, const Expr *E) {
 static bool CanElideOverflowCheck(const ASTContext &Ctx, const BinOpInfo &Op) {
   assert((isa<UnaryOperator>(Op.E) || isa<BinaryOperator>(Op.E)) &&
          "Expected a unary or binary operator");
-
-  if (Op.Ty->isUnsignedIntegerType() &&
-      Ctx.getNoSanitizeList().containsType(
-          SanitizerKind::UnsignedIntegerOverflow, Op.Ty.getAsString())) {
-    llvm::errs() << "eliding overflowcheck due to type match on: " << Op.Ty
-                 << "\n";
-    return true;
-  }
 
   // If the binop has constant inputs and we can prove there is no overflow,
   // we can elide the overflow check.
@@ -3817,25 +3808,6 @@ Value *ScalarExprEmitter::EmitOverflowCheckedBinOp(const BinOpInfo &Ops) {
   unsigned IID;
   unsigned OpID = 0;
   SanitizerHandler OverflowKind;
-
-  bool Result = CGF.CGM.isInNoSanitizeList(
-      SanitizerKind::UnsignedIntegerOverflow, Ops.Ty);
-
-  llvm::errs() << "Result in EmitOverflowCheckedBinOp: " << Result << "\n";
-
-  ASTContext &Ctx = CGF.CGM.getContext();
-  bool Result2 = Ctx.getNoSanitizeList().containsType(
-      SanitizerKind::UnsignedIntegerOverflow, "size_t");
-
-  llvm::errs() << "In EmitOverflowCheckedBinOp: Ops.Ty: " << Ops.Ty
-    << "\tasString:" << Ops.Ty.getAsString() << "\n";
-
-  llvm::errs() << "Result2: " << Result2 << "\n";
-
-
-  if (Ops.Ty.getAsString() == "size_t") {
-    llvm::errs() << "MATCH on size_t\n";
-  }
 
   bool isSigned = Ops.Ty->isSignedIntegerOrEnumerationType();
   switch (Ops.Opcode) {
