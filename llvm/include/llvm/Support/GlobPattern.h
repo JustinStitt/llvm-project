@@ -74,7 +74,7 @@ private:
 
   struct SubGlobPattern {
     /// \param Pat the pattern to match against
-    static Expected<SubGlobPattern> create(StringRef Pat);
+    static Expected<SubGlobPattern> create(StringRef Pat, bool Inverted=false);
     /// \returns \p true if \p S matches this glob pattern
     bool match(StringRef S) const;
     StringRef getPat() const { return StringRef(Pat.data(), Pat.size()); }
@@ -86,8 +86,10 @@ private:
     };
     SmallVector<Bracket, 0> Brackets;
     SmallVector<char, 0> Pat;
+    bool Inverted;
   };
   SmallVector<SubGlobPattern, 1> SubGlobs;
+  SmallVector<SubGlobPattern, 1> NegGlobs;
 };
 }
 

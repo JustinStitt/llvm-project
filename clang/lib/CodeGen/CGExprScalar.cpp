@@ -27,6 +27,7 @@
 #include "clang/AST/RecordLayout.h"
 #include "clang/AST/StmtVisitor.h"
 #include "clang/Basic/CodeGenOptions.h"
+#include "clang/Basic/LLVM.h"
 #include "clang/Basic/TargetInfo.h"
 #include "llvm/ADT/APFixedPoint.h"
 #include "llvm/IR/CFG.h"
@@ -41,6 +42,7 @@
 #include "llvm/IR/IntrinsicsPowerPC.h"
 #include "llvm/IR/MatrixBuilder.h"
 #include "llvm/IR/Module.h"
+#include "llvm/Support/GlobPattern.h"
 #include "llvm/Support/TypeSize.h"
 #include <cstdarg>
 #include <optional>
@@ -189,6 +191,32 @@ static bool IsWidenedIntegerOp(const ASTContext &Ctx, const Expr *E) {
 static bool CanElideOverflowCheck(const ASTContext &Ctx, const BinOpInfo &Op) {
   assert((isa<UnaryOperator>(Op.E) || isa<BinaryOperator>(Op.E)) &&
          "Expected a unary or binary operator");
+
+  /*Expected<llvm::GlobPattern> Pat =*/
+  /*    llvm::GlobPattern::create("[^s][^i][^z][^e][^_][^t]*");*/
+  /*if (!Pat) {*/
+  /*  llvm::errs() << "Error creating pat\n";*/
+  /*} else {*/
+  /*  bool MatchResult = Pat->match("int");*/
+  /*  llvm::errs() << "int matchresult: " << MatchResult << "\n";*/
+  /*}*/
+
+  llvm::errs() << "Ty: " << Op.Ty
+               << "\tisSignedIntegerType: " << Op.Ty->isSignedIntegerType()
+               << "\tcontainsType: "
+               << Ctx.getNoSanitizeList().containsType(
+                      SanitizerKind::SignedIntegerOverflow, Op.Ty.getAsString())
+               << "\n";
+
+  if (Op.Ty->isUnsignedIntegerType() &&
+      Ctx.getNoSanitizeList().containsType(
+          SanitizerKind::UnsignedIntegerOverflow, Op.Ty.getAsString()))
+    return true;
+
+  if (Op.Ty->isSignedIntegerType() &&
+      Ctx.getNoSanitizeList().containsType(SanitizerKind::SignedIntegerOverflow,
+                                           Op.Ty.getAsString()))
+    return true;
 
   // If the binop has constant inputs and we can prove there is no overflow,
   // we can elide the overflow check.
