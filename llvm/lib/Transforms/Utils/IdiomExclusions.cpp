@@ -83,6 +83,10 @@ bool matchesLHSorRHS(Value *LHS, Value *RHS, Value *V, const DataLayout &DL) {
   Value *LHSPtr, *RHSPtr;
   LoadInst *L = dyn_cast<LoadInst>(V);
 
+  // It's possible that LHS or RHS underwent sign extension
+  match(LHS, m_SExt(m_Value(LHS)));
+  match(RHS, m_SExt(m_Value(RHS)));
+
   if (match(LHS, m_Load(m_Value(LHSPtr)))) {
     LoadInst *LHSLoad = dyn_cast<LoadInst>(LHSPtr);
     if (LHSLoad && L && L->getPointerOperand() == LHSLoad->getPointerOperand())
@@ -152,9 +156,15 @@ SmallVector<OverflowIdiomInfo> matchesBasePlusOffsetCompareToBase(Function &F) {
 
       if (PHINode *Phi = dyn_cast<PHINode>(CmpOther)) {
         if (Phi->getNumIncomingValues() != 2)
-          continue; // no match
-        LoadInst *Phi0 = dyn_cast<LoadInst>(Phi->getIncomingValue(0));
-        LoadInst *Phi1 = dyn_cast<LoadInst>(Phi->getIncomingValue(1));
+          continue;
+        Value *Val0 = Phi->getIncomingValue(0);
+        Value *Val1 = Phi->getIncomingValue(1);
+        match(Val0, m_SExt(m_Value(Val0)));
+        match(Val1, m_SExt(m_Value(Val1)));
+        LoadInst *Phi0 = dyn_cast<LoadInst>(Val0);
+        LoadInst *Phi1 = dyn_cast<LoadInst>(Val1);
+        if (!Phi0 || !Phi1)
+          continue;
         if (matchesLHSorRHS(LHS, RHS, Phi0->getPointerOperand(), DL) ||
             matchesLHSorRHS(LHS, RHS, Phi1->getPointerOperand(), DL)) {
           MatchedOverflowIdioms.push_back(std::move(Info));
@@ -171,7 +181,6 @@ SmallVector<OverflowIdiomInfo> matchesBasePlusOffsetCompareToBase(Function &F) {
 
 PreservedAnalyses IdiomExclusionsPass::run(Function &F,
                                            FunctionAnalysisManager &AM) {
-  errs() << "Running IdiomExclusionsPass\n";
 
   SmallVector<OverflowIdiomInfo> OverflowIdioms =
       matchesBasePlusOffsetCompareToBase(F);

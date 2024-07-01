@@ -121,3 +121,17 @@ void negation_overflow(void) {
   unsigned long D = -1337UL;
   (void)A;(void)B;(void)C;(void)D;
 }
+
+
+// cvise'd kernel code that caused problems during development due to sign
+// extension
+typedef unsigned long size_t;
+int qnbytes;
+int *key_alloc_key;
+size_t key_alloc_quotalen;
+int *key_alloc(void) {
+  if (qnbytes + key_alloc_quotalen < qnbytes)
+    return key_alloc_key;
+  return key_alloc_key + 3;;
+}
+
