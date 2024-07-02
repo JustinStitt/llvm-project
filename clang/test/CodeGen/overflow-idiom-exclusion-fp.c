@@ -5,7 +5,7 @@
 extern unsigned a, b, c;
 extern int u, v, w;
 
-extern void some(void);
+extern unsigned some(void);
 
 // Make sure all these still have handler paths, we shouldn't be excluding
 // instrumentation of any "near" idioms.
@@ -68,4 +68,10 @@ void ZSTD_selectEncodingType(void) {
          compressedCost = 3 + ZSTD_NCountCost();
   if (basicCost <= compressedCost)
     ZSTD_selectEncodingType_repeatMode = FSE_repeat_none;
+}
+
+void function_calls(void) {
+  // CHECK: br i1{{.*}}handler
+  if (some() + b < some())
+    c = 9;
 }

@@ -23,7 +23,7 @@
 // CHECK-NOT: br{{.*}}overflow
 
 extern unsigned a, b, c;
-extern void some(void);
+extern unsigned some(void);
 
 void basic_commutativity(void) {
   if (a + b < a)
@@ -135,3 +135,7 @@ int *key_alloc(void) {
   return key_alloc_key + 3;;
 }
 
+void function_call(void) {
+  if (b + some() < b)
+    c = 9;
+}
