@@ -122,7 +122,6 @@ void negation_overflow(void) {
   (void)A;(void)B;(void)C;(void)D;
 }
 
-
 // cvise'd kernel code that caused problems during development due to sign
 // extension
 typedef unsigned long size_t;

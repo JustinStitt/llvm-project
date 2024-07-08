@@ -1,9 +1,11 @@
 #include "llvm/Transforms/Utils/IdiomExclusions.h"
 #include "llvm/Analysis/ValueTracking.h"
+#include "llvm/CodeGen/ISDOpcodes.h"
 #include "llvm/IR/Analysis.h"
 #include "llvm/IR/CFG.h"
 #include "llvm/IR/DataLayout.h"
 #include "llvm/IR/InstIterator.h"
+#include "llvm/IR/InstrTypes.h"
 #include "llvm/IR/Instructions.h"
 #include "llvm/IR/IntrinsicInst.h"
 #include "llvm/IR/Intrinsics.h"
@@ -33,14 +35,25 @@ struct OverflowIdiomInfo {
                     Instruction &I)
       : Kind(Kind), WOI(WOI) {
     Entry = WOI->getParent();
-    Cont = I.getParent();
     BranchInst *Br = dyn_cast<BranchInst>(Entry->getTerminator());
 
-    assert(Br && "Malformed BasicBlock containing WOI");
-    assert(Br->getNumSuccessors() == 2);
+    if (!Br || !Br->isConditional() || Br->getNumSuccessors() != 2)
+      return;
 
-    Overflow =
-        Br->getSuccessor(0) == Cont ? Br->getSuccessor(1) : Br->getSuccessor(0);
+    Cont = Br->getSuccessor(1);
+    Overflow = Br->getSuccessor(0);
+
+    BinaryOperator *BO = dyn_cast<BinaryOperator>(Br->getCondition());
+
+    if (!BO || BO->getOpcode() != Instruction::Xor)
+      return;
+
+    if (auto *CI = dyn_cast<ConstantInt>(BO->getOperand(1))) {
+      if (CI->isOne()) {
+        Cont = Br->getSuccessor(0);
+        Overflow = Br->getSuccessor(1);
+      }
+    }
   }
 };
 
@@ -52,16 +65,15 @@ void removeEdgeToOverflowHandler(const OverflowIdiomInfo &Info) {
   BasicBlock *Cont = Info.Cont;
   BasicBlock *Overflow = Info.Overflow;
 
-  assert(Overflow);
-  assert(Cont);
-  assert(Entry);
+  if (!Entry || !Cont || !Overflow)
+    return;
 
   BranchInst::Create(Cont, Entry->getTerminator());
-
   // Handling overflows in non-recoverable modes means we have no edge to Cont
   if (Overflow->getUniqueSuccessor() == Cont)
     Cont->removePredecessor(Overflow,
                             /*KeepOneInputPHIs=*/false);
+
   Entry->getTerminator()->eraseFromParent();
 }
 
@@ -181,7 +193,6 @@ SmallVector<OverflowIdiomInfo> matchesBasePlusOffsetCompareToBase(Function &F) {
 
 PreservedAnalyses IdiomExclusionsPass::run(Function &F,
                                            FunctionAnalysisManager &AM) {
-
   SmallVector<OverflowIdiomInfo> OverflowIdioms =
       matchesBasePlusOffsetCompareToBase(F);
 
