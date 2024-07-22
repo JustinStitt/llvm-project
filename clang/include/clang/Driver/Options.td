@@ -2558,8 +2558,8 @@ defm sanitize_stats : BoolOption<"f", "sanitize-stats",
           "Disable">,
   BothFlags<[], [ClangOption], " sanitizer statistics gathering.">>,
   Group<f_clang_Group>;
-defm sanitize_overflow_idioms : BoolOption<"f", "sanitize-overflow-idioms",
-  CodeGenOpts<"SanitizeOverflowIdioms">, DefaultTrue,
+defm sanitize_overflow_idioms : BoolFOption<"sanitize-overflow-idioms",
+  LangOpts<"SanitizeOverflowIdioms">, DefaultTrue,
   PosFlag<SetTrue, [], [], "Enable">,
   NegFlag<SetFalse, [], [], "Disable">,
   BothFlags<[], [ClangOption], " the instrumentation of common overflow idioms">>;

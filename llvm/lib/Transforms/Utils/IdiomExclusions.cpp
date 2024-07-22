@@ -17,9 +17,9 @@ using namespace llvm::PatternMatch;
 
 namespace {
 
+/*  UNUSED  */
 enum class OverflowIdiomKind {
   BasePlusOffsetCompareToBase, /*    if(a + b u< a) {...} */
-  WhileDec,                    /*    while(i--)    {...} */
 };
 
 struct OverflowIdiomInfo {
@@ -193,6 +193,9 @@ SmallVector<OverflowIdiomInfo> matchesBasePlusOffsetCompareToBase(Function &F) {
 
 PreservedAnalyses IdiomExclusionsPass::run(Function &F,
                                            FunctionAnalysisManager &AM) {
+  // DEBUG DISABLE IR PASS
+  return PreservedAnalyses::all();
+
   SmallVector<OverflowIdiomInfo> OverflowIdioms =
       matchesBasePlusOffsetCompareToBase(F);
 

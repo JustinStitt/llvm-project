@@ -115,6 +115,7 @@ void common_while(unsigned i) {
 // NEGATIONOV: negate_overflow
 // Normally, these assignments would trip the unsigned overflow sanitizer.
 void negation_overflow(void) {
+#define SOME -1UL
   unsigned long A = -1UL;
   unsigned long B = -2UL;
   unsigned long C = -3UL;
