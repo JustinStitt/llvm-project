@@ -88,7 +88,6 @@
 #include "llvm/Transforms/Scalar/JumpThreading.h"
 #include "llvm/Transforms/Utils/Debugify.h"
 #include "llvm/Transforms/Utils/EntryExitInstrumenter.h"
-#include "llvm/Transforms/Utils/IdiomExclusions.h"
 #include "llvm/Transforms/Utils/ModuleUtils.h"
 #include <memory>
 #include <optional>
@@ -672,12 +671,6 @@ static void addSanitizers(const Triple &TargetTriple,
       MPM.addPass(SanitizerCoveragePass(
           SancovOpts, CodeGenOpts.SanitizeCoverageAllowlistFiles,
           CodeGenOpts.SanitizeCoverageIgnorelistFiles));
-    }
-    if (LangOpts.Sanitize.has(SanitizerKind::UnsignedIntegerOverflow) &&
-        !CodeGenOpts.SanitizeOverflowIdioms) {
-      FunctionPassManager FPM;
-      FPM.addPass(IdiomExclusionsPass());
-      MPM.addPass(createModuleToFunctionPassAdaptor(std::move(FPM)));
     }
 
     if (CodeGenOpts.hasSanitizeBinaryMetadata()) {
