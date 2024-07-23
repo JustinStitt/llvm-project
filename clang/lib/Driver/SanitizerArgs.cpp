@@ -1360,11 +1360,8 @@ void SanitizerArgs::addArgs(const ToolChain &TC, const llvm::opt::ArgList &Args,
     CmdArgs.push_back("+tagged-globals");
   }
 
-  if (!SanitizeOverflowIdioms) {
+  if (!SanitizeOverflowIdioms)
     CmdArgs.push_back("-fno-sanitize-overflow-idioms");
-    CmdArgs.push_back("-mllvm");
-    CmdArgs.push_back("-disable-overflow-idioms-sanitization");
-  }
 
   // MSan: Workaround for PR16386.
   // ASan: This is mainly to help LSan with cases such as

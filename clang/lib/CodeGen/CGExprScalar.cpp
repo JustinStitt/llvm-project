@@ -2892,7 +2892,8 @@ ScalarExprEmitter::EmitScalarPrePostIncDec(const UnaryOperator *E, LValue LV,
     // Does this match the pattern of while(i--) {...}? If so, and if
     // SanitizeOverflowIdioms is disabled, we don't want to enable sanitizer.
     bool disableSanitizer =
-        (!isInc && !isPre && !CGF.CGM.getCodeGenOpts().SanitizeOverflowIdioms &&
+        (!isInc && !isPre &&
+         !CGF.getContext().getLangOpts().SanitizeOverflowIdioms &&
          llvm::all_of(CGF.getContext().getParentMapContext().getParents(*E),
                       [&](const DynTypedNode &Parent) -> bool {
                         return Parent.get<WhileStmt>();

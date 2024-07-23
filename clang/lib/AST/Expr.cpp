@@ -4818,7 +4818,6 @@ BinaryOperator::BinaryOperator(const ASTContext &Ctx, Expr *lhs, Expr *rhs,
   BinaryOperatorBits.OpLoc = opLoc;
   SubExprs[LHS] = lhs;
   SubExprs[RHS] = rhs;
-  // TODO: add langopt instead of CGM opt
   if (!Ctx.getLangOpts().SanitizeOverflowIdioms) {
     std::optional<BinaryOperator*> Result = getOverflowIdiomBinOp(this);
     if (Result.has_value())
