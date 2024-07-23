@@ -209,10 +209,9 @@ static bool CanElideOverflowCheck(const ASTContext &Ctx, const BinOpInfo &Op) {
   // We usually don't need overflow checks for binops with widened operands.
   // Multiplication with promoted unsigned operands is a special case.
   const auto *BO = cast<BinaryOperator>(Op.E);
-  if (BO->ignoreOverflowSanitizers()) {
-    llvm::errs() << "found overflow idiom in:\n"; Op.E->dump();
+  if (BO->ignoreOverflowSanitizers())
     return true;
-  }
+
   auto OptionalLHSTy = getUnwidenedIntegerType(Ctx, BO->getLHS());
   if (!OptionalLHSTy)
     return false;
