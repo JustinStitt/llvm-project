@@ -1456,6 +1456,7 @@ static int parseOverflowPatternExclusionValues(const Driver &D,
     int E =
         llvm::StringSwitch<int>(Value)
             .Case("none", LangOptionsBase::None)
+            .Case("all", LangOptionsBase::All)
             .Case("add-overflow-test", LangOptionsBase::AddOverflowTest)
             .Case("negated-unsigned-const", LangOptionsBase::NegUnsignedConst)
             .Case("post-decr-while", LangOptionsBase::PostDecrInWhile)

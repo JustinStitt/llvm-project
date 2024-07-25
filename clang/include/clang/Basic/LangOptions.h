@@ -372,12 +372,14 @@ public:
   enum OverflowPatternExclusionKind {
     /// Don't exclude any overflow patterns from sanitizers
     None = 1 << 0,
+    /// Exclude all overflow patterns (below)
+    All = 1 << 1,
     /// if (a + b < a)
-    AddOverflowTest = 1 << 1,
+    AddOverflowTest = 1 << 2,
     /// -1UL
-    NegUnsignedConst = 1 << 2,
+    NegUnsignedConst = 1 << 3,
     /// while (count--)
-    PostDecrInWhile = 1 << 3,
+    PostDecrInWhile = 1 << 4,
   };
 
   enum class DefaultVisiblityExportMapping {
@@ -651,6 +653,8 @@ public:
   bool isOverflowPatternExcluded(OverflowPatternExclusionKind Kind) const {
     if (OverflowPatternExclusionMask & OverflowPatternExclusionKind::None)
       return false;
+    if (OverflowPatternExclusionMask & OverflowPatternExclusionKind::All)
+      return true;
     return OverflowPatternExclusionMask & Kind;
   }
 

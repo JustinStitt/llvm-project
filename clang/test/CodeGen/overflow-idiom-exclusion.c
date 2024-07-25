@@ -16,10 +16,8 @@
 // unsigned negation, for example:
 // unsigned long A = -1UL;
 
-// RUN: %clang %s -O2 -fsanitize=signed-integer-overflow,unsigned-integer-overflow -fno-sanitize-overflow-idioms -S -emit-llvm -o - | FileCheck %s
-// RUN: %clang %s -O2 -fsanitize=signed-integer-overflow,unsigned-integer-overflow -fno-sanitize-overflow-idioms -fwrapv -S -emit-llvm -o - | FileCheck %s
-// RUN: %clang %s -O2 -fsanitize=signed-integer-overflow,unsigned-integer-overflow -fno-sanitize-overflow-idioms -S -emit-llvm -o - | FileCheck %s --check-prefix=NEGATION
-// RUN: %clang %s -O2 -fsanitize=signed-integer-overflow,unsigned-integer-overflow -fno-sanitize-overflow-idioms -fsanitize-negation-overflow -S -emit-llvm -o - | FileCheck %s --check-prefix=NEGATIONOV
+// RUN: %clang %s -O2 -fsanitize=signed-integer-overflow,unsigned-integer-overflow -fsanitize-overflow-pattern-exclusion=all -S -emit-llvm -o - | FileCheck %s
+// RUN: %clang %s -O2 -fsanitize=signed-integer-overflow,unsigned-integer-overflow -fsanitize-overflow-pattern-exclusion=all -fwrapv -S -emit-llvm -o - | FileCheck %s
 // CHECK-NOT: br{{.*}}overflow
 
 extern unsigned a, b, c;
@@ -110,9 +108,6 @@ void common_while(unsigned i) {
   }
 }
 
-// NEGATION-LABEL,NEGATIONOV-LABEL: define{{.*}}negation_overflow
-// NEGATION-NOT: negate_overflow
-// NEGATIONOV: negate_overflow
 // Normally, these assignments would trip the unsigned overflow sanitizer.
 void negation_overflow(void) {
 #define SOME -1UL

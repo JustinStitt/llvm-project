@@ -4255,6 +4255,8 @@ bool CompilerInvocation::ParseLangArgs(LangOptions &Opts, ArgList &Args,
       StringRef Value = A->getValue(i);
       if (Value == "none")
         Opts.OverflowPatternExclusionMask |= LangOptionsBase::None;
+      else if (Value == "all")
+        Opts.OverflowPatternExclusionMask |= LangOptionsBase::All;
       else if (Value == "add-overflow-test")
         Opts.OverflowPatternExclusionMask |= LangOptionsBase::AddOverflowTest;
       else if (Value == "negated-unsigned-const")
