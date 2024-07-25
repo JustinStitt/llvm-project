@@ -4819,10 +4819,13 @@ BinaryOperator::BinaryOperator(const ASTContext &Ctx, Expr *lhs, Expr *rhs,
   BinaryOperatorBits.OpLoc = opLoc;
   SubExprs[LHS] = lhs;
   SubExprs[RHS] = rhs;
-  if (!Ctx.getLangOpts().SanitizeOverflowIdioms) {
+  llvm::errs() << "Mask is: " << Ctx.getLangOpts().OverflowPatternExclusionMask << "\n";
+  if (Ctx.getLangOpts().isOverflowPatternExcluded(
+          LangOptions::OverflowPatternExclusionKind::AddOverflowTest)) {
+    llvm::errs() << "pattern is excluded\n";
     std::optional<BinaryOperator *> Result = getOverflowIdiomBinOp(this);
     if (Result.has_value())
-      Result.value()->isOverflowIdiom = true;
+      Result.value()->ExcludedOverflowPattern = true;
   }
   BinaryOperatorBits.HasFPFeatures = FPFeatures.requiresTrailingStorage();
   if (hasStoredFPFeatures())

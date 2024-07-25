@@ -24,7 +24,6 @@
 #include "clang/AST/Attr.h"
 #include "clang/AST/DeclObjC.h"
 #include "clang/AST/Expr.h"
-#include "clang/AST/ParentMapContext.h"
 #include "clang/AST/RecordLayout.h"
 #include "clang/AST/StmtVisitor.h"
 #include "clang/Basic/CodeGenOptions.h"
@@ -198,6 +197,7 @@ static bool CanElideOverflowCheck(const ASTContext &Ctx, const BinOpInfo &Op) {
 
   const UnaryOperator *UO = dyn_cast<UnaryOperator>(Op.E);
 
+  // TODO: remove this and use OverflowPatternExclusionKind
   if (UO && UO->getOpcode() == UO_Minus &&
       Ctx.getLangOpts().IgnoreNegationOverflow)
     return true;
@@ -2892,7 +2892,8 @@ ScalarExprEmitter::EmitScalarPrePostIncDec(const UnaryOperator *E, LValue LV,
     // SanitizeOverflowIdioms is disabled, we don't want to enable sanitizer.
     bool disableSanitizer =
         (!isInc && !isPre &&
-         !CGF.getContext().getLangOpts().SanitizeOverflowIdioms &&
+         CGF.getContext().getLangOpts().isOverflowPatternExcluded(
+             LangOptions::OverflowPatternExclusionKind::NegUnsignedConst) &&
          llvm::all_of(CGF.getContext().getParentMapContext().getParents(*E),
                       [&](const DynTypedNode &Parent) -> bool {
                         return Parent.get<WhileStmt>();

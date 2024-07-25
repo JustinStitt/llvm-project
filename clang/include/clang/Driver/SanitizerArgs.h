@@ -33,6 +33,7 @@ class SanitizerArgs {
   std::vector<std::string> BinaryMetadataIgnorelistFiles;
   int CoverageFeatures = 0;
   int BinaryMetadataFeatures = 0;
+  /*int OverflowPatternExclusions = 0;*/
   int MsanTrackOrigins = 0;
   bool MsanUseAfterDtor = true;
   bool MsanParamRetval = true;
@@ -75,6 +76,8 @@ public:
   /// Parses the sanitizer arguments from an argument list.
   SanitizerArgs(const ToolChain &TC, const llvm::opt::ArgList &Args,
                 bool DiagnoseErrors = true);
+
+  int OverflowPatternExclusions = 0;
 
   bool needsSharedRt() const { return SharedRuntime; }
   bool needsStableAbi() const { return StableABI; }

@@ -2563,6 +2563,12 @@ defm sanitize_overflow_idioms : BoolFOption<"sanitize-overflow-idioms",
   PosFlag<SetTrue, [], [], "Enable">,
   NegFlag<SetFalse, [], [], "Disable">,
   BothFlags<[], [ClangOption], " the instrumentation of common overflow idioms">>;
+def fsanitize_overflow_pattern_exclusion_EQ : CommaJoined<["-"], "fsanitize-overflow-pattern-exclusion=">,
+  HelpText<"TODO">,
+  Visibility<[ClangOption, CC1Option]>,
+  Values<"none,add-overflow-test,negated-unsigned-const,post-decr-while">,
+  MarshallingInfoStringVector<LangOpts<"OverflowPatternExclusionValues">>;
+
 defm sanitize_negation_overflow : BoolFOption<"sanitize-negation-overflow",
   LangOpts<"IgnoreNegationOverflow">, DefaultFalse,
   PosFlag<SetFalse, [], [], "Enable">,
