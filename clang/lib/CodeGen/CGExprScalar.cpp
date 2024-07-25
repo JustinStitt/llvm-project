@@ -2894,7 +2894,7 @@ ScalarExprEmitter::EmitScalarPrePostIncDec(const UnaryOperator *E, LValue LV,
     bool disableSanitizer =
         (!isInc && !isPre &&
          CGF.getContext().getLangOpts().isOverflowPatternExcluded(
-             LangOptions::OverflowPatternExclusionKind::NegUnsignedConst) &&
+             LangOptions::OverflowPatternExclusionKind::PostDecrInWhile) &&
          llvm::all_of(CGF.getContext().getParentMapContext().getParents(*E),
                       [&](const DynTypedNode &Parent) -> bool {
                         return Parent.get<WhileStmt>();
