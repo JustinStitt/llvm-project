@@ -4249,13 +4249,10 @@ bool CompilerInvocation::ParseLangArgs(LangOptions &Opts, ArgList &Args,
   }
 
   // TODO: try marshalling into FrontendOpts and then parsing that here
-  llvm::errs() << "ran ParseLangArgs\n";
   // Parse -fsanitize-overflow-pattern-exclusion= values
   if (auto *A = Args.getLastArg(OPT_fsanitize_overflow_pattern_exclusion_EQ)) {
-    llvm::errs() << "in compiler invoc. got: " << A->getAsString(Args) << "\n";
     for (int i = 0, n = A->getNumValues(); i != n; ++i) {
       StringRef Value = A->getValue(i);
-      llvm::errs() << "and value is: " << Value << "\n";
       if (Value == "none")
         Opts.OverflowPatternExclusionMask |= LangOptionsBase::None;
       else if (Value == "add-overflow-test")
@@ -4265,7 +4262,6 @@ bool CompilerInvocation::ParseLangArgs(LangOptions &Opts, ArgList &Args,
       else if (Value == "post-decr-while")
         Opts.OverflowPatternExclusionMask |= LangOptionsBase::PostDecrInWhile;
     }
-    llvm::errs() << "Mask is now (in CI): " << Opts.OverflowPatternExclusionMask << "\n";
   }
 
   // Parse -fsanitize= arguments.

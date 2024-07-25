@@ -1256,10 +1256,8 @@ void SanitizerArgs::addArgs(const ToolChain &TC, const llvm::opt::ArgList &Args,
   addSpecialCaseListOpt(Args, CmdArgs,
                         "-fsanitize-system-ignorelist=", SystemIgnorelistFiles);
 
-  /*if (OverflowPatternExclusions) {*/
-  llvm::errs() << "adding all args\n";
-  Args.AddAllArgs(CmdArgs, options::OPT_fsanitize_overflow_pattern_exclusion_EQ);
-  /*}*/
+  if (OverflowPatternExclusions)
+    Args.AddAllArgs(CmdArgs, options::OPT_fsanitize_overflow_pattern_exclusion_EQ);
 
   if (MsanTrackOrigins)
     CmdArgs.push_back(Args.MakeArgString("-fsanitize-memory-track-origins=" +
@@ -1455,8 +1453,6 @@ static int parseOverflowPatternExclusionValues(const Driver &D,
   int Exclusions = 0;
   for (int i = 0, n = A->getNumValues(); i != n; ++i) {
     const char *Value = A->getValue(i);
-    llvm::errs() << "Value: " << Value << "\nLangOptionsBase::AddOverflowTest: "
-                 << LangOptionsBase::AddOverflowTest << "\n";
     int E =
         llvm::StringSwitch<int>(Value)
             .Case("none", LangOptionsBase::None)

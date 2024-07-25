@@ -7753,7 +7753,6 @@ void Clang::ConstructJob(Compilation &C, const JobAction &JA,
     Args.AddLastArg(CmdArgs, options::OPT_fgpu_default_stream_EQ);
   }
 
-  llvm::errs() << "adding all args in Clang.cpp\n";
   Args.AddAllArgs(CmdArgs, options::OPT_fsanitize_overflow_pattern_exclusion_EQ);
 
   Args.AddLastArg(CmdArgs, options::OPT_foffload_uniform_block,
