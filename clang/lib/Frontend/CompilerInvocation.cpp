@@ -4248,8 +4248,6 @@ bool CompilerInvocation::ParseLangArgs(LangOptions &Opts, ArgList &Args,
       Diags.Report(diag::err_drv_invalid_value) << A->getAsString(Args) << Val;
   }
 
-  // TODO: try marshalling into FrontendOpts and then parsing that here
-  // Parse -fsanitize-overflow-pattern-exclusion= values
   if (auto *A = Args.getLastArg(OPT_fsanitize_overflow_pattern_exclusion_EQ)) {
     for (int i = 0, n = A->getNumValues(); i != n; ++i) {
       StringRef Value = A->getValue(i);

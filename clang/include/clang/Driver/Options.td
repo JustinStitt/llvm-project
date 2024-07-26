@@ -2564,7 +2564,7 @@ defm sanitize_overflow_idioms : BoolFOption<"sanitize-overflow-idioms",
   NegFlag<SetFalse, [], [], "Disable">,
   BothFlags<[], [ClangOption], " the instrumentation of common overflow idioms">>;
 def fsanitize_overflow_pattern_exclusion_EQ : CommaJoined<["-"], "fsanitize-overflow-pattern-exclusion=">,
-  HelpText<"TODO">,
+  HelpText<"Specify the overflow patterns to exclude from artihmetic sanitizer instrumentation">,
   Visibility<[ClangOption, CC1Option]>,
   Values<"none,all,add-overflow-test,negated-unsigned-const,post-decr-while">,
   MarshallingInfoStringVector<LangOpts<"OverflowPatternExclusionValues">>;
