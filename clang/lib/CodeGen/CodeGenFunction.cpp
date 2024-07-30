@@ -779,8 +779,9 @@ void CodeGenFunction::StartFunction(GlobalDecl GD, QualType RetTy,
   if (SanOpts.empty())                                                         \
     break;                                                                     \
   if (SanOpts.has(SanitizerKind::ID))                                          \
-    if (CGM.isInNoSanitizeList(SanitizerKind::ID, Fn, Loc))                    \
-      SanOpts.set(SanitizerKind::ID, false);
+    if (CGM.isInSanitizeIgnorelist(SanitizerKind::ID, Fn, Loc))                \
+      if (!CGM.isInSanitizeAllowlist(SanitizerKind::ID, Fn, Loc))              \
+        SanOpts.set(SanitizerKind::ID, false);
 
 #include "clang/Basic/Sanitizers.def"
 #undef SANITIZER

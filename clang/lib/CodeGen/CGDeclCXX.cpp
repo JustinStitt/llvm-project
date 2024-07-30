@@ -460,47 +460,47 @@ llvm::Function *CodeGenModule::CreateGlobalInitOrCleanUpFunction(
     Fn->setDoesNotThrow();
 
   if (getLangOpts().Sanitize.has(SanitizerKind::Address) &&
-      !isInNoSanitizeList(SanitizerKind::Address, Fn, Loc))
+      !isInSanitizeIgnorelist(SanitizerKind::Address, Fn, Loc))
     Fn->addFnAttr(llvm::Attribute::SanitizeAddress);
 
   if (getLangOpts().Sanitize.has(SanitizerKind::KernelAddress) &&
-      !isInNoSanitizeList(SanitizerKind::KernelAddress, Fn, Loc))
+      !isInSanitizeIgnorelist(SanitizerKind::KernelAddress, Fn, Loc))
     Fn->addFnAttr(llvm::Attribute::SanitizeAddress);
 
   if (getLangOpts().Sanitize.has(SanitizerKind::HWAddress) &&
-      !isInNoSanitizeList(SanitizerKind::HWAddress, Fn, Loc))
+      !isInSanitizeIgnorelist(SanitizerKind::HWAddress, Fn, Loc))
     Fn->addFnAttr(llvm::Attribute::SanitizeHWAddress);
 
   if (getLangOpts().Sanitize.has(SanitizerKind::KernelHWAddress) &&
-      !isInNoSanitizeList(SanitizerKind::KernelHWAddress, Fn, Loc))
+      !isInSanitizeIgnorelist(SanitizerKind::KernelHWAddress, Fn, Loc))
     Fn->addFnAttr(llvm::Attribute::SanitizeHWAddress);
 
   if (getLangOpts().Sanitize.has(SanitizerKind::MemtagStack) &&
-      !isInNoSanitizeList(SanitizerKind::MemtagStack, Fn, Loc))
+      !isInSanitizeIgnorelist(SanitizerKind::MemtagStack, Fn, Loc))
     Fn->addFnAttr(llvm::Attribute::SanitizeMemTag);
 
   if (getLangOpts().Sanitize.has(SanitizerKind::Thread) &&
-      !isInNoSanitizeList(SanitizerKind::Thread, Fn, Loc))
+      !isInSanitizeIgnorelist(SanitizerKind::Thread, Fn, Loc))
     Fn->addFnAttr(llvm::Attribute::SanitizeThread);
 
   if (getLangOpts().Sanitize.has(SanitizerKind::NumericalStability) &&
-      !isInNoSanitizeList(SanitizerKind::NumericalStability, Fn, Loc))
+      !isInSanitizeIgnorelist(SanitizerKind::NumericalStability, Fn, Loc))
     Fn->addFnAttr(llvm::Attribute::SanitizeNumericalStability);
 
   if (getLangOpts().Sanitize.has(SanitizerKind::Memory) &&
-      !isInNoSanitizeList(SanitizerKind::Memory, Fn, Loc))
+      !isInSanitizeIgnorelist(SanitizerKind::Memory, Fn, Loc))
     Fn->addFnAttr(llvm::Attribute::SanitizeMemory);
 
   if (getLangOpts().Sanitize.has(SanitizerKind::KernelMemory) &&
-      !isInNoSanitizeList(SanitizerKind::KernelMemory, Fn, Loc))
+      !isInSanitizeIgnorelist(SanitizerKind::KernelMemory, Fn, Loc))
     Fn->addFnAttr(llvm::Attribute::SanitizeMemory);
 
   if (getLangOpts().Sanitize.has(SanitizerKind::SafeStack) &&
-      !isInNoSanitizeList(SanitizerKind::SafeStack, Fn, Loc))
+      !isInSanitizeIgnorelist(SanitizerKind::SafeStack, Fn, Loc))
     Fn->addFnAttr(llvm::Attribute::SafeStack);
 
   if (getLangOpts().Sanitize.has(SanitizerKind::ShadowCallStack) &&
-      !isInNoSanitizeList(SanitizerKind::ShadowCallStack, Fn, Loc))
+      !isInSanitizeIgnorelist(SanitizerKind::ShadowCallStack, Fn, Loc))
     Fn->addFnAttr(llvm::Attribute::ShadowCallStack);
 
   return Fn;

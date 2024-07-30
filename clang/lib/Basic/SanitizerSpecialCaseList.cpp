@@ -64,3 +64,35 @@ bool SanitizerSpecialCaseList::inSection(SanitizerMask Mask, StringRef Prefix,
 
   return false;
 }
+
+bool SanitizerSpecialCaseList::containsGlobal(SanitizerMask Mask, StringRef GlobalName,
+                    StringRef Category) const {
+  return inSection(Mask, "global", GlobalName, Category);
+}
+
+bool SanitizerSpecialCaseList::containsType(SanitizerMask Mask, StringRef MangledTypeName,
+                  StringRef Category) const {
+  return inSection(Mask, "type", MangledTypeName, Category);
+}
+
+bool SanitizerSpecialCaseList::containsFunction(SanitizerMask Mask, StringRef FunctionName) const {
+  return inSection(Mask, "fun", FunctionName);
+}
+
+bool SanitizerSpecialCaseList::containsFile(SanitizerMask Mask, StringRef FileName,
+                  StringRef Category) const {
+  return inSection(Mask, "src", FileName, Category);
+}
+
+bool SanitizerSpecialCaseList::containsMainFile(SanitizerMask Mask, StringRef FileName,
+                      StringRef Category) const {
+  return inSection(Mask, "mainfile", FileName, Category);
+}
+
+bool SanitizerSpecialCaseList::containsLocation(SanitizerMask Mask,
+                                                SourceLocation Loc,
+                                                SourceManager &SM,
+                                                StringRef Category) const {
+  return Loc.isValid() &&
+          containsFile(Mask, SM.getFilename(SM.getFileLoc(Loc)), Category);
+}

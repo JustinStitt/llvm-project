@@ -2241,6 +2241,9 @@ static void GenerateDependencyOutputArgs(const DependencyOutputOptions &Opts,
 
   for (const auto &Dep : Opts.ExtraDeps) {
     switch (Dep.second) {
+    case EDK_SanitizeAllowlist:
+      // Sanitizer allowlist arguments are generated from LanguageOptions.
+      continue;
     case EDK_SanitizeIgnorelist:
       // Sanitizer ignorelist arguments are generated from LanguageOptions.
       continue;
@@ -2255,6 +2258,21 @@ static void GenerateDependencyOutputArgs(const DependencyOutputOptions &Opts,
     case EDK_DepFileEntry:
       GenerateArg(Consumer, OPT_fdepfile_entry, Dep.first);
       break;
+    }
+  }
+}
+
+static void addSanitizerListAsExtraDeps(DependencyOutputOptions &Opts, ArgList &Args,
+                             options::ID Neg, options::ID List,
+                             ExtraDepKind EDK) {
+  // Add sanitizer ignorelists as extra dependencies.
+  // They won't be discovered by the regular preprocessor, so
+  // we let make / ninja to know about this implicit dependency.
+  if (!Args.hasArg(Neg)) {
+    for (const auto *A : Args.filtered(List)) {
+      StringRef Val = A->getValue();
+      if (!Val.contains('='))
+        Opts.ExtraDeps.emplace_back(std::string(Val), EDK);
     }
   }
 }
@@ -2283,15 +2301,17 @@ static bool ParseDependencyOutputArgs(DependencyOutputOptions &Opts,
     Opts.ShowIncludesDest = ShowIncludesDestination::None;
   }
 
-  // Add sanitizer ignorelists as extra dependencies.
-  // They won't be discovered by the regular preprocessor, so
-  // we let make / ninja to know about this implicit dependency.
+  addSanitizerListAsExtraDeps(Opts, Args, options::OPT_fno_sanitize_ignorelist,
+                   options::OPT_fsanitize_ignorelist_EQ,
+                   clang::EDK_SanitizeIgnorelist);
+
+  addSanitizerListAsExtraDeps(Opts, Args, options::OPT_fno_sanitize_allowlist,
+                   options::OPT_fsanitize_allowlist_EQ,
+                   clang::EDK_SanitizeAllowlist);
+
+  // Only the ignorelist has a system-level equivalent, handle its dependencies
+  // separately.
   if (!Args.hasArg(OPT_fno_sanitize_ignorelist)) {
-    for (const auto *A : Args.filtered(OPT_fsanitize_ignorelist_EQ)) {
-      StringRef Val = A->getValue();
-      if (!Val.contains('='))
-        Opts.ExtraDeps.emplace_back(std::string(Val), EDK_SanitizeIgnorelist);
-    }
     if (Opts.IncludeSystemHeaders) {
       for (const auto *A : Args.filtered(OPT_fsanitize_system_ignorelist_EQ)) {
         StringRef Val = A->getValue();
@@ -3751,8 +3771,11 @@ void CompilerInvocationBase::GenerateLangArgs(const LangOptions &Opts,
     GenerateArg(Consumer, OPT_fsanitize_EQ, Sanitizer);
 
   // Conflating '-fsanitize-system-ignorelist' and '-fsanitize-ignorelist'.
-  for (const std::string &F : Opts.NoSanitizeFiles)
+  for (const std::string &F : Opts.SanitizeIgnorelistFiles)
     GenerateArg(Consumer, OPT_fsanitize_ignorelist_EQ, F);
+
+  for (const std::string &F : Opts.SanitizeAllowlistFiles)
+    GenerateArg(Consumer, OPT_fsanitize_allowlist_EQ, F);
 
   switch (Opts.getClangABICompat()) {
   case LangOptions::ClangABI::Ver3_8:
@@ -4267,10 +4290,11 @@ bool CompilerInvocation::ParseLangArgs(LangOptions &Opts, ArgList &Args,
   // Parse -fsanitize= arguments.
   parseSanitizerKinds("-fsanitize=", Args.getAllArgValues(OPT_fsanitize_EQ),
                       Diags, Opts.Sanitize);
-  Opts.NoSanitizeFiles = Args.getAllArgValues(OPT_fsanitize_ignorelist_EQ);
+  Opts.SanitizeAllowlistFiles = Args.getAllArgValues(OPT_fsanitize_allowlist_EQ);
+  Opts.SanitizeIgnorelistFiles = Args.getAllArgValues(OPT_fsanitize_ignorelist_EQ);
   std::vector<std::string> systemIgnorelists =
       Args.getAllArgValues(OPT_fsanitize_system_ignorelist_EQ);
-  Opts.NoSanitizeFiles.insert(Opts.NoSanitizeFiles.end(),
+  Opts.SanitizeIgnorelistFiles.insert(Opts.SanitizeIgnorelistFiles.end(),
                               systemIgnorelists.begin(),
                               systemIgnorelists.end());
 

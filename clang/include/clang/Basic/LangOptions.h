@@ -485,7 +485,13 @@ public:
 
   /// Paths to files specifying which objects
   /// (files, functions, variables) should not be instrumented.
-  std::vector<std::string> NoSanitizeFiles;
+  std::vector<std::string> SanitizeIgnorelistFiles;
+
+  /// Paths to files specifying which objects (files, functions, variables)
+  /// should be instrumented. The default allowlist includes all entities.
+  /// Users providing their own allowlist are power users who want to limit
+  /// sanitizer instrumentation to a small set of entities.
+  std::vector<std::string> SanitizeAllowlistFiles;
 
   /// Paths to the XRay "always instrument" files specifying which
   /// objects (files, functions, variables) should be imbued with the XRay

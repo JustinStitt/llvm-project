@@ -24,7 +24,6 @@
 #include "clang/AST/Mangle.h"
 #include "clang/Basic/ABI.h"
 #include "clang/Basic/LangOptions.h"
-#include "clang/Basic/NoSanitizeList.h"
 #include "clang/Basic/ProfileList.h"
 #include "clang/Basic/TargetInfo.h"
 #include "clang/Basic/XRayLists.h"
@@ -626,6 +625,13 @@ private:
       VTablePtrAuthInfos;
   std::optional<PointerAuthQualifier>
   computeVTPointerAuthentication(const CXXRecordDecl *ThisClass);
+
+  bool isInSanitizeList(SanitizerMask Kind, llvm::Function *Fn,
+                        SourceLocation Loc, bool isAllowlist) const;
+
+  bool isInSanitizeList(SanitizerMask Kind, llvm::GlobalVariable *GV,
+                        SourceLocation Loc, QualType Ty, bool isAllowlist,
+                        StringRef Category) const;
 
 public:
   CodeGenModule(ASTContext &C, IntrusiveRefCntPtr<llvm::vfs::FileSystem> FS,
@@ -1428,12 +1434,19 @@ public:
   /// annotations are emitted during finalization of the LLVM code.
   void AddGlobalAnnotations(const ValueDecl *D, llvm::GlobalValue *GV);
 
-  bool isInNoSanitizeList(SanitizerMask Kind, llvm::Function *Fn,
-                          SourceLocation Loc) const;
+  bool isInSanitizeIgnorelist(SanitizerMask Kind, llvm::Function * Fn,
+                              SourceLocation Loc) const;
 
-  bool isInNoSanitizeList(SanitizerMask Kind, llvm::GlobalVariable *GV,
-                          SourceLocation Loc, QualType Ty,
-                          StringRef Category = StringRef()) const;
+  bool isInSanitizeIgnorelist(SanitizerMask Kind, llvm::GlobalVariable * GV,
+                              SourceLocation Loc, QualType Ty,
+                              StringRef Category = StringRef()) const;
+
+  bool isInSanitizeAllowlist(SanitizerMask Kind, llvm::Function * Fn,
+                              SourceLocation Loc) const;
+
+  bool isInSanitizeAllowlist(SanitizerMask Kind, llvm::GlobalVariable * GV,
+                              SourceLocation Loc, QualType Ty,
+                              StringRef Category = StringRef()) const;
 
   /// Imbue XRay attributes to a function, applying the always/never attribute
   /// lists in the process. Returns true if we did imbue attributes this way,

@@ -28,6 +28,7 @@
 #include "clang/AST/RecordLayout.h"
 #include "clang/AST/StmtVisitor.h"
 #include "clang/Basic/CodeGenOptions.h"
+#include "clang/Basic/Sanitizers.h"
 #include "clang/Basic/TargetInfo.h"
 #include "llvm/ADT/APFixedPoint.h"
 #include "llvm/IR/CFG.h"
@@ -191,10 +192,21 @@ static bool CanElideOverflowCheck(const ASTContext &Ctx, const BinOpInfo &Op) {
   assert((isa<UnaryOperator>(Op.E) || isa<BinaryOperator>(Op.E)) &&
          "Expected a unary or binary operator");
 
-  // If the binop has constant inputs and we can prove there is no overflow,
-  // we can elide the overflow check.
-  if (!Op.mayHaveIntegerOverflow())
+  if (Op.Ty->isUnsignedIntegerType() &&
+      !Ctx.isTypeAllowedBySanitizerLists(SanitizerKind::UnsignedIntegerOverflow,
+                                         Op.Ty)) {
     return true;
+  }
+  if (Op.Ty->isSignedIntegerType() &&
+      !Ctx.isTypeAllowedBySanitizerLists(SanitizerKind::SignedIntegerOverflow,
+                                         Op.Ty)) {
+    return true;
+  }
+
+    // If the binop has constant inputs and we can prove there is no overflow,
+    // we can elide the overflow check.
+    if (!Op.mayHaveIntegerOverflow())
+      return true;
 
   const UnaryOperator *UO = dyn_cast<UnaryOperator>(Op.E);
 
@@ -1119,11 +1131,18 @@ void ScalarExprEmitter::EmitIntegerTruncationCheck(Value *Src, QualType SrcType,
   if (!CGF.SanOpts.has(Check.second.second))
     return;
 
-  llvm::Constant *StaticArgs[] = {
-      CGF.EmitCheckSourceLocation(Loc), CGF.EmitCheckTypeDescriptor(SrcType),
-      CGF.EmitCheckTypeDescriptor(DstType),
-      llvm::ConstantInt::get(Builder.getInt8Ty(), Check.first),
-      llvm::ConstantInt::get(Builder.getInt32Ty(), 0)};
+  // Does the sanitizer allow this type as detailed by user-supplied
+  // allow/ignore lists?
+  if (!CGF.getContext().isTypeAllowedBySanitizerLists(Check.second.second,
+                                                      DstType)) {
+    return;
+  }
+
+    llvm::Constant *StaticArgs[] = {
+        CGF.EmitCheckSourceLocation(Loc), CGF.EmitCheckTypeDescriptor(SrcType),
+        CGF.EmitCheckTypeDescriptor(DstType),
+        llvm::ConstantInt::get(Builder.getInt8Ty(), Check.first),
+        llvm::ConstantInt::get(Builder.getInt32Ty(), 0)};
 
   CGF.EmitCheck(Check.second, SanitizerHandler::ImplicitConversion, StaticArgs,
                 {Src, Dst});
@@ -1222,11 +1241,14 @@ void ScalarExprEmitter::EmitIntegerSignChangeCheck(Value *Src, QualType SrcType,
   // or zero-extension will happen (the sign bit will be zero.)
   if ((DstBits > SrcBits) && DstSigned)
     return;
-  if (CGF.SanOpts.has(SanitizerKind::ImplicitSignedIntegerTruncation) &&
-      (SrcBits > DstBits) && SrcSigned) {
+  if ((CGF.SanOpts.has(SanitizerKind::ImplicitSignedIntegerTruncation) &&
+       ((SrcBits > DstBits) && SrcSigned)) ||
+      !CGF.getContext().isTypeAllowedBySanitizerLists(
+          SanitizerKind::ImplicitSignedIntegerTruncation, DstType)) {
     // If the signed integer truncation sanitizer is enabled,
     // and this is a truncation from signed type, then no check is needed.
-    // Because here sign change check is interchangeable with truncation check.
+    // Because here sign change check is interchangeable with truncation
+    // check.
     return;
   }
   // That's it. We can't rule out any more cases with the data we have.
@@ -2769,10 +2791,11 @@ llvm::Value *ScalarExprEmitter::EmitIncDecConsiderOverflowBehavior(
       return Builder.CreateNSWAdd(InVal, Amount, Name);
     [[fallthrough]];
   case LangOptions::SOB_Trapping:
-    if (!E->canOverflow())
+    BinOpInfo Info = createBinOpInfoFromIncDec(
+        E, InVal, IsInc, E->getFPFeaturesInEffect(CGF.getLangOpts()));
+    if (!E->canOverflow() || CanElideOverflowCheck(CGF.getContext(), Info))
       return Builder.CreateNSWAdd(InVal, Amount, Name);
-    return EmitOverflowCheckedBinOp(createBinOpInfoFromIncDec(
-        E, InVal, IsInc, E->getFPFeaturesInEffect(CGF.getLangOpts())));
+    return EmitOverflowCheckedBinOp(Info);
   }
   llvm_unreachable("Unknown SignedOverflowBehaviorTy");
 }
@@ -2959,6 +2982,8 @@ ScalarExprEmitter::EmitScalarPrePostIncDec(const UnaryOperator *E, LValue LV,
       value = EmitIncDecConsiderOverflowBehavior(E, value, isInc);
     } else if (E->canOverflow() && type->isUnsignedIntegerType() &&
                CGF.SanOpts.has(SanitizerKind::UnsignedIntegerOverflow) &&
+               CGF.getContext().isTypeAllowedBySanitizerLists(
+                   SanitizerKind::UnsignedIntegerOverflow, E->getType()) &&
                !disableSanitizer) {
       value = EmitOverflowCheckedBinOp(createBinOpInfoFromIncDec(
           E, value, isInc, E->getFPFeaturesInEffect(CGF.getLangOpts())));

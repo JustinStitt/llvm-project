@@ -26,6 +26,8 @@
 #include "clang/AST/TemplateName.h"
 #include "clang/Basic/LLVM.h"
 #include "clang/Basic/PartialDiagnostic.h"
+#include "clang/Basic/SanitizerSpecialCaseList.h"
+#include "clang/Basic/Sanitizers.h"
 #include "clang/Basic/SourceLocation.h"
 #include "llvm/ADT/DenseMap.h"
 #include "llvm/ADT/DenseSet.h"
@@ -79,7 +81,7 @@ class MemberSpecializationInfo;
 class Module;
 struct MSGuidDeclParts;
 class NestedNameSpecifier;
-class NoSanitizeList;
+class SanitizerSpecialCaseList;
 class ObjCCategoryDecl;
 class ObjCCategoryImplDecl;
 class ObjCContainerDecl;
@@ -614,9 +616,13 @@ private:
   ///  this ASTContext object.
   LangOptions &LangOpts;
 
-  /// NoSanitizeList object that is used by sanitizers to decide which
+  /// SanitizeIgnorelist object that is used by sanitizers to decide which
   /// entities should not be instrumented.
-  std::unique_ptr<NoSanitizeList> NoSanitizeL;
+  std::unique_ptr<SanitizerSpecialCaseList> SanitizeIgnorelist;
+
+  /// SanitizeAllowlist object that is used by sanitizers to decide which
+  /// entities should be instrumented.
+  std::unique_ptr<SanitizerSpecialCaseList> SanitizeAllowlist;
 
   /// Function filtering mechanism to determine whether a given function
   /// should be imbued with the XRay "always" or "never" attributes.
@@ -803,7 +809,18 @@ public:
     return LangOpts.CPlusPlus || LangOpts.RecoveryAST;
   }
 
-  const NoSanitizeList &getNoSanitizeList() const { return *NoSanitizeL; }
+  const SanitizerSpecialCaseList &getSanitizeIgnorelist() const {
+    return *SanitizeIgnorelist;
+  }
+
+  const SanitizerSpecialCaseList &getSanitizeAllowlist() const {
+    return *SanitizeAllowlist;
+  }
+
+  bool isTypeAllowedBySanitizerLists(SanitizerMask Mask, const QualType &Ty) const {
+    return !(SanitizeIgnorelist->containsType(Mask, Ty.getAsString()) &&
+             !SanitizeAllowlist->containsType(Mask, Ty.getAsString()));
+  }
 
   const XRayFunctionFilter &getXRayFilter() const {
     return *XRayFilter;

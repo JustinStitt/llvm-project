@@ -245,6 +245,10 @@ def err_drv_missing_sanitizer_ignorelist : Error<
   "missing sanitizer ignorelist: '%0'">;
 def err_drv_malformed_sanitizer_ignorelist : Error<
   "malformed sanitizer ignorelist: '%0'">;
+def err_drv_missing_sanitizer_allowlist : Error<
+  "missing sanitizer allowlist: '%0'">;
+def err_drv_malformed_sanitizer_allowlist : Error<
+  "malformed sanitizer allowlist: '%0'">;
 def err_drv_malformed_sanitizer_coverage_allowlist : Error<
   "malformed sanitizer coverage allowlist: '%0'">;
 def err_drv_malformed_sanitizer_coverage_ignorelist : Error<

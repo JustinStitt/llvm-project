@@ -53,22 +53,22 @@ void SanitizerMetadata::reportGlobal(llvm::GlobalVariable *GV,
     Meta = GV->getSanitizerMetadata();
 
   Meta.NoAddress |= NoSanitizeAttrSet.hasOneOf(SanitizerKind::Address);
-  Meta.NoAddress |= CGM.isInNoSanitizeList(
+  Meta.NoAddress |= CGM.isInSanitizeIgnorelist(
       FsanitizeArgument.Mask & SanitizerKind::Address, GV, Loc, Ty);
 
   Meta.NoHWAddress |= NoSanitizeAttrSet.hasOneOf(SanitizerKind::HWAddress);
-  Meta.NoHWAddress |= CGM.isInNoSanitizeList(
+  Meta.NoHWAddress |= CGM.isInSanitizeIgnorelist(
       FsanitizeArgument.Mask & SanitizerKind::HWAddress, GV, Loc, Ty);
 
   Meta.Memtag |=
       static_cast<bool>(FsanitizeArgument.Mask & SanitizerKind::MemtagGlobals);
   Meta.Memtag &= !NoSanitizeAttrSet.hasOneOf(SanitizerKind::MemTag);
-  Meta.Memtag &= !CGM.isInNoSanitizeList(
+  Meta.Memtag &= !CGM.isInSanitizeIgnorelist(
       FsanitizeArgument.Mask & SanitizerKind::MemTag, GV, Loc, Ty);
 
   Meta.IsDynInit = IsDynInit && !Meta.NoAddress &&
                    FsanitizeArgument.has(SanitizerKind::Address) &&
-                   !CGM.isInNoSanitizeList(SanitizerKind::Address |
+                   !CGM.isInSanitizeIgnorelist(SanitizerKind::Address |
                                                SanitizerKind::KernelAddress,
                                            GV, Loc, Ty, "init");
 

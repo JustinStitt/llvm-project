@@ -2874,7 +2874,7 @@ void CodeGenFunction::EmitVTablePtrCheck(const CXXRecordDecl *RD,
   }
 
   std::string TypeName = RD->getQualifiedNameAsString();
-  if (getContext().getNoSanitizeList().containsType(M, TypeName))
+  if (getContext().getSanitizeIgnorelist().containsType(M, TypeName))
     return;
 
   SanitizerScope SanScope(this);
@@ -2926,7 +2926,7 @@ bool CodeGenFunction::ShouldEmitVTableTypeCheckedLoad(const CXXRecordDecl *RD) {
     return false;
 
   std::string TypeName = RD->getQualifiedNameAsString();
-  return !getContext().getNoSanitizeList().containsType(SanitizerKind::CFIVCall,
+  return !getContext().getSanitizeIgnorelist().containsType(SanitizerKind::CFIVCall,
                                                         TypeName);
 }
 
@@ -2948,7 +2948,7 @@ llvm::Value *CodeGenFunction::EmitVTableTypeCheckedLoad(
 
   std::string TypeName = RD->getQualifiedNameAsString();
   if (SanOpts.has(SanitizerKind::CFIVCall) &&
-      !getContext().getNoSanitizeList().containsType(SanitizerKind::CFIVCall,
+      !getContext().getSanitizeIgnorelist().containsType(SanitizerKind::CFIVCall,
                                                      TypeName)) {
     EmitCheck(std::make_pair(CheckResult, SanitizerKind::CFIVCall),
               SanitizerHandler::CFICheckFail, {}, {});

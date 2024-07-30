@@ -27,6 +27,7 @@ class SanitizerArgs {
   SanitizerSet TrapSanitizers;
 
   std::vector<std::string> UserIgnorelistFiles;
+  std::vector<std::string> UserAllowlistFiles;
   std::vector<std::string> SystemIgnorelistFiles;
   std::vector<std::string> CoverageAllowlistFiles;
   std::vector<std::string> CoverageIgnorelistFiles;
