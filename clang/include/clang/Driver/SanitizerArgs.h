@@ -76,8 +76,6 @@ public:
   SanitizerArgs(const ToolChain &TC, const llvm::opt::ArgList &Args,
                 bool DiagnoseErrors = true);
 
-  int OverflowPatternExclusions = 0;
-
   bool needsSharedRt() const { return SharedRuntime; }
   bool needsStableAbi() const { return StableABI; }
 
