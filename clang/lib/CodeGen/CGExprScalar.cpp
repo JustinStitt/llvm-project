@@ -203,10 +203,10 @@ static bool CanElideOverflowCheck(const ASTContext &Ctx, const BinOpInfo &Op) {
     return true;
   }
 
-    // If the binop has constant inputs and we can prove there is no overflow,
-    // we can elide the overflow check.
-    if (!Op.mayHaveIntegerOverflow())
-      return true;
+  // If the binop has constant inputs and we can prove there is no overflow,
+  // we can elide the overflow check.
+  if (!Op.mayHaveIntegerOverflow())
+    return true;
 
   const UnaryOperator *UO = dyn_cast<UnaryOperator>(Op.E);
 
