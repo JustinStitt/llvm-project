@@ -215,6 +215,13 @@ static bool CanElideOverflowCheck(const ASTContext &Ctx, const BinOpInfo &Op) {
           LangOptions::OverflowPatternExclusionKind::NegUnsignedConst))
     return true;
 
+  const UnaryOperator *UO = dyn_cast<UnaryOperator>(Op.E);
+
+  if (UO && UO->getOpcode() == UO_Minus && UO->isIntegerConstantExpr(Ctx) &&
+      Ctx.getLangOpts().isOverflowPatternExcluded(
+          LangOptions::OverflowPatternExclusionKind::NegUnsignedConst))
+    return true;
+
   // If a unary op has a widened operand, the op cannot overflow.
   if (UO)
     return !UO->canOverflow();
