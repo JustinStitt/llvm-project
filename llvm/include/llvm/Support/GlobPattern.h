@@ -89,7 +89,7 @@ private:
     bool Inverted;
   };
   SmallVector<SubGlobPattern, 1> SubGlobs;
-  SmallVector<SubGlobPattern, 1> NegGlobs;
+  SmallVector<SubGlobPattern, 1> InvertedSubGlobs;
 };
 }
 

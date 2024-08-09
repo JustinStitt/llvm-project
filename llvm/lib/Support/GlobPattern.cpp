@@ -91,12 +91,8 @@ parseBraceExpansions(StringRef S, std::optional<size_t> MaxSubPatterns) {
     } else if (S[I] == ',') {
       if (!CurrentBE)
         continue;
-      // TODO: why not? vvv
-      if (CurrentBE->Inverted)
-        return make_error<StringError>(
-            "inverted matcher does not support multiple terms",
-            errc::invalid_argument);
-      CurrentBE->Terms.push_back(S.substr(TermBegin, I - TermBegin));
+      CurrentBE->Terms.push_back(S.substr(TermBegin + CurrentBE->Inverted,
+                                          I - TermBegin - CurrentBE->Inverted));
       TermBegin = I + 1;
     } else if (S[I] == '}') {
       if (!CurrentBE)
@@ -105,9 +101,8 @@ parseBraceExpansions(StringRef S, std::optional<size_t> MaxSubPatterns) {
         return make_error<StringError>(
             "empty or singleton brace expansions are not supported",
             errc::invalid_argument);
-      size_t MaybeInvertedTermBegin = TermBegin + CurrentBE->Inverted;
-      CurrentBE->Terms.push_back(
-          S.substr(MaybeInvertedTermBegin, I - MaybeInvertedTermBegin));
+      CurrentBE->Terms.push_back(S.substr(TermBegin + CurrentBE->Inverted,
+                                          I - TermBegin - CurrentBE->Inverted));
       CurrentBE->Length = I - CurrentBE->Start + 1;
       if (CurrentBE->Inverted && CurrentBE->Length < 4)
         return make_error<StringError>("inverted matcher is missing a term",
@@ -182,10 +177,14 @@ GlobPattern::create(StringRef S, std::optional<size_t> MaxSubPatterns) {
     return std::move(Err);
 
   for (auto [SubPat, Inverted] : SubPats) {
+    errs() << "SubPat: " << SubPat << " Inverted: " << Inverted << "\n";
     auto SubGlobOrErr = SubGlobPattern::create(SubPat, Inverted);
     if (!SubGlobOrErr)
       return SubGlobOrErr.takeError();
-    Pat.SubGlobs.push_back(*SubGlobOrErr);
+    if (Inverted)
+      Pat.InvertedSubGlobs.push_back(*SubGlobOrErr);
+    else
+      Pat.SubGlobs.push_back(*SubGlobOrErr);
   }
 
   return Pat;
@@ -217,18 +216,6 @@ GlobPattern::SubGlobPattern::create(StringRef S, bool Inverted) {
         BV->flip();
       Pat.Brackets.push_back(Bracket{J + 1, std::move(*BV)});
       I = J;
-    } else if (S[I] == '{') {
-      ++I;
-      size_t J = S.find('}', I+1);
-      if (J == StringRef::npos)
-        return make_error<StringError>(
-            "invalid glob pattern, unmatched '{' in inverted match",
-            errc::invalid_argument);
-      if (S[I++] != '!')
-        return make_error<StringError>(
-            "invalid glob pattern, missing '!' in inverted match",
-            errc::invalid_argument);
-      I = J;
     } else if (S[I] == '\\') {
       if (++I == E)
         return make_error<StringError>("invalid glob pattern, stray '\\'",
@@ -239,16 +226,18 @@ GlobPattern::SubGlobPattern::create(StringRef S, bool Inverted) {
 }
 
 bool GlobPattern::match(StringRef S) const {
-  if (!S.consume_front(
-          Prefix)) // try to consume the prefix (everything pre-wildcard)
+  if (!S.consume_front(Prefix))
     return false;
-  if (SubGlobs.empty() &&
-      S.empty()) // matched our prefix and there are no subglobs, its a match!
+  if (SubGlobs.empty() && S.empty())
     return true;
+
+  for (auto &Glob : InvertedSubGlobs)
+    if (Glob.match(S))
+      return false;
 
   for (auto &Glob : SubGlobs)
     if (Glob.match(S))
-      return !Glob.Inverted;
+      return true;
 
   return false;
 }
