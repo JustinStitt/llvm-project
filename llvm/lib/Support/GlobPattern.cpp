@@ -177,7 +177,6 @@ GlobPattern::create(StringRef S, std::optional<size_t> MaxSubPatterns) {
     return std::move(Err);
 
   for (auto [SubPat, Inverted] : SubPats) {
-    errs() << "SubPat: " << SubPat << " Inverted: " << Inverted << "\n";
     auto SubGlobOrErr = SubGlobPattern::create(SubPat, Inverted);
     if (!SubGlobOrErr)
       return SubGlobOrErr.takeError();
