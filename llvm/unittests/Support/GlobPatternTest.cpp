@@ -271,4 +271,45 @@ TEST_F(GlobPatternTest, Pathological) {
   EXPECT_FALSE(Pat->match(S));
   EXPECT_TRUE(Pat->match(S + 'b'));
 }
+
+TEST_F(GlobPatternTest, Inverted) {
+  // anything but "foo"
+  Expected<GlobPattern> Pat1 =
+      GlobPattern::create("{!foo}", /*MaxSubPatterns=*/1024);
+  StringRef S1 = "bar";
+  ASSERT_TRUE((bool)Pat1);
+  EXPECT_TRUE(Pat1->match(S1));
+
+  // must start with "test" but cannot end with "_qaz"
+  Expected<GlobPattern> Pat2 =
+      GlobPattern::create("test*{!_qaz}", /*MaxSubPatterns=*/1024);
+  StringRef S2Match[] = {"test", "test_now", "test_later", "testalot"};
+  StringRef S2Nomatch[] = {"test_qaz", "test_me_qaz", "aaa",
+                           "bbb",      "bbb_qaz",     "tst_qaz"};
+  ASSERT_TRUE((bool)Pat2);
+  for (StringRef S : S2Match)
+    EXPECT_TRUE(Pat2->match(S));
+  for (StringRef S : S2Nomatch)
+    EXPECT_FALSE(Pat2->match(S));
+
+  // starts with anything except foo, bar, qaz and ends with _debug
+  Expected<GlobPattern> Pat3 = GlobPattern::create("{!foo,!bar,!qaz}_debug",
+                                                   /*MaxSubPatterns=*/1024);
+  ASSERT_TRUE((bool)Pat3);
+  StringRef S3Match = "qux_debug";
+  StringRef S3Nomatch[] = {"foo_debug", "bar_debug", "qaz_debug", "debug_qux"};
+  EXPECT_TRUE(Pat3->match(S3Match));
+  for (StringRef S : S3Nomatch)
+    EXPECT_FALSE(Pat3->match(S));
+
+  // Don't mix inverted match terms with normal terms
+  Expected<GlobPattern> Fail1 =
+      GlobPattern::create("{!foo,bar}", /*MaxSubPatterns=*/1024);
+  EXPECT_FALSE((bool)Fail1);
+  handleAllErrors(Fail1.takeError(), [&](ErrorInfoBase &EIB) {});
+  Expected<GlobPattern> Fail2 =
+      GlobPattern::create("{foo,!bar}", /*MaxSubPatterns=*/1024);
+  EXPECT_FALSE((bool)Fail2);
+  handleAllErrors(Fail2.takeError(), [&](ErrorInfoBase &EIB) {});
+}
 }

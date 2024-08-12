@@ -192,22 +192,6 @@ static bool CanElideOverflowCheck(const ASTContext &Ctx, const BinOpInfo &Op) {
   assert((isa<UnaryOperator>(Op.E) || isa<BinaryOperator>(Op.E)) &&
          "Expected a unary or binary operator");
 
-  /*Expected<llvm::GlobPattern> Pat =*/
-  /*    llvm::GlobPattern::create("[^s][^i][^z][^e][^_][^t]*");*/
-  /*if (!Pat) {*/
-  /*  llvm::errs() << "Error creating pat\n";*/
-  /*} else {*/
-  /*  bool MatchResult = Pat->match("int");*/
-  /*  llvm::errs() << "int matchresult: " << MatchResult << "\n";*/
-  /*}*/
-
-  llvm::errs() << "Ty: " << Op.Ty
-               << "\tisSignedIntegerType: " << Op.Ty->isSignedIntegerType()
-               << "\tcontainsType: "
-               << Ctx.getNoSanitizeList().containsType(
-                      SanitizerKind::SignedIntegerOverflow, Op.Ty.getAsString())
-               << "\n";
-
   if (Op.Ty->isUnsignedIntegerType() &&
       Ctx.getNoSanitizeList().containsType(
           SanitizerKind::UnsignedIntegerOverflow, Op.Ty.getAsString()))

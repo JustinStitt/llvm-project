@@ -53,22 +53,27 @@ static Expected<BitVector> expand(StringRef S, StringRef Original) {
   return BV;
 }
 
+/// There are sub patterns and then there are inverted sub patterns. If the
+/// string being matched against contains an inverted sub pattern then the
+/// match will return false.
+using MaybeInvertedPatternTy = std::pair<std::string, bool>;
+
 // Identify brace expansions in S and return the list of patterns they expand
 // into.
-Expected<SmallVector<std::pair<std::string, bool>, 1>>
+static Expected<SmallVector<MaybeInvertedPatternTy, 1>>
 parseBraceExpansions(StringRef S, std::optional<size_t> MaxSubPatterns) {
-
-  SmallVector<std::pair<std::string, bool>, 1> SubPats = {
+  SmallVector<MaybeInvertedPatternTy, 1> SubPatterns = {
       std::make_pair(S.str(), false)};
+
   if (!MaxSubPatterns || !S.contains('{')) {
-    return std::move(SubPats);
+    return std::move(SubPatterns);
   }
 
   struct BraceExpansion {
     size_t Start;
     size_t Length;
     SmallVector<StringRef, 2> Terms;
-    bool Inverted;
+    bool Inverted = false;
   };
   SmallVector<BraceExpansion, 0> BraceExpansions;
 
@@ -91,6 +96,10 @@ parseBraceExpansions(StringRef S, std::optional<size_t> MaxSubPatterns) {
     } else if (S[I] == ',') {
       if (!CurrentBE)
         continue;
+      if (CurrentBE->Inverted && S[TermBegin] != '!')
+        return make_error<StringError>(
+            "all terms in an inverted match must start with '!'",
+            errc::invalid_argument);
       CurrentBE->Terms.push_back(S.substr(TermBegin + CurrentBE->Inverted,
                                           I - TermBegin - CurrentBE->Inverted));
       TermBegin = I + 1;
@@ -100,6 +109,10 @@ parseBraceExpansions(StringRef S, std::optional<size_t> MaxSubPatterns) {
       if (CurrentBE->Terms.empty() && !CurrentBE->Inverted)
         return make_error<StringError>(
             "empty or singleton brace expansions are not supported",
+            errc::invalid_argument);
+      if (CurrentBE->Inverted && S[TermBegin] != '!')
+        return make_error<StringError>(
+            "inverted matcher term must start with '!'",
             errc::invalid_argument);
       CurrentBE->Terms.push_back(S.substr(TermBegin + CurrentBE->Inverted,
                                           I - TermBegin - CurrentBE->Inverted));
@@ -114,6 +127,10 @@ parseBraceExpansions(StringRef S, std::optional<size_t> MaxSubPatterns) {
       if (I != TermBegin)
         return make_error<StringError>(
             "must use '!' at the beginning of the term", errc::invalid_argument);
+      if (CurrentBE->Terms.size() && !CurrentBE->Inverted)
+        return make_error<StringError>(
+            "cannot mix inverted match terms with normal terms",
+            errc::invalid_argument);
       CurrentBE->Inverted = true;
     } else if (S[I] == '*') {
       if (!CurrentBE)
@@ -146,19 +163,19 @@ parseBraceExpansions(StringRef S, std::optional<size_t> MaxSubPatterns) {
   // Replace brace expansions in reverse order so that we don't invalidate
   // earlier start indices
   for (auto &BE : reverse(BraceExpansions)) {
-    SmallVector<std::pair<std::string, bool>, 1> OrigSubPats;
-    std::swap(SubPats, OrigSubPats);
+    SmallVector<MaybeInvertedPatternTy> OrigSubPatterns;
+    std::swap(SubPatterns, OrigSubPatterns);
     for (StringRef Term : BE.Terms) {
-      for (auto &SubPat : OrigSubPats) {
-        SubPats.emplace_back(std::make_pair(SubPat.first, BE.Inverted))
+      for (MaybeInvertedPatternTy &SubPat : OrigSubPatterns) {
+        SubPatterns.emplace_back(std::make_pair(SubPat.first, BE.Inverted))
             .first.replace(BE.Start, BE.Length, Term);
         if (BE.Inverted)
-          SubPats.emplace_back(std::make_pair(SubPat.first, false))
+          SubPatterns.emplace_back(std::make_pair(SubPat.first, false))
               .first.replace(BE.Start, BE.Length, "*");
       }
     }
   }
-  return std::move(SubPats);
+  return std::move(SubPatterns);
 }
 
 Expected<GlobPattern>
@@ -172,7 +189,7 @@ GlobPattern::create(StringRef S, std::optional<size_t> MaxSubPatterns) {
     return Pat;
   S = S.substr(PrefixSize);
 
-  SmallVector<std::pair<std::string, bool>, 1> SubPats;
+  SmallVector<MaybeInvertedPatternTy, 1> SubPats;
   if (auto Err = parseBraceExpansions(S, MaxSubPatterns).moveInto(SubPats))
     return std::move(Err);
 

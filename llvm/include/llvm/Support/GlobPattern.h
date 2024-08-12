@@ -66,6 +66,8 @@ public:
       return false;
     if (SubGlobs.size() != 1)
       return false;
+    if (InvertedSubGlobs.size())
+      return false;
     return SubGlobs[0].getPat() == "*";
   }
 
