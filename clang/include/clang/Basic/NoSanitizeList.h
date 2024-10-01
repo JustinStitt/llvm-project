@@ -17,6 +17,7 @@
 #include "clang/Basic/LLVM.h"
 #include "clang/Basic/SourceLocation.h"
 #include "llvm/ADT/StringRef.h"
+#include "llvm/Support/Error.h"
 #include <memory>
 #include <vector>
 
@@ -45,6 +46,9 @@ public:
                         StringRef Category = StringRef()) const;
   bool containsLocation(SanitizerMask Mask, SourceLocation Loc,
                         StringRef Category = StringRef()) const;
+  llvm::Error addSanitizerSection(SanitizerMask Mask, StringRef Prefix,
+                                  StringRef Pattern,
+                                  StringRef Category = StringRef()) const;
 };
 
 } // end namespace clang

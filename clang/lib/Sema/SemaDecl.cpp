@@ -34,6 +34,7 @@
 #include "clang/Basic/PartialDiagnostic.h"
 #include "clang/Basic/SourceManager.h"
 #include "clang/Basic/TargetInfo.h"
+#include "clang/Basic/NoSanitizeList.h"
 #include "clang/Lex/HeaderSearch.h" // TODO: Sema shouldn't depend on Lex
 #include "clang/Lex/Lexer.h" // TODO: Extract static functions to fix layering.
 #include "clang/Lex/ModuleLoader.h" // TODO: Sema shouldn't depend on Lex
@@ -59,6 +60,7 @@
 #include "llvm/ADT/STLForwardCompat.h"
 #include "llvm/ADT/SmallString.h"
 #include "llvm/ADT/StringExtras.h"
+#include "llvm/Support/SpecialCaseList.h"
 #include "llvm/TargetParser/Triple.h"
 #include <algorithm>
 #include <cstring>
@@ -6706,6 +6708,15 @@ Sema::CheckTypedefForVariablyModifiedType(Scope *S, TypedefNameDecl *NewTD) {
 NamedDecl*
 Sema::ActOnTypedefNameDecl(Scope *S, DeclContext *DC, TypedefNameDecl *NewTD,
                            LookupResult &Previous, bool &Redeclaration) {
+  const ASTContext &Ctx = DC->getParentASTContext();
+  llvm::errs() << "in ActOnTypedefNameDecl: "; NewTD->dump();
+  const NoSanitizeList &NoSanitizeL = Ctx.getNoSanitizeList();
+  if (auto Err = NoSanitizeL.addSanitizerSection(
+      SanitizerKind::SignedIntegerOverflow, "type", "myty", "allow")) {
+    llvm::errs() << "err\n";
+  } else {
+    llvm::errs() << "no err\n";
+  }
 
   // Find the shadowed declaration before filtering for scope.
   NamedDecl *ShadowedDecl = getShadowedDeclaration(NewTD, Previous);

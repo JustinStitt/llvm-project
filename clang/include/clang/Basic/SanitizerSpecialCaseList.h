@@ -14,6 +14,7 @@
 #ifndef LLVM_CLANG_BASIC_SANITIZERSPECIALCASELIST_H
 #define LLVM_CLANG_BASIC_SANITIZERSPECIALCASELIST_H
 
+#include "NoSanitizeList.h"
 #include "clang/Basic/LLVM.h"
 #include "clang/Basic/Sanitizers.h"
 #include "llvm/ADT/StringRef.h"
@@ -43,6 +44,9 @@ public:
   bool inSection(SanitizerMask Mask, StringRef Prefix, StringRef Query,
                  StringRef Category = StringRef()) const;
 
+  llvm::Error addSanitizerSection(SanitizerMask Mask, StringRef Prefix,
+                                  StringRef Pattern,
+                                  StringRef Category = StringRef());
 protected:
   // Initialize SanitizerSections.
   void createSanitizerSections();
