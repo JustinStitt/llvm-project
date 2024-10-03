@@ -58,9 +58,9 @@ bool NoSanitizeList::containsLocation(SanitizerMask Mask, SourceLocation Loc,
          containsFile(Mask, SM.getFilename(SM.getFileLoc(Loc)), Category);
 }
 
-llvm::Error NoSanitizeList::addSanitizerSection(SanitizerMask Mask,
-                                                StringRef Prefix,
-                                                StringRef Pattern,
-                                                StringRef Category) const {
-  return SSCL->addSanitizerSection(Mask, Prefix, Pattern, Category);
+llvm::Error NoSanitizeList::addSanitizerEntry(SanitizerMask Mask,
+                                              StringRef Prefix,
+                                              StringRef Pattern,
+                                              StringRef Category) const {
+  return SSCL->addSanitizerEntry(Mask, Prefix, Pattern, Category);
 }

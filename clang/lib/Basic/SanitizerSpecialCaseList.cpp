@@ -57,22 +57,40 @@ void SanitizerSpecialCaseList::createSanitizerSections() {
 bool SanitizerSpecialCaseList::inSection(SanitizerMask Mask, StringRef Prefix,
                                          StringRef Query,
                                          StringRef Category) const {
-  for (auto &S : SanitizerSections)
-    if ((S.Mask & Mask) &&
-        SpecialCaseList::inSectionBlame(S.Entries, Prefix, Query, Category))
-      return true;
+  llvm::errs() << "inSection[1] (SanitizerSections.size(): "
+               << SanitizerSections.size() << ")\n";
+  for (auto &S : SanitizerSections) {
+    llvm::errs() << "inSection[2]\n";
+    if (S.Mask & Mask) {
+      llvm::errs() << "inSection[3]\n";
+      if (SpecialCaseList::inSectionBlame(S.Entries, Prefix, Query, Category)) {
+        return true;
+      }
+    }
+  }
 
+  llvm::errs() << "inSection[4]\n";
   return false;
 }
 
-llvm::Error SanitizerSpecialCaseList::addSanitizerSection(SanitizerMask Mask,
+llvm::Error SanitizerSpecialCaseList::addSanitizerEntry(SanitizerMask Mask,
                                                           StringRef Prefix,
                                                           StringRef Pattern,
                                                           StringRef Category) {
-  SanitizerSpecialCaseList::SectionEntries Entries;
-  if (auto Err = Entries[Prefix][Category].insert(Pattern, 1, true))
+  llvm::SpecialCaseList::Section *CurrentSection;
+  if (auto Err = addSection("some-test", 1337, 1).moveInto(CurrentSection)) {
+    llvm::errs() << "Error adding section!\n";
+  } else {
+    llvm::errs() << "Added section!\n";
+  }
+
+  /*SectionEntries Entries;*/
+  auto &Entry = CurrentSection->Entries[Prefix][Category];
+  if (auto Err = Entry.insert(Pattern, 1337, true)) {
+    llvm::errs() << "some error with Entry insert\n";
     return Err;
-  SanitizerSections.emplace_back(Mask, Entries);
+  }
+  SanitizerSections.emplace_back(Mask, CurrentSection->Entries);
   llvm::errs() << "added entry to nosanitizel for type: " << Pattern
                << " with category: " << Category << "\n";
   return llvm::Error::success();

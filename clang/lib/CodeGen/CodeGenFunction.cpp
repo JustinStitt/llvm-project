@@ -756,6 +756,7 @@ void CodeGenFunction::StartFunction(GlobalDecl GD, QualType RetTy,
                                     const FunctionArgList &Args,
                                     SourceLocation Loc,
                                     SourceLocation StartLoc) {
+  llvm::errs() << "in CGF::StartFunction[1]\n";
   assert(!CurFn &&
          "Do not use a CodeGenFunction object for more than one function");
 

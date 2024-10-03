@@ -81,6 +81,7 @@ unsigned SpecialCaseList::Matcher::match(StringRef Query) const {
 std::unique_ptr<SpecialCaseList>
 SpecialCaseList::create(const std::vector<std::string> &Paths,
                         llvm::vfs::FileSystem &FS, std::string &Error) {
+  llvm::errs() << "in SCL create paths\n";
   std::unique_ptr<SpecialCaseList> SCL(new SpecialCaseList());
   if (SCL->createInternal(Paths, FS, Error))
     return SCL;
@@ -206,6 +207,8 @@ SpecialCaseList::~SpecialCaseList() = default;
 
 bool SpecialCaseList::inSection(StringRef Section, StringRef Prefix,
                                 StringRef Query, StringRef Category) const {
+  llvm::errs() << "<inSection> looking for Prefix: " << Prefix << " Quey: " << Query
+               << " Category: " << Category << "\n";
   return inSectionBlame(Section, Prefix, Query, Category);
 }
 
@@ -213,9 +216,10 @@ unsigned SpecialCaseList::inSectionBlame(StringRef Section, StringRef Prefix,
                                          StringRef Query,
                                          StringRef Category) const {
   for (const auto &It : Sections) {
-    const auto &S = It.getValue();
+    auto &S = It.getValue();
+    auto &NewSection = const_cast<SpecialCaseList::Section &>(S);
     if (S.SectionMatcher->match(Section)) {
-      unsigned Blame = inSectionBlame(S.Entries, Prefix, Query, Category);
+      unsigned Blame = inSectionBlame(NewSection.Entries, Prefix, Query, Category);
       if (Blame)
         return Blame;
     }
@@ -223,9 +227,13 @@ unsigned SpecialCaseList::inSectionBlame(StringRef Section, StringRef Prefix,
   return 0;
 }
 
-unsigned SpecialCaseList::inSectionBlame(const SectionEntries &Entries,
+unsigned SpecialCaseList::inSectionBlame(SectionEntries &Entries,
                                          StringRef Prefix, StringRef Query,
                                          StringRef Category) const {
+  llvm::errs() << "inSectionBlame [1]: " << Prefix << ":" << Query << "="
+               << Category << " Entries.size(): " << Entries.size() << "\n";
+  Entries.try_emplace(Prefix);
+  llvm::errs() << "past the try emplace\n";
   SectionEntries::const_iterator I = Entries.find(Prefix);
   if (I == Entries.end()) return 0;
   StringMap<Matcher>::const_iterator II = I->second.find(Category);

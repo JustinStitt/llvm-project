@@ -46,7 +46,7 @@ public:
                         StringRef Category = StringRef()) const;
   bool containsLocation(SanitizerMask Mask, SourceLocation Loc,
                         StringRef Category = StringRef()) const;
-  llvm::Error addSanitizerSection(SanitizerMask Mask, StringRef Prefix,
+  llvm::Error addSanitizerEntry(SanitizerMask Mask, StringRef Prefix,
                                   StringRef Pattern,
                                   StringRef Category = StringRef()) const;
 };
