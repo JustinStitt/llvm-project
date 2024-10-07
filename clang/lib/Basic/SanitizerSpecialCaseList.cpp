@@ -84,14 +84,14 @@ llvm::Error SanitizerSpecialCaseList::addSanitizerEntry(SanitizerMask Mask,
     llvm::errs() << "Added section!\n";
   }
 
-  /*SectionEntries Entries;*/
   auto &Entry = CurrentSection->Entries[Prefix][Category];
   if (auto Err = Entry.insert(Pattern, 1337, true)) {
     llvm::errs() << "some error with Entry insert\n";
     return Err;
   }
   SanitizerSections.emplace_back(Mask, CurrentSection->Entries);
-  llvm::errs() << "added entry to nosanitizel for type: " << Pattern
-               << " with category: " << Category << "\n";
+  llvm::errs() << "added entry to nosanitizel for Prefix: " << Prefix
+               << " Pattern: " << Pattern << " with Category: " << Category
+               << "\n";
   return llvm::Error::success();
 }

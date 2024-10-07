@@ -192,6 +192,17 @@ static bool CanElideOverflowCheck(const ASTContext &Ctx, const BinOpInfo &Op) {
   assert((isa<UnaryOperator>(Op.E) || isa<BinaryOperator>(Op.E)) &&
          "Expected a unary or binary operator");
 
+  const NoSanitizeList &NoSanitizeL = Ctx.getNoSanitizeList();
+
+  llvm::errs() << "Op.E type dump: ";
+  Op.E->getType().dump();
+
+  bool isIgnored = NoSanitizeL.containsType(
+      SanitizerKind::SignedIntegerOverflow, "myty", "allow");
+  Op.E->dump();
+  llvm::errs() << "^^^^ CanElideOverflowCheck[1] isIgnored: " << isIgnored
+               << " for Type: " <<  "myty" << "\n";
+
   // If the binop has constant inputs and we can prove there is no overflow,
   // we can elide the overflow check.
   if (!Op.mayHaveIntegerOverflow())

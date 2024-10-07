@@ -232,8 +232,6 @@ unsigned SpecialCaseList::inSectionBlame(SectionEntries &Entries,
                                          StringRef Category) const {
   llvm::errs() << "inSectionBlame [1]: " << Prefix << ":" << Query << "="
                << Category << " Entries.size(): " << Entries.size() << "\n";
-  Entries.try_emplace(Prefix);
-  llvm::errs() << "past the try emplace\n";
   SectionEntries::const_iterator I = Entries.find(Prefix);
   if (I == Entries.end()) return 0;
   StringMap<Matcher>::const_iterator II = I->second.find(Category);

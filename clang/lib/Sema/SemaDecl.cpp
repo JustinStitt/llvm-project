@@ -6712,7 +6712,7 @@ Sema::ActOnTypedefNameDecl(Scope *S, DeclContext *DC, TypedefNameDecl *NewTD,
   llvm::errs() << "in ActOnTypedefNameDecl: "; NewTD->dump();
   const NoSanitizeList &NoSanitizeL = Ctx.getNoSanitizeList();
   if (auto Err = NoSanitizeL.addSanitizerEntry(
-      SanitizerKind::SignedIntegerOverflow, "fun", "myty", "allow")) {
+      SanitizerKind::SignedIntegerOverflow, "type", "myty", "allow")) {
     llvm::errs() << "err\n";
   } else {
     llvm::errs() << "no err\n";
