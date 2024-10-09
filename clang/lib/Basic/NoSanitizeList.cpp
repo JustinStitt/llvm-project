@@ -23,7 +23,10 @@ NoSanitizeList::NoSanitizeList(const std::vector<std::string> &NoSanitizePaths,
                                SourceManager &SM)
     : SSCL(SanitizerSpecialCaseList::createOrDie(
           NoSanitizePaths, SM.getFileManager().getVirtualFileSystem())),
-      SM(SM) {}
+      SM(SM) {
+  llvm::errs() << "created NoSanitizeList ... NoSanitizePaths.size(): "
+               << NoSanitizePaths.size() << "\n";
+}
 
 NoSanitizeList::~NoSanitizeList() = default;
 
@@ -56,4 +59,10 @@ bool NoSanitizeList::containsLocation(SanitizerMask Mask, SourceLocation Loc,
                                       StringRef Category) const {
   return Loc.isValid() &&
          containsFile(Mask, SM.getFilename(SM.getFileLoc(Loc)), Category);
+}
+
+llvm::Error NoSanitizeList::addSSCLEntry(SanitizerMask Mask, StringRef Prefix,
+                                         StringRef Pattern,
+                                         StringRef Category) const {
+  return SSCL->addSanitizerEntry(Mask, Prefix, Pattern, Category);
 }

@@ -56,6 +56,7 @@
 #include "clang/Sema/SemaSwift.h"
 #include "clang/Sema/SemaWasm.h"
 #include "clang/Sema/Template.h"
+#include "clang/Basic/NoSanitizeList.h"
 #include "llvm/ADT/STLForwardCompat.h"
 #include "llvm/ADT/SmallString.h"
 #include "llvm/ADT/StringExtras.h"
@@ -6717,6 +6718,28 @@ Sema::CheckTypedefForVariablyModifiedType(Scope *S, TypedefNameDecl *NewTD) {
 NamedDecl*
 Sema::ActOnTypedefNameDecl(Scope *S, DeclContext *DC, TypedefNameDecl *NewTD,
                            LookupResult &Previous, bool &Redeclaration) {
+  llvm::errs() << "in [aotnd] ActOnTypedefNameDecl\nNewTD->dump():\n";
+  // if the typedef has the wraps attribute and we have a nosanitizelist scl,
+  // add this as an ignorable entry (maybe a bit redundant but will be
+  // symmetrical with no_wraps)
+  const ASTContext &Ctx = DC->getParentASTContext();
+  QualType Ty = NewTD->getUnderlyingType();
+  if (Ty.hasWrapsAttr()) {
+    llvm::errs() << "[aotnd] adding to scl\n";
+    llvm::errs() << "name: " << NewTD->getName() << "\n";
+    llvm::errs() << "canonical type name: "
+                 << Ty.getCanonicalType().getAsString() << "\n";
+    const NoSanitizeList &NoSanitizeL = Ctx.getNoSanitizeList();
+    SanitizerMask Mask = SanitizerKind::SignedIntegerOverflow |
+                         SanitizerKind::UnsignedIntegerOverflow |
+                         SanitizerKind::ImplicitSignedIntegerTruncation |
+                         SanitizerKind::ImplicitUnsignedIntegerTruncation;
+    if (NoSanitizeL.addSSCLEntry(Mask, "type", NewTD->getName())) {
+      llvm::errs() << "[aotnd] Error adding SSCL entry\n";
+    } else {
+      llvm::errs() << "[aotnd] added SSCL entry!\n";
+    }
+  }
 
   // Find the shadowed declaration before filtering for scope.
   NamedDecl *ShadowedDecl = getShadowedDeclaration(NewTD, Previous);
