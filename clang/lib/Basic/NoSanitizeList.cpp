@@ -62,7 +62,7 @@ bool NoSanitizeList::containsLocation(SanitizerMask Mask, SourceLocation Loc,
 }
 
 llvm::Error NoSanitizeList::addSSCLEntry(SanitizerMask Mask, StringRef Prefix,
-                                         StringRef Pattern,
-                                         StringRef Category) const {
-  return SSCL->addSanitizerEntry(Mask, Prefix, Pattern, Category);
+                                         StringRef Pattern, StringRef Category,
+                                         bool UseGlobs) const {
+  return SSCL->addSanitizerEntry(Mask, Prefix, Pattern, Category, UseGlobs);
 }

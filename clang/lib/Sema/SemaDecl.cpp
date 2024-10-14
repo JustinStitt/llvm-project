@@ -6734,7 +6734,7 @@ Sema::ActOnTypedefNameDecl(Scope *S, DeclContext *DC, TypedefNameDecl *NewTD,
                          SanitizerKind::UnsignedIntegerOverflow |
                          SanitizerKind::ImplicitSignedIntegerTruncation |
                          SanitizerKind::ImplicitUnsignedIntegerTruncation;
-    if (NoSanitizeL.addSSCLEntry(Mask, "type", NewTD->getName())) {
+    if (NoSanitizeL.addSSCLEntry(Mask, "type", NewTD->getName(), "allow")) {
       llvm::errs() << "[aotnd] Error adding SSCL entry\n";
     } else {
       llvm::errs() << "[aotnd] added SSCL entry!\n";

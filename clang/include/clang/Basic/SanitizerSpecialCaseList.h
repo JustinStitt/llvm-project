@@ -45,7 +45,8 @@ public:
 
   llvm::Error addSanitizerEntry(SanitizerMask Mask, StringRef Prefix,
                                   StringRef Pattern,
-                                  StringRef Category = StringRef());
+                                  StringRef Category = StringRef(),
+                                  bool UseGlobs = true);
 
 protected:
   // Initialize SanitizerSections.
