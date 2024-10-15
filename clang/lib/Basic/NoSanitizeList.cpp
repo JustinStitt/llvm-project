@@ -23,10 +23,7 @@ NoSanitizeList::NoSanitizeList(const std::vector<std::string> &NoSanitizePaths,
                                SourceManager &SM)
     : SSCL(SanitizerSpecialCaseList::createOrDie(
           NoSanitizePaths, SM.getFileManager().getVirtualFileSystem())),
-      SM(SM) {
-  llvm::errs() << "created NoSanitizeList ... NoSanitizePaths.size(): "
-               << NoSanitizePaths.size() << "\n";
-}
+      SM(SM) {}
 
 NoSanitizeList::~NoSanitizeList() = default;
 

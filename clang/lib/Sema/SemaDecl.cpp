@@ -6718,7 +6718,6 @@ Sema::CheckTypedefForVariablyModifiedType(Scope *S, TypedefNameDecl *NewTD) {
 NamedDecl*
 Sema::ActOnTypedefNameDecl(Scope *S, DeclContext *DC, TypedefNameDecl *NewTD,
                            LookupResult &Previous, bool &Redeclaration) {
-  llvm::errs() << "in [aotnd] ActOnTypedefNameDecl\nNewTD->dump():\n";
   // EDITME:  if the typedef has the wraps attribute and we have a
   // nosanitizelist scl, add this as an ignorable entry (maybe a bit redundant
   // but will be symmetrical with no_wraps)
@@ -6731,23 +6730,11 @@ Sema::ActOnTypedefNameDecl(Scope *S, DeclContext *DC, TypedefNameDecl *NewTD,
   const NoSanitizeList &NoSanitizeL = Ctx.getNoSanitizeList();
 
   if (Ty.hasWrapsAttr()) {
-    llvm::errs() << "[aotnd] adding to scl\n";
-    llvm::errs() << "name: " << NewTD->getName() << "\n";
-    llvm::errs() << "canonical type name: "
-                 << Ty.getCanonicalType().getAsString() << "\n";
-    if (NoSanitizeL.addSSCLEntry(Mask, "type", NewTD->getName(),
-                                 "no_sanitize")) {
+    if (NoSanitizeL.addSSCLEntry(Mask, "type", NewTD->getName(), "no_sanitize"))
       llvm::errs() << "[aotnd] Error adding SSCL entry\n";
-    } else {
-      llvm::errs() << "[aotnd] added SSCL entry!\n";
-    }
   } else if (Ty.hasNoWrapsAttr()) {
-    llvm::errs() << "[aotnd] has no_wraps\n";
-    if (NoSanitizeL.addSSCLEntry(Mask, "type", NewTD->getName(), "sanitize")) {
-      llvm::errs() << "[aotnd] Error adding SSCL entry\n";
-    } else {
-      llvm::errs() << "[aotnd] added SSCL entry (no_sanitize)!\n";
-    }
+    if (NoSanitizeL.addSSCLEntry(Mask, "type", NewTD->getName(), "sanitize"))
+      llvm::errs() << "[aotnd] Error adding SSCL entry for no wraps\n";
   }
 
   // Find the shadowed declaration before filtering for scope.
