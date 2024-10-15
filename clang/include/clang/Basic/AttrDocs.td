@@ -8592,6 +8592,10 @@ still has an impact on the definedness of arithmetic expressions containing
 wrapping components. Since the behavior of said expressions is now technically
 defined, the compiler will forgo some eager optimizations that are used on
 expressions containing UB.
+
+``__attribute__((no_wraps))`` is also available but has no effect unless used
+alongside `Sanitizer Special Case Lists (SSCL)
+<https://clang.llvm.org/docs/SanitizerSpecialCaseList.html>`_.
 }];
 }
 

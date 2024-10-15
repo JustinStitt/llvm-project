@@ -2867,6 +2867,10 @@ bool QualType::hasWrapsAttr() const {
   return !isNull() && getTypePtr()->hasAttr(attr::Wraps);
 }
 
+bool QualType::hasNoWrapsAttr() const {
+  return !isNull() && getTypePtr()->hasAttr(attr::NoWraps);
+}
+
 QualType::PrimitiveDefaultInitializeKind
 QualType::isNonTrivialToPrimitiveDefaultInitialize() const {
   if (const auto *RT =

@@ -161,7 +161,9 @@ struct BinOpInfo {
 
   /// Does the BinaryOperator have the wraps attribute?
   /// If so, we can elide overflow sanitizer checks.
-  bool hasWrappingOperand() const { return E->getType().hasWrapsAttr(); }
+  bool hasWrappingOperand() const {
+    return E->getType().hasWrapsAttr() && !E->getType().hasNoWrapsAttr();
+  }
 };
 
 static bool MustVisitNullValue(const Expr *E) {
@@ -201,13 +203,13 @@ static bool CanElideOverflowCheck(const ASTContext &Ctx, const BinOpInfo &Op) {
   if (!Op.mayHaveIntegerOverflow())
     return true;
 
-  if (Op.Ty->isSignedIntegerType() &&
+  if (Op.Ty->isSignedIntegerType() && !Op.Ty.hasNoWrapsAttr() &&
       Ctx.isTypeIgnoredBySanitizer(SanitizerKind::SignedIntegerOverflow,
                                    Op.Ty)) {
     return true;
   }
 
-  if (Op.Ty->isUnsignedIntegerType() &&
+  if (Op.Ty->isUnsignedIntegerType() && !Op.Ty.hasNoWrapsAttr() &&
       Ctx.isTypeIgnoredBySanitizer(SanitizerKind::UnsignedIntegerOverflow,
                                    Op.Ty)) {
     return true;

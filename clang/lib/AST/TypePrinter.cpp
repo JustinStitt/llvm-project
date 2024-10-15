@@ -2040,6 +2040,9 @@ void TypePrinter::printAttributedAfter(const AttributedType *T,
   case attr::Wraps:
     OS << "wraps";
     break;
+  case attr::NoWraps:
+    OS << "no_wraps";
+    break;
   case attr::PreserveMost:
     OS << "preserve_most";
     break;

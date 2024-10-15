@@ -6537,7 +6537,7 @@ static void HandleBTFTypeTagAttribute(QualType &Type, const ParsedAttr &Attr,
 }
 
 static void handleWrapsAttr(QualType &Type, const ParsedAttr &Attr,
-                            TypeProcessingState &State) {
+                            TypeProcessingState &State, bool NoWraps = false) {
   Sema &S = State.getSema();
   ASTContext &Ctx = S.Context;
 
@@ -6545,7 +6545,12 @@ static void handleWrapsAttr(QualType &Type, const ParsedAttr &Attr,
     S.Diag(Attr.getLoc(), diag::warn_wraps_attr_var_decl_type_not_integer)
         << Type.getAsString();
 
-  Type = State.getAttributedType(::new (Ctx) WrapsAttr(Ctx, Attr), Type, Type);
+  if (NoWraps)
+    Type =
+        State.getAttributedType(::new (Ctx) NoWrapsAttr(Ctx, Attr), Type, Type);
+  else
+    Type =
+        State.getAttributedType(::new (Ctx) WrapsAttr(Ctx, Attr), Type, Type);
 }
 
 /// HandleAddressSpaceTypeAttribute - Process an address_space attribute on the
@@ -8720,6 +8725,9 @@ static void processTypeAttrs(TypeProcessingState &state, QualType &type,
       break;
     case ParsedAttr::AT_Wraps:
       handleWrapsAttr(type, attr, state);
+      break;
+    case ParsedAttr::AT_NoWraps:
+      handleWrapsAttr(type, attr, state, true);
       break;
 
     case ParsedAttr::AT_MayAlias:

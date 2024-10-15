@@ -1459,6 +1459,7 @@ public:
   }
 
   bool hasWrapsAttr() const;
+  bool hasNoWrapsAttr() const;
 
   // true when Type is objc's weak and weak is enabled but ARC isn't.
   bool isNonWeakInMRRWithObjCWeak(const ASTContext &Context) const;
