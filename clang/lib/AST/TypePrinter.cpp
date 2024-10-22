@@ -2012,6 +2012,7 @@ void TypePrinter::printAttributedAfter(const AttributedType *T,
   case attr::VectorCall: OS << "vectorcall"; break;
   case attr::Pascal: OS << "pascal"; break;
   case attr::MSABI: OS << "ms_abi"; break;
+  case attr::NoSanitize: OS << "no_sanitize"; break;
   case attr::SysVABI: OS << "sysv_abi"; break;
   case attr::RegCall: OS << "regcall"; break;
   case attr::Pcs: {

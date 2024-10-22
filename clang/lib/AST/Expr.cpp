@@ -4836,6 +4836,33 @@ static void computeOverflowPatternExclusion(const ASTContext &Ctx,
     Result.value()->setExcludedOverflowPattern(true);
 }
 
+static bool hasNoSanitizeAttr(const ASTContext &Ctx, const BinaryOperator *E) {
+  llvm::errs() << "in hasNoSanitizeAttr\n";
+  if (E->getLHS()->getType()->hasAttr(attr::NoSanitize) || 
+      E->getRHS()->getType()->hasAttr(attr::NoSanitize)) {
+    llvm::errs() << "[ihnsa] has no san attr\n";
+    return true;
+  }
+  /*if (auto *TTy = E->getLHS()->getType().getTypePtr()->getAs<TypedefType>()) {*/
+  /*  llvm::errs() << "[ihnsa] has no san attr (LHS)\n";*/
+  /*  return true;*/
+  /*}*/
+  /**/
+  /*if (auto *TTy = E->getRHS()->getType().getTypePtr()->getAs<TypedefType>()) {*/
+  /*  llvm::errs() << "[ihnsa] has no san attr (RHS)\n";*/
+  /*  return true;*/
+  /*}*/
+
+  /*if (E->getLHS()->getType()->hasAttr(attr::NoSanitize) ||*/
+  /*    E->getRHS()->getType()->hasAttr(attr::NoSanitize)) {*/
+  /*  llvm::errs() << "[ihnsa] has no san attr\n";*/
+  /*  return true;*/
+  /*}*/
+
+  llvm::errs() << "[ihnsa] doesn't have a no san attr\n";
+  return false;
+}
+
 BinaryOperator::BinaryOperator(const ASTContext &Ctx, Expr *lhs, Expr *rhs,
                                Opcode opc, QualType ResTy, ExprValueKind VK,
                                ExprObjectKind OK, SourceLocation opLoc,
@@ -4849,6 +4876,30 @@ BinaryOperator::BinaryOperator(const ASTContext &Ctx, Expr *lhs, Expr *rhs,
   SubExprs[LHS] = lhs;
   SubExprs[RHS] = rhs;
   computeOverflowPatternExclusion(Ctx, this);
+  /* TODO: do this where ResTy is determined in the usual arithmetic conversion pipeline */
+  /*if (hasNoSanitizeAttr(Ctx, this)) {*/
+  /*  setType(Ctx.getAttributedType(attr::NoSanitize, lhs->getType(),*/
+  /*                                rhs->getType()));*/
+  /*  setType(Ctx.)*/
+  /*}*/
+  /*SplitQualType SL = lhs->getType().split();*/
+  /*llvm::errs() << "SL qual: "; SL.getSingleStepDesugaredType()*/
+  /*QualType MTy = lhs->getType();*/
+  /*while (true) {*/
+  /*  llvm::errs() << "MTy ty: "; MTy.dump();*/
+  /*  QualType Prev = MTy;*/
+  /*  MTy = MTy.getSingleStepDesugaredType(Ctx);*/
+  /*  if (MTy == Prev) break;*/
+  /*}*/
+  /*if (auto *ATy = dyn_cast<AttributedType>(lhs->getType())) {*/
+  /*  llvm::errs() << "bop ctor got ATy: "; ATy->dump();*/
+  /*  ATy->*/
+  /*}*/
+  if (hasNoSanitizeAttr(Ctx, this)) {
+    llvm::errs() << "hasNoSanitizeAttr\n";
+    setType(Ctx.getAttributedType(attr::NoSanitize, lhs->getType(), getType()));
+  }
+
   BinaryOperatorBits.HasFPFeatures = FPFeatures.requiresTrailingStorage();
   if (hasStoredFPFeatures())
     setStoredFPFeatures(FPFeatures);

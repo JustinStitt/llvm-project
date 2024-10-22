@@ -702,6 +702,9 @@ ExprResult Sema::ImpCastExprToType(Expr *E, QualType Ty,
                                    CastKind Kind, ExprValueKind VK,
                                    const CXXCastPath *BasePath,
                                    CheckedConversionKind CCK) {
+  llvm::errs() << "[ImpCastExprToType]\n";
+  llvm::errs() << "E->dump()\n"; E->dump();
+  llvm::errs() << "Ty->dump()\n"; Ty->dump();
 #ifndef NDEBUG
   if (VK == VK_PRValue && !E->isPRValue()) {
     switch (Kind) {
@@ -733,6 +736,9 @@ ExprResult Sema::ImpCastExprToType(Expr *E, QualType Ty,
 
   QualType ExprTy = Context.getCanonicalType(E->getType());
   QualType TypeTy = Context.getCanonicalType(Ty);
+
+  if (E->getType().getTypePtr()->isIntegerType() && E->getType()->hasAttr(attr::NoSanitize))
+    Ty = Context.getAttributedType(attr::NoSanitize, Ty, Ty);
 
   if (ExprTy == TypeTy)
     return E;

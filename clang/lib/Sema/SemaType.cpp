@@ -6618,6 +6618,36 @@ static void HandleAddressSpaceTypeAttribute(QualType &Type,
   }
 }
 
+static void HandleNoSanitizeAttr(QualType &Type, const ParsedAttr &AL,
+                                 TypeProcessingState &State) {
+  llvm::errs() << "in HandleNoSanitizeAttr in SemaType.cpp\n";
+  Sema &S = State.getSema();
+  ASTContext &Ctx = S.Context;
+
+  if (!AL.checkAtLeastNumArgs(S, 1))
+    return;
+
+  std::vector<StringRef> Sanitizers;
+
+  for (unsigned I = 0, E = AL.getNumArgs(); I != E; ++I) {
+    StringRef SanitizerName;
+    SourceLocation LiteralLoc;
+
+    if (!S.checkStringLiteralArgumentAttr(AL, I, SanitizerName, &LiteralLoc))
+      return;
+
+    if (parseSanitizerValue(SanitizerName, /*AllowGroups=*/true) ==
+            SanitizerMask() &&
+        SanitizerName != "coverage")
+      S.Diag(LiteralLoc, diag::warn_unknown_sanitizer_ignored) << SanitizerName;
+    Sanitizers.push_back(SanitizerName);
+  }
+
+  Type = State.getAttributedType(
+      ::new (Ctx) NoSanitizeAttr(Ctx, AL, Sanitizers.data(), Sanitizers.size()),
+      Type, Type);
+}
+
 /// handleObjCOwnershipTypeAttr - Process an objc_ownership
 /// attribute on the specified type.
 ///
@@ -8712,6 +8742,9 @@ static void processTypeAttrs(TypeProcessingState &state, QualType &type,
     case ParsedAttr::AT_LifetimeBound:
       if (TAL == TAL_DeclChunk)
         HandleLifetimeBoundAttr(state, type, attr);
+      break;
+    case ParsedAttr::AT_NoSanitize:
+      HandleNoSanitizeAttr(type, attr, state);
       break;
 
     case ParsedAttr::AT_NoDeref: {

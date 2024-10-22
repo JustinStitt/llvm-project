@@ -3582,10 +3582,10 @@ def X86ForceAlignArgPointer : InheritableAttr, TargetSpecificAttr<TargetAnyX86> 
   let Documentation = [X86ForceAlignArgPointerDocs];
 }
 
-def NoSanitize : InheritableAttr {
+def NoSanitize : DeclOrTypeAttr {
   let Spellings = [Clang<"no_sanitize">];
   let Args = [VariadicStringArgument<"Sanitizers">];
-  let Subjects = SubjectList<[Function, ObjCMethod, GlobalVar], ErrorDiag>;
+  let Subjects = SubjectList<[Function, ObjCMethod, GlobalVar, TypedefName, Var, Field], ErrorDiag>;
   let Documentation = [NoSanitizeDocs];
   let AdditionalMembers = [{
     SanitizerMask getMask() const {

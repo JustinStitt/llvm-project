@@ -5873,6 +5873,7 @@ static bool isSanitizerAttributeAllowedOnGlobals(StringRef Sanitizer) {
 }
 
 static void handleNoSanitizeAttr(Sema &S, Decl *D, const ParsedAttr &AL) {
+  llvm::errs() << "in handleNoSanitizeAttr within SemaDeclAttr.cpp\n";
   if (!AL.checkAtLeastNumArgs(S, 1))
     return;
 

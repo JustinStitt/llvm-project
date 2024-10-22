@@ -1307,6 +1307,9 @@ template <PerformCastFn doLHSCast, PerformCastFn doRHSCast>
 static QualType handleIntegerConversion(Sema &S, ExprResult &LHS,
                                         ExprResult &RHS, QualType LHSType,
                                         QualType RHSType, bool IsCompAssign) {
+  llvm::errs() << "in handleIntegerConversion:\n";
+  llvm::errs() << "LHSType.dump(): "; LHSType.dump();
+  llvm::errs() << "RHSType.dump(): "; RHSType.dump();
   // The rules for this case are in C99 6.3.1.8
   int order = S.Context.getIntegerTypeOrder(LHSType, RHSType);
   bool LHSSigned = LHSType->hasSignedIntegerRepresentation();
@@ -1554,6 +1557,9 @@ static void checkEnumArithmeticConversions(Sema &S, Expr *LHS, Expr *RHS,
 QualType Sema::UsualArithmeticConversions(ExprResult &LHS, ExprResult &RHS,
                                           SourceLocation Loc,
                                           ArithConvKind ACK) {
+  llvm::errs() << "in UsualArithmeticConversions\n";
+  llvm::errs() << "LHS.dump()"; LHS.get()->dump();
+  llvm::errs() << "RHS.dump()"; RHS.get()->dump();
   checkEnumArithmeticConversions(*this, LHS.get(), RHS.get(), Loc, ACK);
 
   if (ACK != ACK_CompAssign) {
@@ -1570,6 +1576,8 @@ QualType Sema::UsualArithmeticConversions(ExprResult &LHS, ExprResult &RHS,
   // For example, "const float" and "float" are equivalent.
   QualType LHSType = LHS.get()->getType().getUnqualifiedType();
   QualType RHSType = RHS.get()->getType().getUnqualifiedType();
+  llvm::errs() << "LHS unqual type: "; LHSType.dump();
+  llvm::errs() << "RHS unqual type: "; RHSType.dump();
 
   // For conversion purposes, we ignore any atomic qualifier on the LHS.
   if (const AtomicType *AtomicLHS = LHSType->getAs<AtomicType>())
