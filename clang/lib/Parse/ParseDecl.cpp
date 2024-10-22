@@ -17,13 +17,14 @@
 #include "clang/Basic/AttributeCommonInfo.h"
 #include "clang/Basic/Attributes.h"
 #include "clang/Basic/CharInfo.h"
+#include "clang/Basic/DiagnosticParse.h"
 #include "clang/Basic/TargetInfo.h"
 #include "clang/Basic/TokenKinds.h"
-#include "clang/Parse/ParseDiagnostic.h"
 #include "clang/Parse/Parser.h"
 #include "clang/Parse/RAIIObjectsForParser.h"
 #include "clang/Sema/EnterExpressionEvaluationContext.h"
 #include "clang/Sema/Lookup.h"
+#include "clang/Sema/ParsedAttr.h"
 #include "clang/Sema/ParsedTemplate.h"
 #include "clang/Sema/Scope.h"
 #include "clang/Sema/SemaCUDA.h"
@@ -2075,10 +2076,9 @@ Parser::DeclGroupPtrTy Parser::ParseDeclaration(DeclaratorContext Context,
     ProhibitAttributes(DeclSpecAttrs);
     return ParseNamespace(Context, DeclEnd);
   case tok::kw_using: {
-    ParsedAttributes Attrs(AttrFactory);
-    takeAndConcatenateAttrs(DeclAttrs, DeclSpecAttrs, Attrs);
+    takeAndConcatenateAttrs(DeclAttrs, std::move(DeclSpecAttrs));
     return ParseUsingDirectiveOrDeclaration(Context, ParsedTemplateInfo(),
-                                            DeclEnd, Attrs);
+                                            DeclEnd, DeclAttrs);
   }
   case tok::kw_static_assert:
   case tok::kw__Static_assert:
@@ -2445,8 +2445,8 @@ Parser::DeclGroupPtrTy Parser::ParseDeclGroup(ParsingDeclSpec &DS,
               // Recover as if it were an explicit specialization.
               TemplateParameterLists FakedParamLists;
               FakedParamLists.push_back(Actions.ActOnTemplateParameterList(
-                  0, SourceLocation(), TemplateInfo.TemplateLoc, LAngleLoc,
-                  std::nullopt, LAngleLoc, nullptr));
+                  0, SourceLocation(), TemplateInfo.TemplateLoc, LAngleLoc, {},
+                  LAngleLoc, nullptr));
 
               TheDecl = ParseFunctionDefinition(
                   D,
@@ -2787,8 +2787,8 @@ Decl *Parser::ParseDeclarationAfterDeclaratorAndAttributes(
         // Recover as if it were an explicit specialization.
         TemplateParameterLists FakedParamLists;
         FakedParamLists.push_back(Actions.ActOnTemplateParameterList(
-            0, SourceLocation(), TemplateInfo.TemplateLoc, LAngleLoc,
-            std::nullopt, LAngleLoc, nullptr));
+            0, SourceLocation(), TemplateInfo.TemplateLoc, LAngleLoc, {},
+            LAngleLoc, nullptr));
 
         ThisDecl =
             Actions.ActOnTemplateDeclarator(getCurScope(), FakedParamLists, D);
@@ -3400,6 +3400,45 @@ void Parser::DistributeCLateParsedAttrs(Decl *Dcl,
   }
 }
 
+/// type-qualifier:
+///    ('__ptrauth') '(' constant-expression
+///                   (',' constant-expression)[opt]
+///                   (',' constant-expression)[opt] ')'
+void Parser::ParsePtrauthQualifier(ParsedAttributes &Attrs) {
+  assert(Tok.is(tok::kw___ptrauth));
+
+  IdentifierInfo *KwName = Tok.getIdentifierInfo();
+  SourceLocation KwLoc = ConsumeToken();
+
+  BalancedDelimiterTracker T(*this, tok::l_paren);
+  if (T.expectAndConsume())
+    return;
+
+  ArgsVector ArgExprs;
+  do {
+    ExprResult ER = ParseAssignmentExpression();
+    if (ER.isInvalid()) {
+      T.skipToEnd();
+      return;
+    }
+    ArgExprs.push_back(ER.get());
+  } while (TryConsumeToken(tok::comma));
+
+  T.consumeClose();
+  SourceLocation EndLoc = T.getCloseLocation();
+
+  if (ArgExprs.empty() || ArgExprs.size() > 3) {
+    Diag(KwLoc, diag::err_ptrauth_qualifier_bad_arg_count);
+    return;
+  }
+
+  Attrs.addNew(KwName, SourceRange(KwLoc, EndLoc),
+               /*scope*/ nullptr, SourceLocation(), ArgExprs.data(),
+               ArgExprs.size(),
+               ParsedAttr::Form::Keyword(/*IsAlignAs=*/false,
+                                         /*IsRegularKeywordAttribute=*/false));
+}
+
 /// Bounds attributes (e.g., counted_by):
 ///   AttrName '(' expression ')'
 void Parser::ParseBoundsAttribute(IdentifierInfo &AttrName,
@@ -3706,8 +3745,14 @@ void Parser::ParseDeclarationSpecifiers(
           if (PA.isTypeAttr() && PA.getKind() != ParsedAttr::AT_LifetimeBound &&
               PA.getKind() != ParsedAttr::AT_AnyX86NoCfCheck)
             continue;
-          Diag(PA.getLoc(), diag::err_attribute_not_type_attr)
-              << PA << PA.isRegularKeywordAttribute();
+
+          if (PA.getKind() == ParsedAttr::AT_LifetimeBound)
+            Diag(PA.getLoc(), diag::err_attribute_wrong_decl_type)
+                << PA << PA.isRegularKeywordAttribute()
+                << ExpectedParameterOrImplicitObjectParameter;
+          else
+            Diag(PA.getLoc(), diag::err_attribute_not_type_attr)
+                << PA << PA.isRegularKeywordAttribute();
           PA.setInvalid();
         }
 
@@ -4261,6 +4306,11 @@ void Parser::ParseDeclarationSpecifiers(
                                  getLangOpts());
       break;
 
+    // __ptrauth qualifier.
+    case tok::kw___ptrauth:
+      ParsePtrauthQualifier(DS.getAttributes());
+      continue;
+
     case tok::kw___sptr:
     case tok::kw___uptr:
     case tok::kw___ptr64:
@@ -4402,6 +4452,10 @@ void Parser::ParseDeclarationSpecifiers(
           !getActions().getOpenCLOptions().isAvailableOption(
               "__cl_clang_function_pointers", getLangOpts())) {
         DiagID = diag::err_openclcxx_virtual_function;
+        PrevSpec = Tok.getIdentifierInfo()->getNameStart();
+        isInvalid = true;
+      } else if (getLangOpts().HLSL) {
+        DiagID = diag::err_hlsl_virtual_function;
         PrevSpec = Tok.getIdentifierInfo()->getNameStart();
         isInvalid = true;
       } else {
@@ -5163,7 +5217,9 @@ void Parser::ParseStructUnionBody(SourceLocation RecordLoc,
     }
 
     if (Tok.is(tok::annot_pragma_openacc)) {
-      ParseOpenACCDirectiveDecl();
+      AccessSpecifier AS = AS_none;
+      ParsedAttributes Attrs(AttrFactory);
+      ParseOpenACCDirectiveDecl(AS, Attrs, TagType, TagDecl);
       continue;
     }
 
@@ -5440,11 +5496,8 @@ void Parser::ParseEnumSpecifier(SourceLocation StartLoc, DeclSpec &DS,
       BaseRange = SourceRange(ColonLoc, DeclaratorInfo.getSourceRange().getEnd());
 
       if (!getLangOpts().ObjC) {
-        if (getLangOpts().CPlusPlus11)
-          Diag(ColonLoc, diag::warn_cxx98_compat_enum_fixed_underlying_type)
-              << BaseRange;
-        else if (getLangOpts().CPlusPlus)
-          Diag(ColonLoc, diag::ext_cxx11_enum_fixed_underlying_type)
+        if (getLangOpts().CPlusPlus)
+          DiagCompat(ColonLoc, diag_compat::enum_fixed_underlying_type)
               << BaseRange;
         else if (getLangOpts().MicrosoftExt && !getLangOpts().C23)
           Diag(ColonLoc, diag::ext_ms_c_enum_fixed_underlying_type)
@@ -5645,7 +5698,7 @@ void Parser::ParseEnumSpecifier(SourceLocation StartLoc, DeclSpec &DS,
     Decl *D = SkipBody.CheckSameAsPrevious ? SkipBody.New : TagDecl;
     ParseEnumBody(StartLoc, D);
     if (SkipBody.CheckSameAsPrevious &&
-        !Actions.ActOnDuplicateDefinition(TagDecl, SkipBody)) {
+        !Actions.ActOnDuplicateDefinition(getCurScope(), TagDecl, SkipBody)) {
       DS.SetTypeSpecError();
       return;
     }
@@ -5971,6 +6024,7 @@ bool Parser::isTypeSpecifierQualifier() {
   case tok::kw___ptr32:
   case tok::kw___pascal:
   case tok::kw___unaligned:
+  case tok::kw___ptrauth:
 
   case tok::kw__Nonnull:
   case tok::kw__Nullable:
@@ -6017,7 +6071,7 @@ Parser::DeclGroupPtrTy Parser::ParseTopLevelStmtDecl() {
   TopLevelStmtDecl *TLSD = Actions.ActOnStartTopLevelStmtDecl(getCurScope());
   StmtResult R = ParseStatementOrDeclaration(Stmts, SubStmtCtx);
   if (!R.isUsable())
-    return nullptr;
+    R = Actions.ActOnNullStmt(Tok.getLocation());
 
   Actions.ActOnFinishTopLevelStmtDecl(TLSD, R.get());
 
@@ -6260,6 +6314,7 @@ bool Parser::isDeclarationSpecifier(
   case tok::kw___forceinline:
   case tok::kw___pascal:
   case tok::kw___unaligned:
+  case tok::kw___ptrauth:
 
   case tok::kw__Nonnull:
   case tok::kw__Nullable:
@@ -6522,6 +6577,12 @@ void Parser::ParseTypeQualifierListOpt(
     case tok::kw_out:
       // NOTE: ParseHLSLQualifiers will consume the qualifier token.
       ParseHLSLQualifiers(DS.getAttributes());
+      continue;
+
+    // __ptrauth qualifier.
+    case tok::kw___ptrauth:
+      ParsePtrauthQualifier(DS.getAttributes());
+      EndLoc = PrevTokLocation;
       continue;
 
     case tok::kw___unaligned:
@@ -7308,15 +7369,16 @@ void Parser::ParseDecompositionDeclarator(Declarator &D) {
 
   // If this doesn't look like a structured binding, maybe it's a misplaced
   // array declarator.
-  if (!(Tok.is(tok::identifier) &&
+  if (!(Tok.isOneOf(tok::identifier, tok::ellipsis) &&
         NextToken().isOneOf(tok::comma, tok::r_square, tok::kw_alignas,
-                            tok::l_square)) &&
+                            tok::identifier, tok::l_square, tok::ellipsis)) &&
       !(Tok.is(tok::r_square) &&
         NextToken().isOneOf(tok::equal, tok::l_brace))) {
     PA.Revert();
     return ParseMisplacedBracketDeclarator(D);
   }
 
+  SourceLocation PrevEllipsisLoc;
   SmallVector<DecompositionDeclarator::Binding, 32> Bindings;
   while (Tok.isNot(tok::r_square)) {
     if (!Bindings.empty()) {
@@ -7331,17 +7393,32 @@ void Parser::ParseDecompositionDeclarator(Declarator &D) {
           Diag(Tok, diag::err_expected_comma_or_rsquare);
         }
 
-        SkipUntil(tok::r_square, tok::comma, tok::identifier,
+        SkipUntil({tok::r_square, tok::comma, tok::identifier, tok::ellipsis},
                   StopAtSemi | StopBeforeMatch);
         if (Tok.is(tok::comma))
           ConsumeToken();
-        else if (Tok.isNot(tok::identifier))
+        else if (Tok.is(tok::r_square))
           break;
       }
     }
 
     if (isCXX11AttributeSpecifier())
       DiagnoseAndSkipCXX11Attributes();
+
+    SourceLocation EllipsisLoc;
+
+    if (Tok.is(tok::ellipsis)) {
+      Diag(Tok, getLangOpts().CPlusPlus26 ? diag::warn_cxx23_compat_binding_pack
+                                          : diag::ext_cxx_binding_pack);
+      if (PrevEllipsisLoc.isValid()) {
+        Diag(Tok, diag::err_binding_multiple_ellipses);
+        Diag(PrevEllipsisLoc, diag::note_previous_ellipsis);
+        break;
+      }
+      EllipsisLoc = Tok.getLocation();
+      PrevEllipsisLoc = EllipsisLoc;
+      ConsumeToken();
+    }
 
     if (Tok.isNot(tok::identifier)) {
       Diag(Tok, diag::err_expected) << tok::identifier;
@@ -7352,6 +7429,13 @@ void Parser::ParseDecompositionDeclarator(Declarator &D) {
     SourceLocation Loc = Tok.getLocation();
     ConsumeToken();
 
+    if (Tok.is(tok::ellipsis) && !PrevEllipsisLoc.isValid()) {
+      DiagnoseMisplacedEllipsis(Tok.getLocation(), Loc, EllipsisLoc.isValid(),
+                                true);
+      EllipsisLoc = Tok.getLocation();
+      ConsumeToken();
+    }
+
     ParsedAttributes Attrs(AttrFactory);
     if (isCXX11AttributeSpecifier()) {
       Diag(Tok, getLangOpts().CPlusPlus26
@@ -7360,7 +7444,7 @@ void Parser::ParseDecompositionDeclarator(Declarator &D) {
       MaybeParseCXX11Attributes(Attrs);
     }
 
-    Bindings.push_back({II, Loc, std::move(Attrs)});
+    Bindings.push_back({II, Loc, std::move(Attrs), EllipsisLoc});
   }
 
   if (Tok.isNot(tok::r_square))
@@ -8119,6 +8203,14 @@ void Parser::ParseParameterDeclarationClause(
     }
 
     if (TryConsumeToken(tok::ellipsis, EllipsisLoc)) {
+      if (getLangOpts().CPlusPlus26) {
+        // C++26 [dcl.dcl.fct]p3:
+        //   A parameter-declaration-clause of the form
+        //   parameter-list '...' is deprecated.
+        Diag(EllipsisLoc, diag::warn_deprecated_missing_comma_before_ellipsis)
+            << FixItHint::CreateInsertion(EllipsisLoc, ", ");
+      }
+
       if (!getLangOpts().CPlusPlus) {
         // We have ellipsis without a preceding ',', which is ill-formed
         // in C. Complain and provide the fix.

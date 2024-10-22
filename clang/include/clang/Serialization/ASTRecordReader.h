@@ -278,8 +278,11 @@ public:
   /// Read an OpenACC clause, advancing Idx.
   OpenACCClause *readOpenACCClause();
 
-  /// Read a list of OpenACC clauses into the passed SmallVector.
+  /// Read a list of OpenACC clauses into the passed SmallVector, during
+  /// statement reading.
   void readOpenACCClauseList(MutableArrayRef<const OpenACCClause *> Clauses);
+
+  void readOpenACCRoutineDeclAttr(OpenACCRoutineDeclAttr *A);
 
   /// Read a source location, advancing Idx.
   SourceLocation readSourceLocation(LocSeq *Seq = nullptr) {
@@ -316,6 +319,10 @@ public:
     return readInt();
   }
 
+  UnsignedOrNone readUnsignedOrNone() {
+    return UnsignedOrNone::fromInternalRepresentation(unsigned(readInt()));
+  }
+
   /// Read a string, advancing Idx.
   std::string readString() {
     return Reader->ReadString(Record, Idx);
@@ -340,6 +347,10 @@ public:
   /// Read an BTFTypeTagAttr object.
   BTFTypeTagAttr *readBTFTypeTagAttr() {
     return cast<BTFTypeTagAttr>(readAttr());
+  }
+
+  NoSanitizeAttr *readNoSanitizeAttr() {
+    return cast<NoSanitizeAttr>(readAttr());
   }
 
   /// Reads a token out of a record, advancing Idx.

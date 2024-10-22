@@ -529,6 +529,10 @@ SourceRange BTFTagAttributedTypeLoc::getLocalSourceRange() const {
   return getAttr() ? getAttr()->getRange() : SourceRange();
 }
 
+SourceRange OverflowBehaviorTypeLoc::getLocalSourceRange() const {
+  return SourceRange();
+}
+
 void TypeOfTypeLoc::initializeLocal(ASTContext &Context,
                                        SourceLocation Loc) {
   TypeofLikeTypeLoc<TypeOfTypeLoc, TypeOfType, TypeOfTypeLocInfo>
@@ -569,9 +573,10 @@ void
 DependentTemplateSpecializationTypeLoc::initializeLocal(ASTContext &Context,
                                                         SourceLocation Loc) {
   setElaboratedKeywordLoc(Loc);
-  if (getTypePtr()->getQualifier()) {
+  if (NestedNameSpecifier *Qualifier =
+          getTypePtr()->getDependentTemplateName().getQualifier()) {
     NestedNameSpecifierLocBuilder Builder;
-    Builder.MakeTrivial(Context, getTypePtr()->getQualifier(), Loc);
+    Builder.MakeTrivial(Context, Qualifier, Loc);
     setQualifierLoc(Builder.getWithLocInContext(Context));
   } else {
     setQualifierLoc(NestedNameSpecifierLoc());
@@ -723,6 +728,10 @@ namespace {
     }
 
     TypeLoc VisitBTFTagAttributedTypeLoc(BTFTagAttributedTypeLoc T) {
+      return Visit(T.getWrappedLoc());
+    }
+
+    TypeLoc VisitOverflowBehaviorTypeLoc(OverflowBehaviorTypeLoc T) {
       return Visit(T.getWrappedLoc());
     }
 

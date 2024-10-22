@@ -326,6 +326,50 @@ bool IsAccessibleMemoryRange(uptr beg, uptr size) {
   return true;
 }
 
+bool TryMemCpy(void *dest, const void *src, uptr n) {
+  if (!n)
+    return true;
+  int fds[2];
+  CHECK_EQ(0, pipe(fds));
+
+  auto cleanup = at_scope_exit([&]() {
+    internal_close(fds[0]);
+    internal_close(fds[1]);
+  });
+
+  SetNonBlock(fds[0]);
+  SetNonBlock(fds[1]);
+
+  char *d = static_cast<char *>(dest);
+  const char *s = static_cast<const char *>(src);
+
+  while (n) {
+    int e;
+    uptr w = internal_write(fds[1], s, n);
+    if (internal_iserror(w, &e)) {
+      if (e == EINTR)
+        continue;
+      CHECK_EQ(EFAULT, e);
+      return false;
+    }
+    s += w;
+    n -= w;
+
+    while (w) {
+      uptr r = internal_read(fds[0], d, w);
+      if (internal_iserror(r, &e)) {
+        CHECK_EQ(EINTR, e);
+        continue;
+      }
+
+      d += r;
+      w -= r;
+    }
+  }
+
+  return true;
+}
+
 void PlatformPrepareForSandboxing(void *args) {
   // Some kinds of sandboxes may forbid filesystem access, so we won't be able
   // to read the file mappings from /proc/self/maps. Luckily, neither the
@@ -499,7 +543,11 @@ pid_t StartSubprocess(const char *program, const char *const argv[],
       internal_close(stderr_fd);
     }
 
+#  if SANITIZER_FREEBSD
+    internal_close_range(3, ~static_cast<fd_t>(0), 0);
+#  else
     for (int fd = sysconf(_SC_OPEN_MAX); fd > 2; fd--) internal_close(fd);
+#  endif
 
     internal_execve(program, const_cast<char **>(&argv[0]),
                     const_cast<char *const *>(envp));

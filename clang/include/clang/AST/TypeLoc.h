@@ -139,6 +139,7 @@ public:
   }
 
   /// Get the pointer where source information is stored.
+  // FIXME: This should provide a type-safe interface.
   void *getOpaqueData() const {
     return Data;
   }
@@ -397,6 +398,7 @@ public:
     unsigned extraAlign = asDerived()->getExtraLocalDataAlignment();
     size = llvm::alignTo(size, extraAlign);
     size += asDerived()->getExtraLocalDataSize();
+    size = llvm::alignTo(size, asDerived()->getLocalDataAlignment());
     return size;
   }
 
@@ -940,6 +942,25 @@ public:
   QualType getInnerType() const { return getTypePtr()->getWrappedType(); }
 };
 
+struct OverflowBehaviorLocInfo {}; // Nothing.
+
+class OverflowBehaviorTypeLoc
+    : public ConcreteTypeLoc<UnqualTypeLoc, OverflowBehaviorTypeLoc,
+                             OverflowBehaviorType,
+                             OverflowBehaviorLocInfo> {
+public:
+  TypeLoc getWrappedLoc() const { return getInnerTypeLoc(); }
+
+  /// The no_sanitize type attribute.
+  OverflowBehaviorType::OverflowBehaviorKind getBehaviorKind() const { return getTypePtr()->getBehaviorKind(); }
+
+  SourceRange getLocalSourceRange() const;
+
+  void initializeLocal(ASTContext &Context, SourceLocation loc) {}
+
+  QualType getInnerType() const { return getTypePtr()->getUnderlyingType(); }
+};
+
 struct HLSLAttributedResourceLocInfo {
   SourceRange Range;
   TypeSourceInfo *ContainedTyInfo;
@@ -1354,7 +1375,7 @@ public:
 };
 
 struct MemberPointerLocInfo : public PointerLikeLocInfo {
-  TypeSourceInfo *ClassTInfo;
+  void *QualifierData = nullptr;
 };
 
 /// Wrapper for source info for member pointers.
@@ -1370,28 +1391,32 @@ public:
     setSigilLoc(Loc);
   }
 
-  const Type *getClass() const {
-    return getTypePtr()->getClass();
+  NestedNameSpecifierLoc getQualifierLoc() const {
+    return NestedNameSpecifierLoc(getTypePtr()->getQualifier(),
+                                  getLocalData()->QualifierData);
   }
 
-  TypeSourceInfo *getClassTInfo() const {
-    return getLocalData()->ClassTInfo;
-  }
-
-  void setClassTInfo(TypeSourceInfo* TI) {
-    getLocalData()->ClassTInfo = TI;
+  void setQualifierLoc(NestedNameSpecifierLoc QualifierLoc) {
+    assert(QualifierLoc.getNestedNameSpecifier() ==
+               getTypePtr()->getQualifier() &&
+           "Inconsistent nested-name-specifier pointer");
+    getLocalData()->QualifierData = QualifierLoc.getOpaqueData();
   }
 
   void initializeLocal(ASTContext &Context, SourceLocation Loc) {
     setSigilLoc(Loc);
-    setClassTInfo(nullptr);
+    if (auto *Qualifier = getTypePtr()->getQualifier()) {
+      NestedNameSpecifierLocBuilder Builder;
+      Builder.MakeTrivial(Context, Qualifier, Loc);
+      setQualifierLoc(Builder.getWithLocInContext(Context));
+    } else
+      getLocalData()->QualifierData = nullptr;
   }
 
   SourceRange getLocalSourceRange() const {
-    if (TypeSourceInfo *TI = getClassTInfo())
-      return SourceRange(TI->getTypeLoc().getBeginLoc(), getStarLoc());
-    else
-      return SourceRange(getStarLoc());
+    if (NestedNameSpecifierLoc QL = getQualifierLoc())
+      return SourceRange(QL.getBeginLoc(), getStarLoc());
+    return SourceRange(getStarLoc());
   }
 };
 
@@ -2496,8 +2521,9 @@ public:
     if (!getLocalData()->QualifierData)
       return NestedNameSpecifierLoc();
 
-    return NestedNameSpecifierLoc(getTypePtr()->getQualifier(),
-                                  getLocalData()->QualifierData);
+    return NestedNameSpecifierLoc(
+        getTypePtr()->getDependentTemplateName().getQualifier(),
+        getLocalData()->QualifierData);
   }
 
   void setQualifierLoc(NestedNameSpecifierLoc QualifierLoc) {
@@ -2510,8 +2536,8 @@ public:
       return;
     }
 
-    assert(QualifierLoc.getNestedNameSpecifier()
-                                        == getTypePtr()->getQualifier() &&
+    assert(QualifierLoc.getNestedNameSpecifier() ==
+               getTypePtr()->getDependentTemplateName().getQualifier() &&
            "Inconsistent nested-name-specifier pointer");
     getLocalData()->QualifierData = QualifierLoc.getOpaqueData();
   }
@@ -2721,6 +2747,8 @@ inline T TypeLoc::getAsAdjusted() const {
       Cur = ATL.getModifiedLoc();
     else if (auto ATL = Cur.getAs<BTFTagAttributedTypeLoc>())
       Cur = ATL.getWrappedLoc();
+    // else if (auto ATL = Cur.getAs<OverflowBehaviorTypeLoc>())
+    //   Cur = ATL.getWrappedLoc();
     else if (auto ATL = Cur.getAs<HLSLAttributedResourceTypeLoc>())
       Cur = ATL.getWrappedLoc();
     else if (auto ETL = Cur.getAs<ElaboratedTypeLoc>())
