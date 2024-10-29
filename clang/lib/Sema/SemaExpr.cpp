@@ -1560,6 +1560,14 @@ QualType Sema::UsualArithmeticConversions(ExprResult &LHS, ExprResult &RHS,
   llvm::errs() << "in UsualArithmeticConversions\n";
   llvm::errs() << "LHS.dump()"; LHS.get()->dump();
   llvm::errs() << "RHS.dump()"; RHS.get()->dump();
+  llvm::errs() << "LHS og type dump: "; LHS.get()->getType().dump();
+  llvm::errs() << "RHS og type dump: "; RHS.get()->getType().dump();
+  llvm::errs() << "LHS underlying type: ";
+  if (auto *MQT = dyn_cast<MacroQualifiedType>(LHS.get()->getType().getTypePtr())) {
+    llvm::errs() << "MQT dump: "; MQT->getUnderlyingType().dump();
+  }
+  llvm::errs() << "cant find underlying type because cannot convert to MQT\n";
+
   checkEnumArithmeticConversions(*this, LHS.get(), RHS.get(), Loc, ACK);
 
   if (ACK != ACK_CompAssign) {
@@ -1582,6 +1590,10 @@ QualType Sema::UsualArithmeticConversions(ExprResult &LHS, ExprResult &RHS,
   // For conversion purposes, we ignore any atomic qualifier on the LHS.
   if (const AtomicType *AtomicLHS = LHSType->getAs<AtomicType>())
     LHSType = AtomicLHS->getValueType();
+
+  if (auto *TTy = dyn_cast<TypedefType>(LHS.get()->getType().getTypePtr())) {
+    llvm::errs() << "in uac: got TTy\n"; TTy->dump();
+  }
 
   // If both types are identical, no conversion is needed.
   if (Context.hasSameType(LHSType, RHSType))
