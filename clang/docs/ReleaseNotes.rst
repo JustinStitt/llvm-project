@@ -386,7 +386,7 @@ Attribute Changes in Clang
 - Fix a bug where clang doesn't automatically apply the ``[[gsl::Owner]]`` or
   ``[[gsl::Pointer]]`` to STL explicit template specialization decls. (#GH109442)
 
-- Introduced ``__attribute((wraps))__`` which can be added to type or variable
+- Introduced ``__attribute__((wraps))`` which can be added to type or variable
   declarations. Using an attributed type or variable in an arithmetic
   expression will define the overflow behavior for that expression as having
   two's complement wrap-around. These expressions cannot trigger integer
