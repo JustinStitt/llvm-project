@@ -11346,19 +11346,9 @@ void Sema::CheckImplicitConversion(Expr *E, QualType T, SourceLocation CC,
         }
   }
 
-<<<<<<< HEAD
   if (TargetRange.Width == LikelySourceRange->Width &&
       !TargetRange.NonNegative && LikelySourceRange->NonNegative &&
-      Source->isSignedIntegerType()) {
-||||||| parent of 8a22ac4a6ca9 (implement wraps attribute)
-  if (TargetRange.Width == LikelySourceRange.Width &&
-      !TargetRange.NonNegative && LikelySourceRange.NonNegative &&
-      Source->isSignedIntegerType()) {
-=======
-  if (TargetRange.Width == LikelySourceRange.Width &&
-      !TargetRange.NonNegative && LikelySourceRange.NonNegative &&
       Source->isSignedIntegerType() && !T.hasWrapsAttr()) {
->>>>>>> 8a22ac4a6ca9 (implement wraps attribute)
     // Warn when doing a signed to signed conversion, warn if the positive
     // source value is exactly the width of the target type, which will
     // cause a negative value to be stored.
