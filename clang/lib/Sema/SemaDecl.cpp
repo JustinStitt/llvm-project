@@ -6718,9 +6718,6 @@ Sema::CheckTypedefForVariablyModifiedType(Scope *S, TypedefNameDecl *NewTD) {
 NamedDecl*
 Sema::ActOnTypedefNameDecl(Scope *S, DeclContext *DC, TypedefNameDecl *NewTD,
                            LookupResult &Previous, bool &Redeclaration) {
-  // EDITME:  if the typedef has the wraps attribute and we have a
-  // nosanitizelist scl, add this as an ignorable entry (maybe a bit redundant
-  // but will be symmetrical with no_wraps)
   const ASTContext &Ctx = DC->getParentASTContext();
   QualType Ty = NewTD->getUnderlyingType();
   SanitizerMask Mask = SanitizerKind::SignedIntegerOverflow |
