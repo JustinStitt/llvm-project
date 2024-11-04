@@ -48,7 +48,6 @@ Example
   $ clang -fsanitize=address -fsanitize-ignorelist=ignorelist.txt foo.c ; ./a.out
   # No error report here.
 
-<<<<<<< HEAD
 Usage with UndefinedBehaviorSanitizer
 =====================================
 
@@ -104,61 +103,6 @@ supported sanitizers.
     char c = toobig; // also not instrumented
   }
 
-||||||| parent of 5ef200f1f1ad (squash merge scl-overflow-trunc)
-=======
-Usage with UndefinedBehaviorSanitizer
-=====================================
-
-The arithmetic overflow sanitizers ``unsigned-integer-overflow`` and
-``signed-integer-overflow`` as well as the implicit integer truncation
-sanitizers ``implicit-signed-integer-truncation`` and
-``implicit-unsigned-integer-truncation`` support the ability to adjust
-instrumentation based on type.
-
-.. code-block:: bash
-
-  $ cat foo.c
-  void foo() {
-    int a = 2147483647; // INT_MAX
-    ++a;                // Normally, an overflow with -fsanitize=signed-integer-overflow
-  }
-  $ cat ignorelist.txt
-  [signed-integer-overflow]
-  type:int
-  $ clang -fsanitize=signed-integer-overflow -fsanitize-ignorelist=ignorelist.txt foo.c ; ./a.out
-  # no signed-integer-overflow error
-
-Supplying ``ignorelist.txt`` with ``-fsanitize-ignorelist=ignorelist.txt``
-disables overflow sanitizer instrumentation for arithmetic operations
-containing values of type ``int``, for example. Custom types may be used.
-
-The following SCL categories are supported: ``=no_sanitize`` and ``=sanitize``.
-The ``no_sanitize`` category is the default for any entry within an ignorelist
-and specifies that the query, if matched, will have its sanitizer
-instrumentation ignored. Conversely, ``sanitize`` causes its queries, if
-matched, to be left out of the ignorelist -- essentially ensuring sanitizer
-instrumentation remains for those types. This is useful for whitelisting
-specific types.
-
-With this, one may disable instrumentation for all types and specifically allow
-instrumentation for one or many types.
-
-.. code-block:: bash
-
-  $ cat ignorelist.txt
-  [implicit-signed-integer-truncation]
-  type:*=no_sanitize
-  type:T=sanitize
-  $ cat foo.c
-  typedef char T;
-  typedef char U;
-  void foo(int toobig) {
-    T a = toobig;    // instrumented
-    U b = toobig;    // not instrumented
-    char c = toobig; // also not instrumented
-  }
-
->>>>>>> 5ef200f1f1ad (squash merge scl-overflow-trunc)
 Format
 ======
 
