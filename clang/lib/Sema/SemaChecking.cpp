@@ -11299,7 +11299,7 @@ void Sema::CheckImplicitConversion(Expr *E, QualType T, SourceLocation CC,
       IntRange::forTargetOfCanonicalType(Context, Source);
   IntRange TargetRange = IntRange::forTargetOfCanonicalType(Context, Target);
 
-  if (LikelySourceRange->Width > TargetRange.Width!T.hasWrapsAttr()) {
+  if (LikelySourceRange->Width > TargetRange.Width && !T.hasWrapsAttr()) {
     // If the source is a constant, use a default-on diagnostic.
     // TODO: this should happen for bitfield stores, too.
     Expr::EvalResult Result;
