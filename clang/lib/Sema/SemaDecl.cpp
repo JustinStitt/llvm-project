@@ -6718,22 +6718,6 @@ Sema::CheckTypedefForVariablyModifiedType(Scope *S, TypedefNameDecl *NewTD) {
 NamedDecl*
 Sema::ActOnTypedefNameDecl(Scope *S, DeclContext *DC, TypedefNameDecl *NewTD,
                            LookupResult &Previous, bool &Redeclaration) {
-  const ASTContext &Ctx = DC->getParentASTContext();
-  QualType Ty = NewTD->getUnderlyingType();
-  SanitizerMask Mask = SanitizerKind::SignedIntegerOverflow |
-                        SanitizerKind::UnsignedIntegerOverflow |
-                        SanitizerKind::ImplicitSignedIntegerTruncation |
-                        SanitizerKind::ImplicitUnsignedIntegerTruncation;
-  const NoSanitizeList &NoSanitizeL = Ctx.getNoSanitizeList();
-
-  if (Ty.hasWrapsAttr()) {
-    if (NoSanitizeL.addSSCLEntry(Mask, "type", NewTD->getName(), "no_sanitize"))
-      llvm::errs() << "[aotnd] Error adding SSCL entry\n";
-  } else if (Ty.hasNoWrapsAttr()) {
-    if (NoSanitizeL.addSSCLEntry(Mask, "type", NewTD->getName(), "sanitize"))
-      llvm::errs() << "[aotnd] Error adding SSCL entry for no wraps\n";
-  }
-
   // Find the shadowed declaration before filtering for scope.
   NamedDecl *ShadowedDecl = getShadowedDeclaration(NewTD, Previous);
 
