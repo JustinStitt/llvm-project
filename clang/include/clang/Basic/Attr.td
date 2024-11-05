@@ -4849,7 +4849,7 @@ def Wraps : DeclOrTypeAttr {
 def NoWraps : DeclOrTypeAttr {
   let Spellings = [Clang<"no_wraps">];
   let Subjects = SubjectList<[Var, TypedefName, Field]>;
-  let Documentation = [WrapsDocs];
+  let Documentation = [NoWrapsDocs];
   let LangOpts = [COnly];
 }
 

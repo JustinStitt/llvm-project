@@ -8530,78 +8530,67 @@ of ``nonallocating`` by the compiler.
 def WrapsDocs : Documentation {
   let Category = DocCatField;
   let Content = [{
-This attribute can be used with type or variable declarations to denote that
-arithmetic containing these marked components have defined overflow behavior.
-Specifically, the behavior is defined as being consistent with two's complement
-wrap-around. For the purposes of sanitizers or warnings that concern themselves
-with the definedness of integer arithmetic, they will cease to instrument or
-warn about arithmetic that directly involves a "wrapping" component.
+``__attribute__((wraps))`` can be used with type or variable declarations to
+denote that arithmetic containing attributed types or variables have defined
+overflow behavior. Specifically, the behavior is defined as being consistent
+with two's complement wrap-around. For the purposes of sanitizers or warnings
+that concern themselves with the definedness of integer arithmetic, they will
+cease to instrument or warn about arithmetic that directly involves operands
+attributed with the ``wraps``` attribute.
 
-For example, ``-fsanitize=signed-integer-overflow`` or ``-Winteger-overflow``
-will not warn about suspicious overflowing arithmetic.
+The ``signed-integer-overflow``, ``unsigned-integer-overflow``,
+``implicit-signed-integer-truncation`` and the
+``implicit-unsigned-integer-truncation`` sanitizers will not instrument
+arithmetic containing any operands attributed by ``wraps``. Similarly, the
+``-Winteger-overflow`` warning is disabled for these instances.
 
-This example shows some basic usage of ``__attribute__((wraps))`` on a type
-definition when building with ``-fsanitize=signed-integer-overflow``
+The following example shows how one may disable ``signed-integer-overflow``
+sanitizer instrumentation using ``__attribute__((wraps))`` on a type definition
+when building with ``-fsanitize=signed-integer-overflow``:
 
 .. code-block:: c
 
   typedef int __attribute__((wraps)) wrapping_int;
 
-  void foo() {
-    wrapping_int a = INT_MAX;
-    ++a; // no sanitizer warning
+  void foo(void) {
+    wrapping_int A = INT_MAX;
+    ++A; // no sanitizer instrumentation
   }
 
-  int main() { foo(); }
+``__attribute__((wraps))`` may also be used with function parameters or
+declarations of variables as well as members of structures.
 
-In the following example, we use ``__attribute__((wraps))`` on a variable to
-disable overflow instrumentation for arithmetic expressions it appears in. We
-do so with a popular overflow-checking pattern which we might not want to trip
-sanitizers (like ``-fsanitize=unsigned-integer-overflow``).
+``__attribute__((wraps))`` persists through implicit type promotions and will
+be applied to the result type of arithmetic expressions containing a wrapping
+operand.
+}];
+}
 
-.. code-block:: c
+def NoWrapsDocs : Documentation {
+  let Category = DocCatField;
+  let Content = [{
+``__attribute__((no_wraps))`` can be used to annotate types or variables as
+non-wrapping. This may serve as a helpful annotation to readers of code that
+particular arithmetic expressions involving these types or variables are not
+meant to wrap-around.
 
-  void foo(int offset) {
-    unsigned int A __attribute__((wraps)) = UINT_MAX;
+When overflow or truncation sanitizer instrumentation is modified at the
+type-level through `SSCLs
+<https://clang.llvm.org/docs/SanitizerSpecialCaseList.html>`_,
+``__attribute__((no_wraps))`` or ``__attribute__((wraps))`` may be used to
+override sanitizer behavior.
 
-    // check for overflow using a common pattern, however we may accidentally
-    // perform a real overflow thus triggering sanitizers to step in. Since "A"
-    // is "wrapping", we can avoid sanitizer warnings.
-    if (A + offset < A) {
-      // handle overflow manually
-      // ...
-      return;
-    }
-
-    // now, handle non-overflow case ...
-  }
-
-The above example demonstrates some of the power and elegance this attribute
-provides. We can use code patterns we are already familiar with (like ``if (x +
-y < x)``) while gaining control over the overflow behavior on a case-by-case
-basis.
-
-``__attribute__((no_wraps))`` is also available but has no effect beyond code
-annotation unless used alongside `Sanitizer Special Case Lists (SSCL)
-<https://clang.llvm.org/docs/SanitizerSpecialCaseList.html>`_. When used
-together, ``no_wraps`` has precedence over ``wraps``.
-
-Both ``__attribute__((wraps))`` and ``__attribute__((no_wraps))`` have
-precedence over `SSCLs
-<https://clang.llvm.org/docs/SanitizerSpecialCaseList.html>`_. Any types
-filtered by ignorelists can be overridden by the in-source type annotations
-provided by these attributes.
-
-For example, one may specify an ignorelist like the following to disable the
-``signed-integer-overflow`` sanitizer for all types:
+For example, one may specify an ignorelist (with ``-fsanitize-ignorelist=``) to
+disable the ``signed-integer-overflow`` sanitizer for all types:
 
 .. code-block:: text
 
   [signed-integer-overflow]
   type:*
 
-Using ``__attribute__((no_wraps))`` ensures that any enabled overflow
-sanitizers have their instrumentation untouched; effectively "unignoring" them.
+``__attribute__((no_wraps))`` can override the behavior provided by the
+ignorelist to effectively re-enable instrumentation for specific types or
+variables.
 
 .. code-block:: c
 
@@ -8612,6 +8601,16 @@ sanitizers have their instrumentation untouched; effectively "unignoring" them.
       ++B; // won't be instrumented as it is ignored by the ignorelist
   }
 
+Like ``__attribute__((wraps))``, ``__attribute__((no_wraps))`` persists through
+implicit type promotions and will be automatically applied to the result type
+of arithmetic expressions containing a wrapping operand.
+
+If a type or variable is attributed by both ``wraps`` and ``no_wraps``, then
+``no_wraps`` takes precedence -- regardless of the order of attribution.
+
+Note that ``__attribute__((no_wraps))`` makes no guarantees about the
+definedness of arithmetic overflow. Instead, use ``-fwrapv`` or
+``-fno-strict-overflow``.
 }];
 }
 
