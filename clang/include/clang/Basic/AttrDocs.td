@@ -8530,13 +8530,13 @@ of ``nonallocating`` by the compiler.
 def WrapsDocs : Documentation {
   let Category = DocCatField;
   let Content = [{
-``__attribute__((wraps))`` can be used with type or variable declarations to
+The ``wraps`` attribute can be used with type or variable declarations to
 denote that arithmetic containing attributed types or variables have defined
 overflow behavior. Specifically, the behavior is defined as being consistent
 with two's complement wrap-around. For the purposes of sanitizers or warnings
 that concern themselves with the definedness of integer arithmetic, they will
 cease to instrument or warn about arithmetic that directly involves operands
-attributed with the ``wraps``` attribute.
+attributed with the ``wraps`` attribute.
 
 The ``signed-integer-overflow``, ``unsigned-integer-overflow``,
 ``implicit-signed-integer-truncation`` and the
@@ -8557,28 +8557,26 @@ when building with ``-fsanitize=signed-integer-overflow``:
     ++A; // no sanitizer instrumentation
   }
 
-``__attribute__((wraps))`` may also be used with function parameters or
-declarations of variables as well as members of structures.
+``wraps`` may also be used with function parameters or declarations of
+variables as well as members of structures.
 
-``__attribute__((wraps))`` persists through implicit type promotions and will
-be applied to the result type of arithmetic expressions containing a wrapping
-operand.
+``wraps`` persists through implicit type promotions and will be applied to the
+result type of arithmetic expressions containing a wrapping operand.
 }];
 }
 
 def NoWrapsDocs : Documentation {
   let Category = DocCatField;
   let Content = [{
-``__attribute__((no_wraps))`` can be used to annotate types or variables as
+The ``no_wraps`` attribute can be used to annotate types or variables as
 non-wrapping. This may serve as a helpful annotation to readers of code that
 particular arithmetic expressions involving these types or variables are not
 meant to wrap-around.
 
 When overflow or truncation sanitizer instrumentation is modified at the
 type-level through `SSCLs
-<https://clang.llvm.org/docs/SanitizerSpecialCaseList.html>`_,
-``__attribute__((no_wraps))`` or ``__attribute__((wraps))`` may be used to
-override sanitizer behavior.
+<https://clang.llvm.org/docs/SanitizerSpecialCaseList.html>`_, ``no_wraps`` or
+``wraps`` may be used to override sanitizer behavior.
 
 For example, one may specify an ignorelist (with ``-fsanitize-ignorelist=``) to
 disable the ``signed-integer-overflow`` sanitizer for all types:
@@ -8588,9 +8586,8 @@ disable the ``signed-integer-overflow`` sanitizer for all types:
   [signed-integer-overflow]
   type:*
 
-``__attribute__((no_wraps))`` can override the behavior provided by the
-ignorelist to effectively re-enable instrumentation for specific types or
-variables.
+``no_wraps`` can override the behavior provided by the ignorelist to
+effectively re-enable instrumentation for specific types or variables.
 
 .. code-block:: c
 
@@ -8601,16 +8598,15 @@ variables.
       ++B; // won't be instrumented as it is ignored by the ignorelist
   }
 
-Like ``__attribute__((wraps))``, ``__attribute__((no_wraps))`` persists through
-implicit type promotions and will be automatically applied to the result type
-of arithmetic expressions containing a wrapping operand.
+Like ``wraps``, ``no_wraps`` persists through implicit type promotions and will
+be automatically applied to the result type of arithmetic expressions
+containing a wrapping operand.
 
 If a type or variable is attributed by both ``wraps`` and ``no_wraps``, then
 ``no_wraps`` takes precedence -- regardless of the order of attribution.
 
-Note that ``__attribute__((no_wraps))`` makes no guarantees about the
-definedness of arithmetic overflow. Instead, use ``-fwrapv`` or
-``-fno-strict-overflow``.
+Note that ``no_wraps`` makes no guarantees about the definedness of arithmetic
+overflow. Instead, use ``-fwrapv`` or ``-fno-strict-overflow``.
 }];
 }
 
