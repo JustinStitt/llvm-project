@@ -4,6 +4,7 @@
 // Ensure the wraps and no_wraps attributes properly adjust SSCL coverage
 // RUN: %clang_cc1 -triple x86_64-linux-gnu -fsanitize=signed-integer-overflow -fsanitize-ignorelist=%t/ignoreall.ignorelist -emit-llvm %t/test.c -o - | FileCheck %s
 // RUN: %clang_cc1 -triple x86_64-linux-gnu -fsanitize=signed-integer-overflow -fsanitize-ignorelist=%t/precedence.ignorelist -emit-llvm %t/test.c -o - | FileCheck %s --check-prefix=PREC
+// RUN: %clang_cc1 -triple x86_64-linux-gnu -fsanitize=signed-integer-overflow -fsanitize-ignorelist=%t/promotion.ignorelist -emit-llvm %t/test.c -o - | FileCheck %s --check-prefix=PROMO
 
 //--- ignoreall.ignorelist
 [signed-integer-overflow]
@@ -13,6 +14,11 @@ type:*
 [signed-integer-overflow]
 type:myty
 type:qaz=sanitize
+
+//--- promotion.ignorelist
+[{signed-integer-overflow,unsigned-integer-overflow}]
+type:*
+type:int=sanitize
 
 //--- test.c
 typedef int __attribute__((no_wraps)) non_wrapping_int;
@@ -61,4 +67,12 @@ void jam(both E) {
 // CHECK: %[[E:.*]] = load i32, ptr %E.addr
 // CHECK-NEXT: @llvm.sadd.with.overflow.i32(i32 %[[E]], i32 1)
   ++E;
+}
+
+// PROMO-LABEL: define dso_local void @bux
+void bux(char __attribute__((wraps)) F) {
+// PROMO: %[[F:.*]] = load i8, ptr %F.addr
+// PROMO-NEXT: %[[CONV1:.*]] = sext i8 %[[F]] to i32
+// PROMO-NEXT: add i32 %[[CONV1]], 1
+  (F + 1); // F is promoted to `int` but should carry the `wraps` attribute with it
 }

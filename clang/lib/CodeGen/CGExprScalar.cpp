@@ -1388,12 +1388,9 @@ void CodeGenFunction::EmitBitfieldConversionCheck(Value *Src, QualType SrcType,
   bool SrcSigned = SrcType->isSignedIntegerOrEnumerationType();
   bool DstSigned = DstType->isSignedIntegerOrEnumerationType();
 
-  bool SrcWraps = SrcType.hasWrapsAttr();
-  bool DstWraps = DstType.hasWrapsAttr();
-
-  // The wraps attribute should silence any sanitizer warnings
+  // The wraps attribute will silence any sanitizer warnings
   // regarding truncation or overflow
-  if (SrcWraps || DstWraps)
+  if (SrcType.hasWrapsAttr() || DstType.hasWrapsAttr())
     return;
 
   CodeGenFunction::SanitizerScope SanScope(this);
