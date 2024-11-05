@@ -8538,8 +8538,7 @@ with the definedness of integer arithmetic, they will cease to instrument or
 warn about arithmetic that directly involves a "wrapping" component.
 
 For example, ``-fsanitize=signed-integer-overflow`` or ``-Winteger-overflow``
-will not warn about suspicious overflowing arithmetic -- assuming correct usage
-of the wraps attribute.
+will not warn about suspicious overflowing arithmetic.
 
 This example shows some basic usage of ``__attribute__((wraps))`` on a type
 definition when building with ``-fsanitize=signed-integer-overflow``
@@ -8582,20 +8581,37 @@ provides. We can use code patterns we are already familiar with (like ``if (x +
 y < x)``) while gaining control over the overflow behavior on a case-by-case
 basis.
 
-When combined with ``-fwrapv``, this attribute can still be applied as normal
-but has no function apart from annotating types and variables for readers. This
-is because ``-fwrapv`` defines all arithmetic as being "wrapping", rendering
-this attribute's efforts redundant.
+``__attribute__((no_wraps))`` is also available but has no effect beyond code
+annotation unless used alongside `Sanitizer Special Case Lists (SSCL)
+<https://clang.llvm.org/docs/SanitizerSpecialCaseList.html>`_. When used
+together, ``no_wraps`` has precedence over ``wraps``.
 
-When using this attribute without ``-fwrapv`` and without any sanitizers, it
-still has an impact on the definedness of arithmetic expressions containing
-wrapping components. Since the behavior of said expressions is now technically
-defined, the compiler will forgo some eager optimizations that are used on
-expressions containing UB.
+Both ``__attribute__((wraps))`` and ``__attribute__((no_wraps))`` have
+precedence over `SSCLs
+<https://clang.llvm.org/docs/SanitizerSpecialCaseList.html>`_. Any types
+filtered by ignorelists can be overridden by the in-source type annotations
+provided by these attributes.
 
-``__attribute__((no_wraps))`` is also available but has no effect unless used
-alongside `Sanitizer Special Case Lists (SSCL)
-<https://clang.llvm.org/docs/SanitizerSpecialCaseList.html>`_.
+For example, one may specify an ignorelist like the following to disable the
+``signed-integer-overflow`` sanitizer for all types:
+
+.. code-block:: text
+
+  [signed-integer-overflow]
+  type:*
+
+Using ``__attribute__((no_wraps))`` ensures that any enabled overflow
+sanitizers have their instrumentation untouched; effectively "unignoring" them.
+
+.. code-block:: c
+
+  typedef int __attribute__((no_wraps)) non_wrapping_int;
+
+  void foo(non_wrapping_int A, int B) {
+      ++A; // will be instrumented if built with -fsanitize=signed-integer-overflow
+      ++B; // won't be instrumented as it is ignored by the ignorelist
+  }
+
 }];
 }
 

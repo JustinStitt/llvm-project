@@ -399,7 +399,10 @@ Attribute Changes in Clang
   instrumented by overflow sanitizers, if enabled. Note that this matches the
   default behavior of integer types. So, in most cases, ``no_wraps`` serves
   purely as an annotation to readers of code that a type or variable really
-  shouldn't wrap-around.
+  shouldn't wrap-around. ``__attribute__((no_wraps))`` has the most function
+  when paired with `Sanitizer Special Case Lists (SSCL)
+  <https://clang.llvm.org/docs/SanitizerSpecialCaseList.html>`_.
+
 
   These attributes are only valid for C, as there are built-in language
   alternatives for other languages.

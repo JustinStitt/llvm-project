@@ -2864,7 +2864,8 @@ bool QualType::isWebAssemblyFuncrefType() const {
 }
 
 bool QualType::hasWrapsAttr() const {
-  return !isNull() && getTypePtr()->hasAttr(attr::Wraps);
+  return !isNull() && getTypePtr()->hasAttr(attr::Wraps) &&
+         !getTypePtr()->hasAttr(attr::NoWraps);
 }
 
 bool QualType::hasNoWrapsAttr() const {

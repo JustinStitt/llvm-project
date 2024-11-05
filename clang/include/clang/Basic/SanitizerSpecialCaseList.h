@@ -43,11 +43,6 @@ public:
   bool inSection(SanitizerMask Mask, StringRef Prefix, StringRef Query,
                  StringRef Category = StringRef()) const;
 
-  llvm::Error addSanitizerEntry(SanitizerMask Mask, StringRef Prefix,
-                                  StringRef Pattern,
-                                  StringRef Category = StringRef(),
-                                  bool UseGlobs = true);
-
 protected:
   // Initialize SanitizerSections.
   void createSanitizerSections();

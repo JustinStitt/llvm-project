@@ -64,21 +64,3 @@ bool SanitizerSpecialCaseList::inSection(SanitizerMask Mask, StringRef Prefix,
 
   return false;
 }
-
-llvm::Error SanitizerSpecialCaseList::addSanitizerEntry(SanitizerMask Mask,
-                                                        StringRef Prefix,
-                                                        StringRef Pattern,
-                                                        StringRef Category,
-                                                        bool UseGlobs) {
-  llvm::SpecialCaseList::Section *CurrentSection;
-  if (auto Err = addSection("extras", 1, UseGlobs).moveInto(CurrentSection)) {
-    return Err;
-  }
-
-  auto &Entry = CurrentSection->Entries[Prefix][Category];
-  if (auto Err = Entry.insert(Pattern, 1, true)) {
-    return Err;
-  }
-  SanitizerSections.emplace_back(Mask, CurrentSection->Entries);
-  return llvm::Error::success();
-}
