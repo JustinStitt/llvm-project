@@ -62,6 +62,7 @@
 namespace clang {
 
 class BTFTypeTagAttr;
+class NoSanitizeAttr;
 class ExtQuals;
 class QualType;
 class ConceptDecl;
@@ -6254,6 +6255,40 @@ public:
   }
 };
 
+class NoSanitizeAttributedType : public Type, public llvm::FoldingSetNode {
+private:
+  friend class ASTContext; // ASTContext creates these
+
+  QualType WrappedType;
+  const NoSanitizeAttr *NoSanAttr;
+
+  NoSanitizeAttributedType(QualType Canon, QualType Wrapped,
+                           const NoSanitizeAttr *NoSanAttr)
+      : Type(NoSanitizeAttributed, Canon, Wrapped->getDependence()),
+        WrappedType(Wrapped), NoSanAttr(NoSanAttr) {}
+
+public:
+  QualType getWrappedType() const { return WrappedType; }
+  const NoSanitizeAttr *getAttr() const { return NoSanAttr; }
+
+  bool isSugared() const { return true; }
+  QualType desugar() const { return getWrappedType(); }
+
+  void Profile(llvm::FoldingSetNodeID &ID) {
+    Profile(ID, WrappedType, NoSanAttr);
+  }
+
+  static void Profile(llvm::FoldingSetNodeID &ID, QualType Wrapped,
+                      const NoSanitizeAttr *NoSanAttr) {
+    ID.AddPointer(Wrapped.getAsOpaquePtr());
+    ID.AddPointer(NoSanAttr);
+  }
+
+  static bool classof(const Type *T) {
+    return T->getTypeClass() == NoSanitizeAttributed;
+  }
+};
+
 class HLSLAttributedResourceType : public Type, public llvm::FoldingSetNode {
 public:
   struct Attributes {
@@ -8752,6 +8787,8 @@ template <typename T> const T *Type::getAsAdjusted() const {
     if (const auto *A = dyn_cast<AttributedType>(Ty))
       Ty = A->getModifiedType().getTypePtr();
     else if (const auto *A = dyn_cast<BTFTagAttributedType>(Ty))
+      Ty = A->getWrappedType().getTypePtr();
+    else if (const auto *A = dyn_cast<NoSanitizeAttributedType>(Ty))
       Ty = A->getWrappedType().getTypePtr();
     else if (const auto *A = dyn_cast<HLSLAttributedResourceType>(Ty))
       Ty = A->getWrappedType().getTypePtr();

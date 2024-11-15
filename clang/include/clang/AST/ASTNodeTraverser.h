@@ -439,6 +439,9 @@ public:
   void VisitBTFTagAttributedType(const BTFTagAttributedType *T) {
     Visit(T->getWrappedType());
   }
+  void VisitNoSanitizeAttributedType(const NoSanitizeAttributedType *T) {
+    Visit(T->getWrappedType());
+  }
   void VisitHLSLAttributedResourceType(const HLSLAttributedResourceType *T) {
     QualType Contained = T->getContainedType();
     if (!Contained.isNull())

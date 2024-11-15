@@ -529,6 +529,10 @@ SourceRange BTFTagAttributedTypeLoc::getLocalSourceRange() const {
   return getAttr() ? getAttr()->getRange() : SourceRange();
 }
 
+SourceRange NoSanitizeAttributedTypeLoc::getLocalSourceRange() const {
+  return getAttr() ? getAttr()->getRange() : SourceRange();
+}
+
 void TypeOfTypeLoc::initializeLocal(ASTContext &Context,
                                        SourceLocation Loc) {
   TypeofLikeTypeLoc<TypeOfTypeLoc, TypeOfType, TypeOfTypeLocInfo>
@@ -723,6 +727,10 @@ namespace {
     }
 
     TypeLoc VisitBTFTagAttributedTypeLoc(BTFTagAttributedTypeLoc T) {
+      return Visit(T.getWrappedLoc());
+    }
+
+    TypeLoc VisitNoSanitizeAttributedTypeLoc(NoSanitizeAttributedTypeLoc T) {
       return Visit(T.getWrappedLoc());
     }
 

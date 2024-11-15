@@ -288,6 +288,7 @@ bool TypePrinter::canPrefixQualifiers(const Type *T,
     case Type::PackExpansion:
     case Type::SubstTemplateTypeParm:
     case Type::MacroQualified:
+    case Type::NoSanitizeAttributed:
     case Type::CountAttributed:
       CanPrefixQualifiers = false;
       break;
@@ -2014,7 +2015,6 @@ void TypePrinter::printAttributedAfter(const AttributedType *T,
   case attr::MSABI: OS << "ms_abi"; break;
   case attr::NoSanitize: {
     OS << "no_sanitize(";
-    T->getAttr();
     break;
   }
   case attr::SysVABI: OS << "sysv_abi"; break;
@@ -2070,6 +2070,17 @@ void TypePrinter::printBTFTagAttributedBefore(const BTFTagAttributedType *T,
 
 void TypePrinter::printBTFTagAttributedAfter(const BTFTagAttributedType *T,
                                              raw_ostream &OS) {
+  printAfter(T->getWrappedType(), OS);
+}
+
+void TypePrinter::printNoSanitizeAttributedBefore(
+    const NoSanitizeAttributedType *T, raw_ostream &OS) {
+  printBefore(T->getWrappedType(), OS);
+  OS << " __attribute__((btf_type_tag()))";
+}
+
+void TypePrinter::printNoSanitizeAttributedAfter(
+    const NoSanitizeAttributedType *T, raw_ostream &OS) {
   printAfter(T->getWrappedType(), OS);
 }
 

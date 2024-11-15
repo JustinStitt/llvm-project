@@ -1096,6 +1096,13 @@ static bool IsStructurallyEquivalent(StructuralEquivalenceContext &Context,
       return false;
     break;
 
+  case Type::NoSanitizeAttributed:
+    if (!IsStructurallyEquivalent(
+            Context, cast<NoSanitizeAttributedType>(T1)->getWrappedType(),
+            cast<NoSanitizeAttributedType>(T2)->getWrappedType()))
+      return false;
+    break;
+
   case Type::HLSLAttributedResource:
     if (!IsStructurallyEquivalent(
             Context, cast<HLSLAttributedResourceType>(T1)->getWrappedType(),

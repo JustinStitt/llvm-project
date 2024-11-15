@@ -940,6 +940,30 @@ public:
   QualType getInnerType() const { return getTypePtr()->getWrappedType(); }
 };
 
+struct NoSanitizeAttributedLocInfo {}; // Nothing.
+
+/// Type source information for an btf_tag attributed type.
+class NoSanitizeAttributedTypeLoc
+    : public ConcreteTypeLoc<UnqualTypeLoc, NoSanitizeAttributedTypeLoc,
+                             NoSanitizeAttributedType,
+                             NoSanitizeAttributedLocInfo> {
+public:
+  TypeLoc getWrappedLoc() const { return getInnerTypeLoc(); }
+
+  /// The no_sanitize type attribute.
+  const NoSanitizeAttr *getAttr() const { return getTypePtr()->getAttr(); }
+
+  template <typename T> T *getAttrAs() {
+    return dyn_cast_or_null<T>(getAttr());
+  }
+
+  SourceRange getLocalSourceRange() const;
+
+  void initializeLocal(ASTContext &Context, SourceLocation loc) {}
+
+  QualType getInnerType() const { return getTypePtr()->getWrappedType(); }
+};
+
 struct HLSLAttributedResourceLocInfo {
   SourceRange Range;
   TypeSourceInfo *ContainedTyInfo;
@@ -2720,6 +2744,8 @@ inline T TypeLoc::getAsAdjusted() const {
     else if (auto ATL = Cur.getAs<AttributedTypeLoc>())
       Cur = ATL.getModifiedLoc();
     else if (auto ATL = Cur.getAs<BTFTagAttributedTypeLoc>())
+      Cur = ATL.getWrappedLoc();
+    else if (auto ATL = Cur.getAs<NoSanitizeAttributedTypeLoc>())
       Cur = ATL.getWrappedLoc();
     else if (auto ATL = Cur.getAs<HLSLAttributedResourceTypeLoc>())
       Cur = ATL.getWrappedLoc();

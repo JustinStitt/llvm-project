@@ -690,6 +690,19 @@ let Class = BTFTagAttributedType in {
   }]>;
 }
 
+let Class = NoSanitizeAttributedType in {
+  def : Property<"attr", NoSanitizeAttr> {
+    let Read = [{ node->getAttr() }];
+  }
+  def : Property<"wrappedType", QualType> {
+    let Read = [{ node->getWrappedType() }];
+  }
+
+  def : Creator<[{
+    return ctx.getNoSanitizeAttributedType(attr, wrappedType);
+  }]>;
+}
+
 let Class = HLSLAttributedResourceType in {
   def : Property<"resClass", UInt32> {
     let Read = [{ static_cast<uint32_t>(node->getAttrs().ResourceClass) }];

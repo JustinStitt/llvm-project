@@ -5853,6 +5853,9 @@ namespace {
     void VisitBTFTagAttributedTypeLoc(BTFTagAttributedTypeLoc TL) {
       Visit(TL.getWrappedLoc());
     }
+    void VisitNoSanitizeAttributedTypeLoc(NoSanitizeAttributedTypeLoc TL) {
+      Visit(TL.getWrappedLoc());
+    }
     void VisitHLSLAttributedResourceTypeLoc(HLSLAttributedResourceTypeLoc TL) {
       Visit(TL.getWrappedLoc());
       fillHLSLAttributedResourceTypeLoc(TL, State);
@@ -6105,6 +6108,9 @@ namespace {
       // nothing
     }
     void VisitBTFTagAttributedTypeLoc(BTFTagAttributedTypeLoc TL) {
+      // nothing
+    }
+    void VisitNoSanitizeAttributedTypeLoc(NoSanitizeAttributedTypeLoc TL) {
       // nothing
     }
     void VisitAdjustedTypeLoc(AdjustedTypeLoc TL) {

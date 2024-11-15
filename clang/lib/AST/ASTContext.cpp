@@ -2425,6 +2425,10 @@ TypeInfo ASTContext::getTypeInfoImpl(const Type *T) const {
     return getTypeInfo(
         cast<BTFTagAttributedType>(T)->getWrappedType().getTypePtr());
 
+  case Type::NoSanitizeAttributed:
+    return getTypeInfo(
+        cast<NoSanitizeAttributedType>(T)->getWrappedType().getTypePtr());
+
   case Type::HLSLAttributedResource:
     return getTypeInfo(
         cast<HLSLAttributedResourceType>(T)->getWrappedType().getTypePtr());
@@ -3553,6 +3557,12 @@ ASTContext::adjustType(QualType Orig,
     const auto *BTFT = dyn_cast<BTFTagAttributedType>(Orig);
     return getBTFTagAttributedType(BTFT->getAttr(),
                                    adjustType(BTFT->getWrappedType(), Adjust));
+  }
+
+  case Type::NoSanitizeAttributed: {
+    const auto *NoSanTy = dyn_cast<NoSanitizeAttributedType>(Orig);
+    return getNoSanitizeAttributedType(
+        NoSanTy->getAttr(), adjustType(NoSanTy->getWrappedType(), Adjust));
   }
 
   case Type::Elaborated: {
@@ -5220,6 +5230,28 @@ QualType ASTContext::getBTFTagAttributedType(const BTFTypeTagAttr *BTFAttr,
 
   Types.push_back(Ty);
   BTFTagAttributedTypes.InsertNode(Ty, InsertPos);
+
+  return QualType(Ty, 0);
+}
+
+QualType
+ASTContext::getNoSanitizeAttributedType(const NoSanitizeAttr *NoSanAttr,
+                                        QualType Wrapped) const {
+  llvm::FoldingSetNodeID ID;
+  NoSanitizeAttributedType::Profile(ID, Wrapped, NoSanAttr);
+
+  void *InsertPos = nullptr;
+  NoSanitizeAttributedType *Ty =
+      NoSanitizeAttributedTypes.FindNodeOrInsertPos(ID, InsertPos);
+  if (Ty)
+    return QualType(Ty, 0);
+
+  QualType Canon = getCanonicalType(Wrapped);
+  Ty = new (*this, alignof(NoSanitizeAttributedType))
+      NoSanitizeAttributedType(Canon, Wrapped, NoSanAttr);
+
+  Types.push_back(Ty);
+  NoSanitizeAttributedTypes.InsertNode(Ty, InsertPos);
 
   return QualType(Ty, 0);
 }
@@ -13779,6 +13811,15 @@ static QualType getCommonSugarTypeNode(ASTContext &Ctx, const Type *X,
         cast<BTFTagAttributedType>(Y)->getAttr()->getBTFTypeTag())
       return QualType();
     return Ctx.getBTFTagAttributedType(AX, Ctx.getQualifiedType(Underlying));
+  }
+  case Type::NoSanitizeAttributed: {
+    const auto *BX = cast<NoSanitizeAttributedType>(X);
+    const NoSanitizeAttr *AX = BX->getAttr();
+    /*// The attribute is not uniqued, so just compare the tag.*/
+    /*if (AX->getBTFTypeTag() !=*/
+    /*    cast<BTFTagAttributedType>(Y)->getAttr()->getBTFTypeTag())*/
+    /*  return QualType();*/
+    return Ctx.getNoSanitizeAttributedType(AX, Ctx.getQualifiedType(Underlying));
   }
   case Type::Auto: {
     const auto *AX = cast<AutoType>(X), *AY = cast<AutoType>(Y);

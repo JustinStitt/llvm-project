@@ -7060,6 +7060,11 @@ void TypeLocReader::VisitBTFTagAttributedTypeLoc(BTFTagAttributedTypeLoc TL) {
   // Nothing to do.
 }
 
+void TypeLocReader::VisitNoSanitizeAttributedTypeLoc(
+    NoSanitizeAttributedTypeLoc TL) {
+  // Nothing to do.
+}
+
 void TypeLocReader::VisitHLSLAttributedResourceTypeLoc(
     HLSLAttributedResourceTypeLoc TL) {
   // Nothing to do.

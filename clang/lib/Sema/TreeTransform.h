@@ -7481,6 +7481,13 @@ QualType TreeTransform<Derived>::TransformBTFTagAttributedType(
 }
 
 template <typename Derived>
+QualType TreeTransform<Derived>::TransformNoSanitizeAttributedType(
+    TypeLocBuilder &TLB, NoSanitizeAttributedTypeLoc TL) {
+  // The NoSanitizeAttributedType is available for C only.
+  llvm_unreachable("Unexpected TreeTransform for NoSanitizeAttributedType");
+}
+
+template <typename Derived>
 QualType TreeTransform<Derived>::TransformHLSLAttributedResourceType(
     TypeLocBuilder &TLB, HLSLAttributedResourceTypeLoc TL) {
 

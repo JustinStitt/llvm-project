@@ -1823,6 +1823,18 @@ ExpectedType clang::ASTNodeImporter::VisitBTFTagAttributedType(
                                                          ToWrappedType);
 }
 
+ExpectedType clang::ASTNodeImporter::VisitNoSanitizeAttributedType(
+    const clang::NoSanitizeAttributedType *T) {
+  Error Err = Error::success();
+  const NoSanitizeAttr *ToSanAttr = importChecked(Err, T->getAttr());
+  QualType ToWrappedType = importChecked(Err, T->getWrappedType());
+  if (Err)
+    return std::move(Err);
+
+  return Importer.getToContext().getNoSanitizeAttributedType(ToSanAttr,
+                                                             ToWrappedType);
+}
+
 ExpectedType clang::ASTNodeImporter::VisitHLSLAttributedResourceType(
     const clang::HLSLAttributedResourceType *T) {
   Error Err = Error::success();
