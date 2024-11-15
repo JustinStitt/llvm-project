@@ -2014,7 +2014,7 @@ void TypePrinter::printAttributedAfter(const AttributedType *T,
   case attr::Pascal: OS << "pascal"; break;
   case attr::MSABI: OS << "ms_abi"; break;
   case attr::NoSanitize: {
-    OS << "no_sanitize(";
+    OS << "no_sanitize(asattr)";
     break;
   }
   case attr::SysVABI: OS << "sysv_abi"; break;
@@ -2076,7 +2076,7 @@ void TypePrinter::printBTFTagAttributedAfter(const BTFTagAttributedType *T,
 void TypePrinter::printNoSanitizeAttributedBefore(
     const NoSanitizeAttributedType *T, raw_ostream &OS) {
   printBefore(T->getWrappedType(), OS);
-  OS << " __attribute__((btf_type_tag()))";
+  OS << " __attribute__((no_sanitize(before)))";
 }
 
 void TypePrinter::printNoSanitizeAttributedAfter(

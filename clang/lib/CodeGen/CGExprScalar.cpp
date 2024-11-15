@@ -192,15 +192,15 @@ static bool CanElideOverflowCheck(const ASTContext &Ctx, const BinOpInfo &Op) {
   assert((isa<UnaryOperator>(Op.E) || isa<BinaryOperator>(Op.E)) &&
          "Expected a unary or binary operator");
   llvm::errs() << "[ceoc]\n";
-  SanitizerMask Mask;
-  if (const auto *TTy = Op.E->getType().getTypePtr()->getAs<TypedefType>()) {
-    llvm::errs() << "Got TypedefType\n"; TTy->dump();
-    for (auto *Attr : TTy->getDecl()->specific_attrs<NoSanitizeAttr>())
-      Mask |= Attr->getMask();
-
-    if (Mask & SanitizerKind::SignedIntegerOverflow)
-      llvm::errs() << "got SIO in sanitizer mask\n";
-  }
+  /*SanitizerMask Mask;*/
+  /*if (const auto *TTy = Op.E->getType().getTypePtr()->getAs<TypedefType>()) {*/
+  /*  llvm::errs() << "Got TypedefType\n"; TTy->dump();*/
+  /*  for (auto *Attr : TTy->getDecl()->specific_attrs<NoSanitizeAttr>())*/
+  /*    Mask |= Attr->getMask();*/
+  /**/
+  /*  if (Mask & SanitizerKind::SignedIntegerOverflow)*/
+  /*    llvm::errs() << "got SIO in sanitizer mask\n";*/
+  /*}*/
 
   // If the binop has constant inputs and we can prove there is no overflow,
   // we can elide the overflow check.

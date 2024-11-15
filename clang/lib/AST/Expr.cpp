@@ -4876,28 +4876,10 @@ BinaryOperator::BinaryOperator(const ASTContext &Ctx, Expr *lhs, Expr *rhs,
   SubExprs[LHS] = lhs;
   SubExprs[RHS] = rhs;
   computeOverflowPatternExclusion(Ctx, this);
-  /* TODO: do this where ResTy is determined in the usual arithmetic conversion pipeline */
-  /*if (hasNoSanitizeAttr(Ctx, this)) {*/
-  /*  setType(Ctx.getAttributedType(attr::NoSanitize, lhs->getType(),*/
-  /*                                rhs->getType()));*/
-  /*  setType(Ctx.)*/
-  /*}*/
-  /*SplitQualType SL = lhs->getType().split();*/
-  /*llvm::errs() << "SL qual: "; SL.getSingleStepDesugaredType()*/
-  /*QualType MTy = lhs->getType();*/
-  /*while (true) {*/
-  /*  llvm::errs() << "MTy ty: "; MTy.dump();*/
-  /*  QualType Prev = MTy;*/
-  /*  MTy = MTy.getSingleStepDesugaredType(Ctx);*/
-  /*  if (MTy == Prev) break;*/
-  /*}*/
-  /*if (auto *ATy = dyn_cast<AttributedType>(lhs->getType())) {*/
-  /*  llvm::errs() << "bop ctor got ATy: "; ATy->dump();*/
-  /*  ATy->*/
-  /*}*/
-  if (hasNoSanitizeAttr(Ctx, this)) {
-    llvm::errs() << "hasNoSanitizeAttr\n";
-    setType(Ctx.getAttributedType(attr::NoSanitize, lhs->getType(), getType()));
+  if (auto *NSAT = dyn_cast<NoSanitizeAttributedType>(lhs->getType())) {
+    llvm::errs() << "got NSAT\n";
+  } else {
+    llvm::errs() << "didn't get NSAT\n";
   }
 
   BinaryOperatorBits.HasFPFeatures = FPFeatures.requiresTrailingStorage();

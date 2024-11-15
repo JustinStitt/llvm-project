@@ -737,9 +737,9 @@ ExprResult Sema::ImpCastExprToType(Expr *E, QualType Ty,
   QualType ExprTy = Context.getCanonicalType(E->getType());
   QualType TypeTy = Context.getCanonicalType(Ty);
 
-  if (E->getType().getTypePtr()->isIntegerType() &&
-      E->getType()->hasAttr(attr::NoSanitize))
-    Ty = Context.getAttributedType(attr::NoSanitize, Ty, Ty);
+  /*if (E->getType().getTypePtr()->isIntegerType() &&*/
+  /*    E->getType()->hasAttr(attr::NoSanitize))*/
+  /*  Ty = Context.getAttributedType(attr::NoSanitize, Ty, Ty);*/
 
   if (ExprTy == TypeTy)
     return E;
