@@ -1562,11 +1562,6 @@ QualType Sema::UsualArithmeticConversions(ExprResult &LHS, ExprResult &RHS,
   llvm::errs() << "RHS.dump()"; RHS.get()->dump();
   llvm::errs() << "LHS og type dump: "; LHS.get()->getType().dump();
   llvm::errs() << "RHS og type dump: "; RHS.get()->getType().dump();
-  llvm::errs() << "LHS underlying type: ";
-  if (auto *MQT = dyn_cast<MacroQualifiedType>(LHS.get()->getType().getTypePtr())) {
-    llvm::errs() << "MQT dump: "; MQT->getUnderlyingType().dump();
-  }
-  llvm::errs() << "cant find underlying type because cannot convert to MQT\n";
 
   checkEnumArithmeticConversions(*this, LHS.get(), RHS.get(), Loc, ACK);
 
@@ -1586,6 +1581,11 @@ QualType Sema::UsualArithmeticConversions(ExprResult &LHS, ExprResult &RHS,
   QualType RHSType = RHS.get()->getType().getUnqualifiedType();
   llvm::errs() << "LHS unqual type: "; LHSType.dump();
   llvm::errs() << "RHS unqual type: "; RHSType.dump();
+
+  llvm::errs() << "LHS isa NoSanitizeAttributedType?: "
+               << dyn_cast<NoSanitizeAttributedType>(LHSType.getTypePtr()) << "\n";
+  llvm::errs() << "RHS isa NoSanitizeAttributedType?: "
+               << dyn_cast<NoSanitizeAttributedType>(RHSType.getTypePtr()) << "\n";
 
   // For conversion purposes, we ignore any atomic qualifier on the LHS.
   if (const AtomicType *AtomicLHS = LHSType->getAs<AtomicType>())
@@ -10948,7 +10948,24 @@ static void diagnosePointerIncompatibility(Sema &S, SourceLocation Loc,
 QualType Sema::CheckAdditionOperands(ExprResult &LHS, ExprResult &RHS,
                                      SourceLocation Loc, BinaryOperatorKind Opc,
                                      QualType* CompLHSTy) {
+  llvm::errs() << "in CheckAdditionOperands\n";
   checkArithmeticNull(*this, LHS, RHS, Loc, /*IsCompare=*/false);
+
+  llvm::errs() << "CheckAdditionOperands LHS type dump: "; LHS.get()->getType()->dump();
+  llvm::errs() << "CheckAdditionOperands RHS type dump: "; RHS.get()->getType()->dump();
+
+  llvm::errs() << "LHS is NoSanitizeAttributedType: "
+               << LHS.get()->getType()->isNoSanitizeAttributedType() << " or: "
+               << LHS.get()->getType()->getAs<NoSanitizeAttributedType>()
+               << "\n";
+  llvm::errs() << "RHS is NoSanitizeAttributedType: "
+               << RHS.get()->getType()->isNoSanitizeAttributedType() << "\n";
+
+  llvm::errs() << "LHS is VectorType: "
+              << LHS.get()->getType()->isVectorType() << "\n";
+  llvm::errs() << "RHS is VectorType: "
+              << RHS.get()->getType()->isVectorType() << "\n";
+
 
   if (LHS.get()->getType()->isVectorType() ||
       RHS.get()->getType()->isVectorType()) {

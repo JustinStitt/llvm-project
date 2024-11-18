@@ -301,6 +301,12 @@ namespace {
       return sema.Context.getBTFTagAttributedType(BTFAttr, WrappedType);
     }
 
+    /// Get a NoSanitizeAttributedType type for the no_sanitize type attribute.
+    QualType getNoSanitizeAttributedType(const NoSanitizeAttr *NoSanAttr,
+                                         QualType WrappedType) {
+      return sema.Context.getNoSanitizeAttributedType(NoSanAttr, WrappedType);
+    }
+
     /// Completely replace the \c auto in \p TypeWithAuto by
     /// \p Replacement. Also replace \p TypeWithAuto in \c TypeAttrPair if
     /// necessary.
@@ -6649,9 +6655,9 @@ static void HandleNoSanitizeAttr(QualType &Type, const ParsedAttr &AL,
     Sanitizers.push_back(SanitizerName);
   }
 
-  Type = State.getAttributedType(
+  Type = State.getNoSanitizeAttributedType(
       ::new (Ctx) NoSanitizeAttr(Ctx, AL, Sanitizers.data(), Sanitizers.size()),
-      Type, Type);
+      Type);
 }
 
 /// handleObjCOwnershipTypeAttr - Process an objc_ownership

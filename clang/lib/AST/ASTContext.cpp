@@ -13813,8 +13813,12 @@ static QualType getCommonSugarTypeNode(ASTContext &Ctx, const Type *X,
     return Ctx.getBTFTagAttributedType(AX, Ctx.getQualifiedType(Underlying));
   }
   case Type::NoSanitizeAttributed: {
-    const auto *BX = cast<NoSanitizeAttributedType>(X);
-    const NoSanitizeAttr *AX = BX->getAttr();
+    llvm::errs() << "in getCommonSugarTypeNode\n";
+    const NoSanitizeAttr *AX = cast<NoSanitizeAttributedType>(X)->getAttr();
+    // TODO: check the sanitizer mask for each, and combine (only take overlapping)
+    /*if (auto *TY = dyn_cast<NoSanitizeAttributedType>(Y)) {*/
+    /**/
+    /*}*/
     /*// The attribute is not uniqued, so just compare the tag.*/
     /*if (AX->getBTFTypeTag() !=*/
     /*    cast<BTFTagAttributedType>(Y)->getAttr()->getBTFTypeTag())*/

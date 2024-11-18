@@ -1105,6 +1105,19 @@ public:
                                      T->getNumColumns());
   }
 
+  QualType VisitNoSanitizeAttributedType(const NoSanitizeAttributedType *T) {
+    // FIXME: probably don't need this...
+    llvm::errs() << "in VisitNoSanitizeAttributedType (simple transform)\n";
+    QualType wrappedType = recurse(T->getWrappedType());
+    if (wrappedType.isNull())
+      return {};
+
+    if (wrappedType.getAsOpaquePtr() == T->getWrappedType().getAsOpaquePtr())
+      return QualType(T, 0);
+
+    return Ctx.getNoSanitizeAttributedType(T->getAttr(), wrappedType);
+  }
+
   QualType VisitFunctionNoProtoType(const FunctionNoProtoType *T) {
     QualType returnType = recurse(T->getReturnType());
     if (returnType.isNull())
@@ -1991,6 +2004,10 @@ namespace {
 
     Type *VisitAttributedType(const AttributedType *T) {
       return Visit(T->getModifiedType());
+    }
+
+    Type *VisitNoSanitizeAttributedType(const NoSanitizeAttributedType *T) {
+      return Visit(T->getWrappedType());
     }
 
     Type *VisitMacroQualifiedType(const MacroQualifiedType *T) {

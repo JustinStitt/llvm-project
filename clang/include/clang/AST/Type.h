@@ -2574,6 +2574,7 @@ public:
   bool isSubscriptableVectorType() const;
   bool isMatrixType() const;                    // Matrix type.
   bool isConstantMatrixType() const;            // Constant matrix type.
+  bool isNoSanitizeAttributedType() const;      // __attribute__((no_sanitize))
   bool isDependentAddressSpaceType() const;     // value-dependent address space qualifier
   bool isObjCObjectPointerType() const;         // pointer to ObjC object
   bool isObjCRetainableType() const;            // ObjC object or block pointer
@@ -8345,6 +8346,10 @@ inline bool Type::isConstantMatrixType() const {
   return isa<ConstantMatrixType>(CanonicalType);
 }
 
+inline bool Type::isNoSanitizeAttributedType() const {
+  return isa<NoSanitizeAttributedType>(CanonicalType);
+}
+
 inline bool Type::isDependentAddressSpaceType() const {
   return isa<DependentAddressSpaceType>(CanonicalType);
 }
@@ -8788,8 +8793,8 @@ template <typename T> const T *Type::getAsAdjusted() const {
       Ty = A->getModifiedType().getTypePtr();
     else if (const auto *A = dyn_cast<BTFTagAttributedType>(Ty))
       Ty = A->getWrappedType().getTypePtr();
-    else if (const auto *A = dyn_cast<NoSanitizeAttributedType>(Ty))
-      Ty = A->getWrappedType().getTypePtr();
+    /*else if (const auto *A = dyn_cast<NoSanitizeAttributedType>(Ty))*/
+    /*  Ty = A->getWrappedType().getTypePtr();*/
     else if (const auto *A = dyn_cast<HLSLAttributedResourceType>(Ty))
       Ty = A->getWrappedType().getTypePtr();
     else if (const auto *E = dyn_cast<ElaboratedType>(Ty))
