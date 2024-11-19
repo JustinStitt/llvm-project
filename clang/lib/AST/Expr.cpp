@@ -4876,6 +4876,9 @@ BinaryOperator::BinaryOperator(const ASTContext &Ctx, Expr *lhs, Expr *rhs,
   SubExprs[LHS] = lhs;
   SubExprs[RHS] = rhs;
   computeOverflowPatternExclusion(Ctx, this);
+  if (lhs->getType().getTypePtr()->getAs<NoSanitizeAttributedType>()) {
+    llvm::errs() << "got as NoSanitizeAttributedType in bop ctor\n";
+  }
   if (auto *NSAT = dyn_cast<NoSanitizeAttributedType>(lhs->getType())) {
     llvm::errs() << "got NSAT\n";
   } else {

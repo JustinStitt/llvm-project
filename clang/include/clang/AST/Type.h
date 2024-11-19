@@ -8347,7 +8347,7 @@ inline bool Type::isConstantMatrixType() const {
 }
 
 inline bool Type::isNoSanitizeAttributedType() const {
-  return isa<NoSanitizeAttributedType>(CanonicalType);
+  return getAs<NoSanitizeAttributedType>();
 }
 
 inline bool Type::isDependentAddressSpaceType() const {
@@ -8793,8 +8793,8 @@ template <typename T> const T *Type::getAsAdjusted() const {
       Ty = A->getModifiedType().getTypePtr();
     else if (const auto *A = dyn_cast<BTFTagAttributedType>(Ty))
       Ty = A->getWrappedType().getTypePtr();
-    /*else if (const auto *A = dyn_cast<NoSanitizeAttributedType>(Ty))*/
-    /*  Ty = A->getWrappedType().getTypePtr();*/
+    else if (const auto *A = dyn_cast<NoSanitizeAttributedType>(Ty))
+      Ty = A->getWrappedType().getTypePtr();
     else if (const auto *A = dyn_cast<HLSLAttributedResourceType>(Ty))
       Ty = A->getWrappedType().getTypePtr();
     else if (const auto *E = dyn_cast<ElaboratedType>(Ty))

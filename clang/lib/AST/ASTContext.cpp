@@ -5246,6 +5246,12 @@ ASTContext::getNoSanitizeAttributedType(const NoSanitizeAttr *NoSanAttr,
   if (Ty)
     return QualType(Ty, 0);
 
+  // If the element type isn't canonical, this won't be a canonical type either,
+  // so fill in the canonical type field.
+  /*QualType Canonical;*/
+  /*if (!vecType.isCanonical()) {*/
+  /*  Canonical = getExtVectorType(getCanonicalType(vecType), NumElts);*/
+
   QualType Canon = getCanonicalType(Wrapped);
   Ty = new (*this, alignof(NoSanitizeAttributedType))
       NoSanitizeAttributedType(Canon, Wrapped, NoSanAttr);

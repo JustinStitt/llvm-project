@@ -9905,6 +9905,7 @@ static bool tryVectorConvertAndSplat(Sema &S, ExprResult *scalar,
                                      QualType vectorEltTy,
                                      QualType vectorTy,
                                      unsigned &DiagID) {
+  llvm::errs() << "in tryVectorConvertAndSplat with scalarTy: "; scalarTy.dump();
   // The conversion to apply to the scalar before splatting it,
   // if necessary.
   CastKind scalarCast = CK_NoOp;
@@ -10063,6 +10064,8 @@ static bool tryGCCVectorConvertAndSplat(Sema &S, ExprResult *Scalar,
   QualType ScalarTy = Scalar->get()->getType().getUnqualifiedType();
   QualType VectorTy = Vector->get()->getType().getUnqualifiedType();
   QualType VectorEltTy;
+
+  llvm::errs() << "in tryGCCVectorConvertAndSplat with ScalarTy: "; ScalarTy.dump();
 
   if (const auto *VT = VectorTy->getAs<VectorType>()) {
     assert(!isa<ExtVectorType>(VT) &&
@@ -10953,6 +10956,9 @@ QualType Sema::CheckAdditionOperands(ExprResult &LHS, ExprResult &RHS,
 
   llvm::errs() << "CheckAdditionOperands LHS type dump: "; LHS.get()->getType()->dump();
   llvm::errs() << "CheckAdditionOperands RHS type dump: "; RHS.get()->getType()->dump();
+
+  llvm::errs() << "LHS Canonical Type: ";
+  LHS.get()->getType().getCanonicalType().dump();
 
   llvm::errs() << "LHS is NoSanitizeAttributedType: "
                << LHS.get()->getType()->isNoSanitizeAttributedType() << " or: "

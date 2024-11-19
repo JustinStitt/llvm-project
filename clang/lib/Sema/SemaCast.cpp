@@ -3108,6 +3108,7 @@ void CastOperation::CheckCStyleCast() {
   }
 
   if (DestType->isExtVectorType()) {
+    llvm::errs() << "in CheckCStyleCast for extvectors\n";
     SrcExpr = Self.CheckExtVectorCast(OpRange, DestType, SrcExpr.get(), Kind);
     return;
   }
