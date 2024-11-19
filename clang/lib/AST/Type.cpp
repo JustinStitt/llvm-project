@@ -599,6 +599,10 @@ template <> const CountAttributedType *Type::getAs() const {
   return getAsSugar<CountAttributedType>(this);
 }
 
+template <> const NoSanitizeAttributedType *Type::getAs() const {
+  return getAsSugar<NoSanitizeAttributedType>(this);
+}
+
 /// getUnqualifiedDesugaredType - Pull any qualifiers and syntactic
 /// sugar off the given type.  This should produce an object of the
 /// same dynamic type as the canonical type.

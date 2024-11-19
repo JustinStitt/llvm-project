@@ -3020,6 +3020,10 @@ template <> const BoundsAttributedType *Type::getAs() const;
 /// sugar until it reaches an CountAttributedType or a non-sugared type.
 template <> const CountAttributedType *Type::getAs() const;
 
+/// This will check for a NoSanitizeAttributedType by removing any existing
+/// sugar until it reaches an NoSanitizeAttributedType or a non-sugared type.
+template <> const NoSanitizeAttributedType *Type::getAs() const;
+
 // We can do canonical leaf types faster, because we don't have to
 // worry about preserving child type decoration.
 #define TYPE(Class, Base)

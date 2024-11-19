@@ -10955,23 +10955,24 @@ QualType Sema::CheckAdditionOperands(ExprResult &LHS, ExprResult &RHS,
   checkArithmeticNull(*this, LHS, RHS, Loc, /*IsCompare=*/false);
 
   llvm::errs() << "CheckAdditionOperands LHS type dump: "; LHS.get()->getType()->dump();
-  llvm::errs() << "CheckAdditionOperands RHS type dump: "; RHS.get()->getType()->dump();
 
   llvm::errs() << "LHS Canonical Type: ";
   LHS.get()->getType().getCanonicalType().dump();
 
+
+  llvm::errs() << "LHS unqual-desugared Type: ";
+  LHS.get()->getType()->getUnqualifiedDesugaredType()->dump();
+
   llvm::errs() << "LHS is NoSanitizeAttributedType: "
                << LHS.get()->getType()->isNoSanitizeAttributedType() << " or: "
-               << LHS.get()->getType()->getAs<NoSanitizeAttributedType>()
+               << dyn_cast<NoSanitizeAttributedType>(LHS.get()->getType()->getUnqualifiedDesugaredType())
                << "\n";
-  llvm::errs() << "RHS is NoSanitizeAttributedType: "
-               << RHS.get()->getType()->isNoSanitizeAttributedType() << "\n";
 
   llvm::errs() << "LHS is VectorType: "
               << LHS.get()->getType()->isVectorType() << "\n";
-  llvm::errs() << "RHS is VectorType: "
-              << RHS.get()->getType()->isVectorType() << "\n";
 
+  llvm::errs() << "LHS is BTFTagAttributedType: "
+               << LHS.get()->getType()->getAs<BTFTagAttributedType>() << "\n";
 
   if (LHS.get()->getType()->isVectorType() ||
       RHS.get()->getType()->isVectorType()) {
