@@ -4493,6 +4493,13 @@ void CXXNameMangler::mangleType(const PipeType *T) {
   Out << "8ocl_pipe";
 }
 
+void CXXNameMangler::mangleType(const NoSanitizeAttributedType *T) {
+  // <type> ::= U <source-name> <type>  # vendor extended type qualifier
+  // (Until there's a standardized mangling...)
+  Out << "9nosanitize_attributed";
+  mangleType(T->getWrappedType());
+}
+
 void CXXNameMangler::mangleType(const BitIntType *T) {
   // 5.1.5.2 Builtin types
   // <type> ::= DB <number | instantiation-dependent expression> _

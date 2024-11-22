@@ -7381,6 +7381,11 @@ public:
                                        SourceLocation Loc, bool IsCompAssign,
                                        ArithConvKind OperationKind);
 
+  /// Type checking for NoSanitizeAttributedType operands.
+  QualType CheckNoSanitizeAttributedOperands(ExprResult &LHS, ExprResult &RHS,
+                                             SourceLocation Loc,
+                                             BinaryOperatorKind Opc);
+
   /// Type checking for matrix binary operators.
   QualType CheckMatrixElementwiseOperands(ExprResult &LHS, ExprResult &RHS,
                                           SourceLocation Loc,

@@ -746,6 +746,9 @@ llvm::Type *CodeGenTypes::ConvertType(QualType T) {
   case Type::HLSLAttributedResource:
     ResultType = CGM.getHLSLRuntime().convertHLSLSpecificType(Ty);
     break;
+  case Type::NoSanitizeAttributed:
+    // FIXME: (justinstitt), skipping this for now
+    break;
   }
 
   assert(ResultType && "Didn't convert a type?");

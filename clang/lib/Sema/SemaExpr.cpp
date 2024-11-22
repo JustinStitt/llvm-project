@@ -10491,6 +10491,40 @@ QualType Sema::CheckSizelessVectorOperands(ExprResult &LHS, ExprResult &RHS,
   return QualType();
 }
 
+QualType Sema::CheckNoSanitizeAttributedOperands(ExprResult &LHS,
+                                                 ExprResult &RHS,
+                                                 SourceLocation Loc,
+                                                 BinaryOperatorKind Opc) {
+  llvm::errs() << "in CheckNoSanitizeAttributedOperands\n";
+  QualType LHSType = LHS.get()->getType();
+  QualType RHSType = RHS.get()->getType();
+
+  const NoSanitizeAttributedType *LHSNoSanTy =
+      LHSType->getAs<NoSanitizeAttributedType>();
+  const NoSanitizeAttributedType *RHSNoSanTy =
+      RHSType->getAs<NoSanitizeAttributedType>();
+
+  assert(LHSNoSanTy || RHSNoSanTy);
+  // FIXME: (justinstitt) this doesn't work because the canonical type of a
+  // NoSanitizeAttributedType is not special...
+  /*if (Context.hasSameType(LHSType, RHSType))*/
+  /*  return LHSType;*/
+
+  if (LHSNoSanTy && !RHSNoSanTy) {
+    // convert RHS to same type as LHS
+    RHS = ImpCastExprToType(RHS.get(), LHSType, CK_IntegralCast);
+    llvm::errs() << "[cnsao]: new RHS: "; RHS.get()->getType()->dump();
+    return LHSType;
+  }
+
+  if (!LHSNoSanTy && RHSNoSanTy) {
+    LHS = ImpCastExprToType(LHS.get(), RHSType, CK_IntegralCast);
+    return RHSType;
+  }
+  // TODO: (justinstitt) some sanitizer union-masking logic.
+  return LHSType;
+}
+
 // checkArithmeticNull - Detect when a NULL constant is used improperly in an
 // expression.  These are mainly cases where the null pointer is used as an
 // integer instead of a pointer.
@@ -10954,26 +10988,6 @@ QualType Sema::CheckAdditionOperands(ExprResult &LHS, ExprResult &RHS,
   llvm::errs() << "in CheckAdditionOperands\n";
   checkArithmeticNull(*this, LHS, RHS, Loc, /*IsCompare=*/false);
 
-  llvm::errs() << "CheckAdditionOperands LHS type dump: "; LHS.get()->getType()->dump();
-
-  llvm::errs() << "LHS Canonical Type: ";
-  LHS.get()->getType().getCanonicalType().dump();
-
-
-  llvm::errs() << "LHS unqual-desugared Type: ";
-  LHS.get()->getType()->getUnqualifiedDesugaredType()->dump();
-
-  llvm::errs() << "LHS is NoSanitizeAttributedType: "
-               << LHS.get()->getType()->isNoSanitizeAttributedType() << " or: "
-               << dyn_cast<NoSanitizeAttributedType>(LHS.get()->getType()->getUnqualifiedDesugaredType())
-               << "\n";
-
-  llvm::errs() << "LHS is VectorType: "
-              << LHS.get()->getType()->isVectorType() << "\n";
-
-  llvm::errs() << "LHS is BTFTagAttributedType: "
-               << LHS.get()->getType()->getAs<BTFTagAttributedType>() << "\n";
-
   if (LHS.get()->getType()->isVectorType() ||
       RHS.get()->getType()->isVectorType()) {
     QualType compType =
@@ -10984,6 +10998,16 @@ QualType Sema::CheckAdditionOperands(ExprResult &LHS, ExprResult &RHS,
                             /*ReportInvalid*/ true);
     if (CompLHSTy) *CompLHSTy = compType;
     return compType;
+  }
+
+  if (LHS.get()->getType()->isNoSanitizeAttributedType() ||
+      RHS.get()->getType()->isNoSanitizeAttributedType()) {
+    QualType compType = CheckNoSanitizeAttributedOperands(LHS, RHS, Loc, Opc);
+    llvm::errs() << "done in CheckNoSanitizeAttributedOperands with compType: ";
+    compType.dump();
+    /*if (CompLHSTy)*/
+    /*  *CompLHSTy = compType;*/
+    /*return compType;*/
   }
 
   if (LHS.get()->getType()->isSveVLSBuiltinType() ||

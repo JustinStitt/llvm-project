@@ -116,4 +116,4 @@ def PipeType : TypeNode<Type>;
 def AtomicType : TypeNode<Type>;
 def BitIntType : TypeNode<Type>;
 def DependentBitIntType : TypeNode<Type>, AlwaysDependent;
-def NoSanitizeAttributedType : TypeNode<Type>, NeverCanonical;
+def NoSanitizeAttributedType : TypeNode<Type>;

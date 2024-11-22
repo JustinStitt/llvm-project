@@ -3218,7 +3218,11 @@ addAssociatedClassesAndNamespaces(AssociatedLookup &Result, QualType Ty) {
 
     case Type::HLSLAttributedResource:
       T = cast<HLSLAttributedResourceType>(T)->getWrappedType().getTypePtr();
+      continue;
+    case Type::NoSanitizeAttributed:
+      T = cast<NoSanitizeAttributedType>(T)->getWrappedType().getTypePtr();
     }
+
 
     if (Queue.empty())
       break;

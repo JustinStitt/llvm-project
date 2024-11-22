@@ -6013,6 +6013,11 @@ bool UnnamedLocalNoLinkageFinder::VisitAtomicType(const AtomicType* T) {
   return Visit(T->getValueType());
 }
 
+bool UnnamedLocalNoLinkageFinder::VisitNoSanitizeAttributedType(
+    const NoSanitizeAttributedType *T) {
+  return Visit(T->getWrappedType());
+}
+
 bool UnnamedLocalNoLinkageFinder::VisitPipeType(const PipeType* T) {
   return false;
 }

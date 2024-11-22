@@ -4836,33 +4836,6 @@ static void computeOverflowPatternExclusion(const ASTContext &Ctx,
     Result.value()->setExcludedOverflowPattern(true);
 }
 
-static bool hasNoSanitizeAttr(const ASTContext &Ctx, const BinaryOperator *E) {
-  llvm::errs() << "in hasNoSanitizeAttr\n";
-  if (E->getLHS()->getType()->hasAttr(attr::NoSanitize) || 
-      E->getRHS()->getType()->hasAttr(attr::NoSanitize)) {
-    llvm::errs() << "[ihnsa] has no san attr\n";
-    return true;
-  }
-  /*if (auto *TTy = E->getLHS()->getType().getTypePtr()->getAs<TypedefType>()) {*/
-  /*  llvm::errs() << "[ihnsa] has no san attr (LHS)\n";*/
-  /*  return true;*/
-  /*}*/
-  /**/
-  /*if (auto *TTy = E->getRHS()->getType().getTypePtr()->getAs<TypedefType>()) {*/
-  /*  llvm::errs() << "[ihnsa] has no san attr (RHS)\n";*/
-  /*  return true;*/
-  /*}*/
-
-  /*if (E->getLHS()->getType()->hasAttr(attr::NoSanitize) ||*/
-  /*    E->getRHS()->getType()->hasAttr(attr::NoSanitize)) {*/
-  /*  llvm::errs() << "[ihnsa] has no san attr\n";*/
-  /*  return true;*/
-  /*}*/
-
-  llvm::errs() << "[ihnsa] doesn't have a no san attr\n";
-  return false;
-}
-
 BinaryOperator::BinaryOperator(const ASTContext &Ctx, Expr *lhs, Expr *rhs,
                                Opcode opc, QualType ResTy, ExprValueKind VK,
                                ExprObjectKind OK, SourceLocation opLoc,
@@ -4876,15 +4849,6 @@ BinaryOperator::BinaryOperator(const ASTContext &Ctx, Expr *lhs, Expr *rhs,
   SubExprs[LHS] = lhs;
   SubExprs[RHS] = rhs;
   computeOverflowPatternExclusion(Ctx, this);
-  if (lhs->getType().getTypePtr()->getAs<NoSanitizeAttributedType>()) {
-    llvm::errs() << "got as NoSanitizeAttributedType in bop ctor\n";
-  }
-  if (auto *NSAT = dyn_cast<NoSanitizeAttributedType>(lhs->getType())) {
-    llvm::errs() << "got NSAT\n";
-  } else {
-    llvm::errs() << "didn't get NSAT\n";
-  }
-
   BinaryOperatorBits.HasFPFeatures = FPFeatures.requiresTrailingStorage();
   if (hasStoredFPFeatures())
     setStoredFPFeatures(FPFeatures);

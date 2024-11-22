@@ -3444,6 +3444,9 @@ static void encodeTypeForFunctionPointerAuth(const ASTContext &Ctx,
   case Type::HLSLAttributedResource:
     llvm_unreachable("should never get here");
     break;
+  case Type::NoSanitizeAttributed:
+    llvm_unreachable("should never get here");
+    break;
   case Type::DeducedTemplateSpecialization:
   case Type::Auto:
 #define NON_CANONICAL_TYPE(Class, Base) case Type::Class:
@@ -4122,6 +4125,7 @@ QualType ASTContext::getVariableArrayDecayedType(QualType type) const {
   case Type::DependentBitInt:
   case Type::ArrayParameter:
   case Type::HLSLAttributedResource:
+  case Type::NoSanitizeAttributed:
     llvm_unreachable("type should never be variably-modified");
 
   // These types can be variably-modified but should never need to
@@ -9148,6 +9152,7 @@ void ASTContext::getObjCEncodingForTypeImpl(QualType T, std::string &S,
     return;
 
   case Type::HLSLAttributedResource:
+  case Type::NoSanitizeAttributed:
     llvm_unreachable("unexpected type");
 
   case Type::ArrayParameter:
@@ -11591,6 +11596,25 @@ QualType ASTContext::mergeTypes(QualType LHS, QualType RHS, bool OfBlockPointer,
       return LHS;
     return {};
   }
+  case Type::NoSanitizeAttributed: {
+    // FIXME: (justinstitt), this is half-baked and just takes the LHS attrs
+    // we need some mask combination algo
+    const NoSanitizeAttributedType *LHSTy = LHS->castAs<NoSanitizeAttributedType>();
+    const NoSanitizeAttributedType *RHSTy = RHS->castAs<NoSanitizeAttributedType>();
+    /*if (Unqualified) {*/
+    /*  LHSValue = LHSValue.getUnqualifiedType();*/
+    /*  RHSValue = RHSValue.getUnqualifiedType();*/
+    /*}*/
+    QualType ResultType =
+        mergeTypes(QualType(LHSTy, 0), QualType(RHSTy, 0), false, Unqualified);
+    if (ResultType.isNull())
+      return {};
+    if (getCanonicalType(QualType(LHSTy, 0)) == getCanonicalType(ResultType))
+      return LHS;
+    if (getCanonicalType(QualType(RHSTy, 0)) == getCanonicalType(ResultType))
+      return RHS;
+    return getNoSanitizeAttributedType(LHSTy->getAttr(), ResultType);
+  }
   }
 
   llvm_unreachable("Invalid Type::Class!");
@@ -13685,6 +13709,12 @@ static QualType getCommonNonSugarTypeNode(ASTContext &Ctx, const Type *X,
     return Ctx.getDependentNameType(
         getCommonTypeKeyword(NX, NY), getCommonNNS(Ctx, NX, NY),
         NX->getIdentifier(), NX->getCanonicalTypeInternal());
+  }
+  case Type::NoSanitizeAttributed: {
+    // FIXME: (justinstitt) also half-baked, just uses LHS' attrs
+    const auto *NX = cast<NoSanitizeAttributedType>(X),
+               *NY = cast<NoSanitizeAttributedType>(Y);
+    return Ctx.getNoSanitizeAttributedType(NX->getAttr(), NX->getWrappedType());
   }
   case Type::DependentTemplateSpecialization: {
     const auto *TX = cast<DependentTemplateSpecializationType>(X),
