@@ -283,6 +283,7 @@ TypeEvaluationKind CodeGenFunction::getEvaluationKind(QualType type) {
     case Type::Pipe:
     case Type::BitInt:
     case Type::HLSLAttributedResource:
+    case Type::NoSanitizeAttributed:
       return TEK_Scalar;
 
     // Complexes.

@@ -62,7 +62,6 @@
 namespace clang {
 
 class BTFTypeTagAttr;
-class NoSanitizeAttr;
 class ExtQuals;
 class QualType;
 class ConceptDecl;
@@ -70,6 +69,7 @@ class ValueDecl;
 class TagDecl;
 class TemplateParameterList;
 class Type;
+class NoSanitizeAttr;
 
 enum {
   TypeAlignmentInBits = 4,
@@ -6266,6 +6266,7 @@ private:
 
   QualType WrappedType;
   const NoSanitizeAttr *NoSanAttr;
+  SanitizerMask Mask;
 
   NoSanitizeAttributedType(QualType Canon, QualType Wrapped,
                            const NoSanitizeAttr *NoSanAttr)

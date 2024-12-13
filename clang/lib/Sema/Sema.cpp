@@ -740,6 +740,9 @@ ExprResult Sema::ImpCastExprToType(Expr *E, QualType Ty,
   /*if (E->getType().getTypePtr()->isIntegerType() &&*/
   /*    E->getType()->hasAttr(attr::NoSanitize))*/
   /*  Ty = Context.getAttributedType(attr::NoSanitize, Ty, Ty);*/
+  // FIXME: (justinstitt) this is most definitely not how this should be done.
+  // We should try to use the ImplicitCastExpr::Create at the bottom of this
+  // method and follow the patterns of using ImpCast->setType() etc.
   if (Ty->isNoSanitizeAttributedType()) {
     return ImplicitCastExpr::Create(Context, Ty, Kind, E, BasePath, VK,
                                     CurFPFeatureOverrides());

@@ -193,7 +193,6 @@ static bool CanElideOverflowCheck(const ASTContext &Ctx, const BinOpInfo &Op) {
          "Expected a unary or binary operator");
 
   llvm::errs() << "in CanElideOverflowCheck\n";
-  // TODO: check for NoSanitizeAttributedType from @Op
 
   // If the binop has constant inputs and we can prove there is no overflow,
   // we can elide the overflow check.
@@ -217,6 +216,17 @@ static bool CanElideOverflowCheck(const ASTContext &Ctx, const BinOpInfo &Op) {
   const auto *BO = cast<BinaryOperator>(Op.E);
   if (BO->hasExcludedOverflowPattern())
     return true;
+
+  if (const NoSanitizeAttributedType *NSAT =
+          Op.Ty->getAs<NoSanitizeAttributedType>()) {
+    SanitizerMask Mask = NSAT->getAttr()->getMask();
+    if (Op.Ty->isUnsignedIntegerType() &&
+        (Mask & SanitizerKind::UnsignedIntegerOverflow))
+      return true;
+    if (Op.Ty->isSignedIntegerType() &&
+        (Mask & SanitizerKind::SignedIntegerOverflow))
+      return true;
+  }
 
   auto OptionalLHSTy = getUnwidenedIntegerType(Ctx, BO->getLHS());
   if (!OptionalLHSTy)

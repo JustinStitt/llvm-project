@@ -10504,24 +10504,29 @@ QualType Sema::CheckNoSanitizeAttributedOperands(ExprResult &LHS,
   const NoSanitizeAttributedType *RHSNoSanTy =
       RHSType->getAs<NoSanitizeAttributedType>();
 
-  assert(LHSNoSanTy || RHSNoSanTy);
-  // FIXME: (justinstitt) this doesn't work because the canonical type of a
-  // NoSanitizeAttributedType is not special...
-  /*if (Context.hasSameType(LHSType, RHSType))*/
-  /*  return LHSType;*/
+  if (LHSNoSanTy) {
+    const NoSanitizeAttr *Attr = LHSNoSanTy->getAttr();
+    const SanitizerMask Mask = Attr->getMask();
+    llvm::errs() << "[cnsao]: debug mask: have SignedIntegerOverflow?: ";
+    if (Mask & SanitizerKind::SignedIntegerOverflow) llvm::errs() << "true\n";
+    else llvm::errs() << "false\n";
+    llvm::errs() << "have CFI?: ";
+    if (Mask & SanitizerKind::CFI) llvm::errs() << "true\n";
+    else llvm::errs() << "false\n";
+  }
+
+  // TODO: (justinstitt): union masking logic
+  if (LHSNoSanTy && RHSNoSanTy) {
+    return LHSType;
+  }
 
   if (LHSNoSanTy && !RHSNoSanTy) {
     // convert RHS to same type as LHS
     RHS = ImpCastExprToType(RHS.get(), LHSType, CK_IntegralCast);
     llvm::errs() << "[cnsao]: new RHS: "; RHS.get()->getType()->dump();
-    return LHSType;
-  }
-
-  if (!LHSNoSanTy && RHSNoSanTy) {
+  } else if (!LHSNoSanTy && RHSNoSanTy)
     LHS = ImpCastExprToType(LHS.get(), RHSType, CK_IntegralCast);
-    return RHSType;
-  }
-  // TODO: (justinstitt) some sanitizer union-masking logic.
+  // TODO (justinstitt): do we need this return value?
   return LHSType;
 }
 
@@ -11002,12 +11007,7 @@ QualType Sema::CheckAdditionOperands(ExprResult &LHS, ExprResult &RHS,
 
   if (LHS.get()->getType()->isNoSanitizeAttributedType() ||
       RHS.get()->getType()->isNoSanitizeAttributedType()) {
-    QualType compType = CheckNoSanitizeAttributedOperands(LHS, RHS, Loc, Opc);
-    llvm::errs() << "done in CheckNoSanitizeAttributedOperands with compType: ";
-    compType.dump();
-    /*if (CompLHSTy)*/
-    /*  *CompLHSTy = compType;*/
-    /*return compType;*/
+    CheckNoSanitizeAttributedOperands(LHS, RHS, Loc, Opc);
   }
 
   if (LHS.get()->getType()->isSveVLSBuiltinType() ||
