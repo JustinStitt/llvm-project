@@ -1400,6 +1400,42 @@ static QualType handleComplexIntConversion(Sema &S, ExprResult &LHS,
   return ComplexType;
 }
 
+static QualType handleNoSanitizeAttributedConversion(Sema &S, ExprResult &LHS,
+                                                     ExprResult &RHS,
+                                                     QualType LHSType,
+                                                     QualType RHSType,
+                                                     bool IsCompAssign) {
+  const NoSanitizeAttributedType *LHSNoSanTy =
+      LHSType->getAs<NoSanitizeAttributedType>();
+  const NoSanitizeAttributedType *RHSNoSanTy =
+      RHSType->getAs<NoSanitizeAttributedType>();
+
+  assert(LHSNoSanTy || RHSNoSanTy);
+
+  // TODO (justinstitt): we should probably consider IsCompAssign (+=)
+
+  QualType IntTy = handleIntegerConversion<doIntegralCast, doIntegralCast>(
+      S, LHS, RHS, LHSNoSanTy ? LHSNoSanTy->getWrappedType() : LHSType,
+      RHSNoSanTy ? RHSNoSanTy->getWrappedType() : RHSType, IsCompAssign);
+
+  if (LHSNoSanTy && RHSNoSanTy) {
+    SanitizerMask Joined = LHSNoSanTy->getMask() | RHSNoSanTy->getMask();
+    return S.Context.getNoSanitizeAttributedType(Joined, IntTy);
+  }
+
+  if (LHSNoSanTy) {
+    QualType Ty =
+        S.Context.getNoSanitizeAttributedType(LHSNoSanTy->getMask(), IntTy);
+    RHS = S.ImpCastExprToType(RHS.get(), Ty, CK_IntegralCast);
+    return Ty;
+  }
+
+  QualType Ty =
+      S.Context.getNoSanitizeAttributedType(RHSNoSanTy->getMask(), IntTy);
+  LHS = S.ImpCastExprToType(LHS.get(), Ty, CK_IntegralCast);
+  return Ty;
+}
+
 /// Return the rank of a given fixed point or integer type. The value itself
 /// doesn't matter, but the values must be increasing with proper increasing
 /// rank as described in N1169 4.1.1.
@@ -1595,9 +1631,18 @@ QualType Sema::UsualArithmeticConversions(ExprResult &LHS, ExprResult &RHS,
     llvm::errs() << "in uac: got TTy\n"; TTy->dump();
   }
 
+  if (LHSType->isNoSanitizeAttributedType() ||
+      RHSType->isNoSanitizeAttributedType()) {
+    llvm::errs() << "going into handleNoSanitizeAttributedConversion\n";
+    return handleNoSanitizeAttributedConversion(*this, LHS, RHS, LHSType,
+        RHSType, ACK == ACK_CompAssign);
+  }
+
   // If both types are identical, no conversion is needed.
-  if (Context.hasSameType(LHSType, RHSType))
+  if (Context.hasSameType(LHSType, RHSType)) {
+    llvm::errs() << "[uac]: had same type! 1\n";
     return Context.getCommonSugaredType(LHSType, RHSType);
+  }
 
   // If either side is a non-arithmetic type (e.g. a pointer), we are done.
   // The caller can deal with this (e.g. pointer + int).
@@ -1615,8 +1660,10 @@ QualType Sema::UsualArithmeticConversions(ExprResult &LHS, ExprResult &RHS,
     LHS = ImpCastExprToType(LHS.get(), LHSType, CK_IntegralCast);
 
   // If both types are identical, no conversion is needed.
-  if (Context.hasSameType(LHSType, RHSType))
+  if (Context.hasSameType(LHSType, RHSType)) {
+    llvm::errs() << "[uac]: had same type! 2\n";
     return Context.getCommonSugaredType(LHSType, RHSType);
+  }
 
   // At this point, we have two different arithmetic types.
 
@@ -10491,6 +10538,8 @@ QualType Sema::CheckSizelessVectorOperands(ExprResult &LHS, ExprResult &RHS,
   return QualType();
 }
 
+// TODO (justinstitt): we probably don't need this method since I wrote
+// handleNoSanitizeAttributedConversion()
 QualType Sema::CheckNoSanitizeAttributedOperands(ExprResult &LHS,
                                                  ExprResult &RHS,
                                                  SourceLocation Loc,
@@ -10504,6 +10553,7 @@ QualType Sema::CheckNoSanitizeAttributedOperands(ExprResult &LHS,
   const NoSanitizeAttributedType *RHSNoSanTy =
       RHSType->getAs<NoSanitizeAttributedType>();
 
+  // entirely debug
   if (LHSNoSanTy) {
     const NoSanitizeAttr *Attr = LHSNoSanTy->getAttr();
     const SanitizerMask Mask = Attr->getMask();
@@ -11005,11 +11055,6 @@ QualType Sema::CheckAdditionOperands(ExprResult &LHS, ExprResult &RHS,
     return compType;
   }
 
-  if (LHS.get()->getType()->isNoSanitizeAttributedType() ||
-      RHS.get()->getType()->isNoSanitizeAttributedType()) {
-    CheckNoSanitizeAttributedOperands(LHS, RHS, Loc, Opc);
-  }
-
   if (LHS.get()->getType()->isSveVLSBuiltinType() ||
       RHS.get()->getType()->isSveVLSBuiltinType()) {
     QualType compType =
@@ -11032,6 +11077,14 @@ QualType Sema::CheckAdditionOperands(ExprResult &LHS, ExprResult &RHS,
       LHS, RHS, Loc, CompLHSTy ? ACK_CompAssign : ACK_Arithmetic);
   if (LHS.isInvalid() || RHS.isInvalid())
     return QualType();
+
+  // TODO (justinstitt): this should probably be placed before UaC (if this is
+  // needed at all idk)
+  llvm::errs() << "[cao]: here just before CheckNoSanitizeAttributedOperands\n";
+  if (LHS.get()->getType()->isNoSanitizeAttributedType() ||
+      RHS.get()->getType()->isNoSanitizeAttributedType()) {
+    /*CheckNoSanitizeAttributedOperands(LHS, RHS, Loc, Opc);*/
+  }
 
   // Diagnose "string literal" '+' int and string '+' "char literal".
   if (Opc == BO_Add) {

@@ -219,7 +219,8 @@ static bool CanElideOverflowCheck(const ASTContext &Ctx, const BinOpInfo &Op) {
 
   if (const NoSanitizeAttributedType *NSAT =
           Op.Ty->getAs<NoSanitizeAttributedType>()) {
-    SanitizerMask Mask = NSAT->getAttr()->getMask();
+    llvm::errs() << "got NSAT\n";
+    SanitizerMask Mask = NSAT->getMask();
     if (Op.Ty->isUnsignedIntegerType() &&
         (Mask & SanitizerKind::UnsignedIntegerOverflow))
       return true;

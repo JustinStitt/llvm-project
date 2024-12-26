@@ -3565,7 +3565,7 @@ ASTContext::adjustType(QualType Orig,
   case Type::NoSanitizeAttributed: {
     const auto *NoSanTy = dyn_cast<NoSanitizeAttributedType>(Orig);
     return getNoSanitizeAttributedType(
-        NoSanTy->getAttr(), adjustType(NoSanTy->getWrappedType(), Adjust));
+        NoSanTy->getMask(), adjustType(NoSanTy->getWrappedType(), Adjust));
   }
 
   case Type::Elaborated: {
@@ -5239,10 +5239,10 @@ QualType ASTContext::getBTFTagAttributedType(const BTFTypeTagAttr *BTFAttr,
 }
 
 QualType
-ASTContext::getNoSanitizeAttributedType(const NoSanitizeAttr *NoSanAttr,
-                                        QualType Wrapped) const {
+ASTContext::getNoSanitizeAttributedType(SanitizerMask Mask, QualType Wrapped,
+                                        const NoSanitizeAttr *NoSanAttr) const {
   llvm::FoldingSetNodeID ID;
-  NoSanitizeAttributedType::Profile(ID, Wrapped, NoSanAttr);
+  NoSanitizeAttributedType::Profile(ID, Wrapped, Mask);
 
   void *InsertPos = nullptr;
   NoSanitizeAttributedType *Ty =
@@ -5252,12 +5252,18 @@ ASTContext::getNoSanitizeAttributedType(const NoSanitizeAttr *NoSanAttr,
 
   QualType Canon = getCanonicalType(Wrapped);
   Ty = new (*this, alignof(NoSanitizeAttributedType))
-      NoSanitizeAttributedType(Canon, Wrapped, NoSanAttr);
+      NoSanitizeAttributedType(Canon, Wrapped, Mask, NoSanAttr);
 
   Types.push_back(Ty);
   NoSanitizeAttributedTypes.InsertNode(Ty, InsertPos);
 
   return QualType(Ty, 0);
+}
+
+QualType
+ASTContext::getNoSanitizeAttributedType(const NoSanitizeAttr *NoSanAttr,
+                                        QualType Wrapped) const {
+  return getNoSanitizeAttributedType(NoSanAttr->getMask(), Wrapped, NoSanAttr);
 }
 
 QualType ASTContext::getHLSLAttributedResourceType(
@@ -11592,7 +11598,7 @@ QualType ASTContext::mergeTypes(QualType LHS, QualType RHS, bool OfBlockPointer,
   }
   case Type::NoSanitizeAttributed: {
     // FIXME: (justinstitt), this is half-baked and just takes the LHS attrs
-    // we need some mask combination algo
+    // we need some mask combination algo. IDK what this does though.
     const NoSanitizeAttributedType *LHSTy = LHS->castAs<NoSanitizeAttributedType>();
     const NoSanitizeAttributedType *RHSTy = RHS->castAs<NoSanitizeAttributedType>();
     /*if (Unqualified) {*/
@@ -11607,7 +11613,7 @@ QualType ASTContext::mergeTypes(QualType LHS, QualType RHS, bool OfBlockPointer,
       return LHS;
     if (getCanonicalType(QualType(RHSTy, 0)) == getCanonicalType(ResultType))
       return RHS;
-    return getNoSanitizeAttributedType(LHSTy->getAttr(), ResultType);
+    return getNoSanitizeAttributedType(LHSTy->getMask(), ResultType);
   }
   }
 
@@ -13705,10 +13711,11 @@ static QualType getCommonNonSugarTypeNode(ASTContext &Ctx, const Type *X,
         NX->getIdentifier(), NX->getCanonicalTypeInternal());
   }
   case Type::NoSanitizeAttributed: {
-    // FIXME: (justinstitt) also half-baked, just uses LHS' attrs
+    // FIXME: (justinstitt) also half-baked, just uses LHS' attrs, no idea if I
+    // even need this though
     const auto *NX = cast<NoSanitizeAttributedType>(X),
                *NY = cast<NoSanitizeAttributedType>(Y);
-    return Ctx.getNoSanitizeAttributedType(NX->getAttr(), NX->getWrappedType());
+    return Ctx.getNoSanitizeAttributedType(NX->getMask(), NX->getWrappedType());
   }
   case Type::DependentTemplateSpecialization: {
     const auto *TX = cast<DependentTemplateSpecializationType>(X),
@@ -13844,8 +13851,8 @@ static QualType getCommonSugarTypeNode(ASTContext &Ctx, const Type *X,
   }
   case Type::NoSanitizeAttributed: {
     llvm::errs() << "in getCommonSugarTypeNode\n";
-    const NoSanitizeAttr *AX = cast<NoSanitizeAttributedType>(X)->getAttr();
-    // TODO: check the sanitizer mask for each, and combine (only take overlapping)
+    SanitizerMask Mask = cast<NoSanitizeAttributedType>(X)->getMask();
+    // TODO: (justinstitt) check the sanitizer mask for each, and combine (only take overlapping)
     /*if (auto *TY = dyn_cast<NoSanitizeAttributedType>(Y)) {*/
     /**/
     /*}*/
@@ -13853,7 +13860,7 @@ static QualType getCommonSugarTypeNode(ASTContext &Ctx, const Type *X,
     /*if (AX->getBTFTypeTag() !=*/
     /*    cast<BTFTagAttributedType>(Y)->getAttr()->getBTFTypeTag())*/
     /*  return QualType();*/
-    return Ctx.getNoSanitizeAttributedType(AX, Ctx.getQualifiedType(Underlying));
+    return Ctx.getNoSanitizeAttributedType(Mask, Ctx.getQualifiedType(Underlying));
   }
   case Type::Auto: {
     const auto *AX = cast<AutoType>(X), *AY = cast<AutoType>(Y);

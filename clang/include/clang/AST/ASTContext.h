@@ -1727,6 +1727,9 @@ public:
 
   QualType getNoSanitizeAttributedType(const NoSanitizeAttr *NoSanAttr,
                                        QualType Wrapped) const;
+  QualType
+  getNoSanitizeAttributedType(SanitizerMask Mask, QualType Wrapped,
+                              const NoSanitizeAttr *NoSanAttr = nullptr) const;
 
   QualType getHLSLAttributedResourceType(
       QualType Wrapped, QualType Contained,

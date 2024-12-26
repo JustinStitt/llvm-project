@@ -6265,29 +6265,33 @@ private:
   friend class ASTContext; // ASTContext creates these
 
   QualType WrappedType;
-  const NoSanitizeAttr *NoSanAttr;
   SanitizerMask Mask;
+  const NoSanitizeAttr *NoSanAttr;
 
-  NoSanitizeAttributedType(QualType Canon, QualType Wrapped,
-                           const NoSanitizeAttr *NoSanAttr)
-      : Type(NoSanitizeAttributed, Canon, Wrapped->getDependence()),
-        WrappedType(Wrapped), NoSanAttr(NoSanAttr) {}
+  NoSanitizeAttributedType(QualType Canon, QualType Wrapped, SanitizerMask Mask,
+                           const NoSanitizeAttr *NoSanAttr);
 
 public:
   QualType getWrappedType() const { return WrappedType; }
   const NoSanitizeAttr *getAttr() const { return NoSanAttr; }
+  SanitizerMask getMask() const { return Mask; }
+
+  SanitizerMask setMask(SanitizerMask M) {
+    Mask = M;
+    return Mask;
+  }
 
   bool isSugared() const { return true; }
   QualType desugar() const { return getWrappedType(); }
 
   void Profile(llvm::FoldingSetNodeID &ID) {
-    Profile(ID, WrappedType, NoSanAttr);
+    Profile(ID, WrappedType, Mask);
   }
 
   static void Profile(llvm::FoldingSetNodeID &ID, QualType Wrapped,
-                      const NoSanitizeAttr *NoSanAttr) {
+                      SanitizerMask Mask) {
     ID.AddPointer(Wrapped.getAsOpaquePtr());
-    ID.AddPointer(NoSanAttr);
+    ID.AddInteger((size_t)Mask.hash_value());
   }
 
   static bool classof(const Type *T) {

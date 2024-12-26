@@ -3864,6 +3864,12 @@ void TypeCoupledDeclRefInfo::setFromOpaqueValue(void *V) {
   Data.setFromOpaqueValue(V);
 }
 
+NoSanitizeAttributedType::NoSanitizeAttributedType(
+    QualType Canon, QualType Wrapped, SanitizerMask Mask,
+    const NoSanitizeAttr *NoSanAttr)
+    : Type(NoSanitizeAttributed, Canon, Wrapped->getDependence()),
+      WrappedType(Wrapped), Mask(Mask), NoSanAttr(NoSanAttr) {}
+
 BoundsAttributedType::BoundsAttributedType(TypeClass TC, QualType Wrapped,
                                            QualType Canon)
     : Type(TC, Canon, Wrapped->getDependence()), WrappedTy(Wrapped) {}
