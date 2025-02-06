@@ -1563,6 +1563,27 @@ void Sema::checkEnumArithmeticConversions(Expr *LHS, Expr *RHS,
   }
 }
 
+QualType Sema::handleNoWrapArithmeticConversion(ExprResult &LHS,
+                                                ExprResult &RHS,
+                                                SourceLocation Loc,
+                                                Sema::ArithConvKind ACK) {
+  QualType LHSType = LHS.get()->getType().getUnqualifiedType();
+  QualType RHSType = RHS.get()->getType().getUnqualifiedType();
+  assert(LHSType->isNoWrapType() || RHSType->isNoWrapType());
+
+  QualType DroppedLHSTy = Context.getDroppedNoWrapType(LHSType);
+  QualType DroppedRHSTy = Context.getDroppedNoWrapType(RHSType);
+
+  assert(!DroppedLHSTy->isNoWrapType() && !DroppedRHSTy->isNoWrapType());
+
+  // FIXME: infinite recursion risk
+  QualType ResultTy = handleIntegerConversion<doIntegralCast, doIntegralCast>(
+      *this, LHS, RHS, DroppedLHSTy, DroppedRHSTy, ACK == ACK_CompAssign);
+
+  QualType NoWrapResultTy = Context.getCorrespondingNoWrapType(ResultTy);
+  return NoWrapResultTy;
+}
+
 /// UsualArithmeticConversions - Performs various conversions that are common to
 /// binary operators (C99 6.3.1.8). If both operands aren't arithmetic, this
 /// routine returns the first non-arithmetic type found. The client is
@@ -1570,6 +1591,7 @@ void Sema::checkEnumArithmeticConversions(Expr *LHS, Expr *RHS,
 QualType Sema::UsualArithmeticConversions(ExprResult &LHS, ExprResult &RHS,
                                           SourceLocation Loc,
                                           ArithConvKind ACK) {
+  llvm::errs() << "in Sema::UsualArithmeticConversions\n";
   checkEnumArithmeticConversions(LHS.get(), RHS.get(), Loc, ACK);
 
   if (ACK != ACK_CompAssign) {
@@ -1586,6 +1608,9 @@ QualType Sema::UsualArithmeticConversions(ExprResult &LHS, ExprResult &RHS,
   // For example, "const float" and "float" are equivalent.
   QualType LHSType = LHS.get()->getType().getUnqualifiedType();
   QualType RHSType = RHS.get()->getType().getUnqualifiedType();
+
+  llvm::errs() << "LHSType dump: \n"; LHSType.dump();
+  llvm::errs() << "RHSType dump: \n"; RHSType.dump();
 
   // For conversion purposes, we ignore any atomic qualifier on the LHS.
   if (const AtomicType *AtomicLHS = LHSType->getAs<AtomicType>())
@@ -1638,6 +1663,9 @@ QualType Sema::UsualArithmeticConversions(ExprResult &LHS, ExprResult &RHS,
 
   if (LHSType->isFixedPointType() || RHSType->isFixedPointType())
     return handleFixedPointConversion(*this, LHSType, RHSType);
+
+  if (LHSType->isNoWrapType() || RHSType->isNoWrapType())
+    return handleNoWrapArithmeticConversion(LHS, RHS, Loc, ACK);
 
   // Finally, we have two differing integer types.
   return handleIntegerConversion<doIntegralCast, doIntegralCast>

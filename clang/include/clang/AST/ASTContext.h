@@ -3175,6 +3175,7 @@ public:
   QualType getCorrespondingSignedFixedPointType(QualType Ty) const;
 
   QualType getCorrespondingNoWrapType(QualType Ty) const;
+  QualType getDroppedNoWrapType(QualType Ty) const;
 
   //===--------------------------------------------------------------------===//
   //                    Integer Values

@@ -2229,8 +2229,9 @@ bool Type::hasSignedIntegerRepresentation() const {
 /// decl which has an unsigned representation
 bool Type::isUnsignedIntegerType() const {
   if (const auto *BT = dyn_cast<BuiltinType>(CanonicalType)) {
-    return BT->getKind() >= BuiltinType::Bool &&
-           BT->getKind() <= BuiltinType::UInt128;
+    return (BT->getKind() >= BuiltinType::Bool &&
+            BT->getKind() <= BuiltinType::UInt128) ||
+           BT->getKind() == BuiltinType::NoWrapUInt;
   }
 
   if (const auto *ET = dyn_cast<EnumType>(CanonicalType)) {

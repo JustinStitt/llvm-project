@@ -192,6 +192,10 @@ static bool CanElideOverflowCheck(const ASTContext &Ctx, const BinOpInfo &Op) {
   assert((isa<UnaryOperator>(Op.E) || isa<BinaryOperator>(Op.E)) &&
          "Expected a unary or binary operator");
 
+  // _NoWrap types should always be checked for overflow
+  /*if (Op.Ty->isNoWrapType())*/
+  /*  return false;*/
+
   // If the binop has constant inputs and we can prove there is no overflow,
   // we can elide the overflow check.
   if (!Op.mayHaveIntegerOverflow())
@@ -3924,17 +3928,37 @@ Value *ScalarExprEmitter::EmitOverflowCheckedBinOp(const BinOpInfo &Ops) {
   const std::string *handlerName =
     &CGF.getLangOpts().OverflowHandler;
   if (handlerName->empty()) {
+    llvm::errs() << "in handlerName->empty()\n";
     // If the signed-integer-overflow sanitizer is enabled, emit a call to its
     // runtime. Otherwise, this is a -ftrapv check, so just emit a trap.
-    if (!isSigned || CGF.SanOpts.has(SanitizerKind::SignedIntegerOverflow)) {
+    if (isSigned) {
+      if (CGF.SanOpts.has(SanitizerKind::SignedIntegerOverflow)) {
+        llvm::Value *NotOverflow = Builder.CreateNot(overflow);
+        EmitBinOpCheck(std::make_pair(NotOverflow,
+                                      SanitizerKind::SO_SignedIntegerOverflow),
+                       Ops);
+      } else
+        CGF.EmitTrapCheck(Builder.CreateNot(overflow), OverflowKind);
+      return result;
+    }
+
+    if (CGF.SanOpts.has(SanitizerKind::UnsignedIntegerOverflow)) {
       llvm::Value *NotOverflow = Builder.CreateNot(overflow);
-      SanitizerKind::SanitizerOrdinal Ordinal =
-          isSigned ? SanitizerKind::SO_SignedIntegerOverflow
-                   : SanitizerKind::SO_UnsignedIntegerOverflow;
-      EmitBinOpCheck(std::make_pair(NotOverflow, Ordinal), Ops);
+      EmitBinOpCheck(std::make_pair(NotOverflow,
+                                    SanitizerKind::SO_UnsignedIntegerOverflow),
+                     Ops);
     } else
       CGF.EmitTrapCheck(Builder.CreateNot(overflow), OverflowKind);
     return result;
+    /*if (!isSigned || CGF.SanOpts.has(SanitizerKind::SignedIntegerOverflow)) {*/
+    /*  llvm::Value *NotOverflow = Builder.CreateNot(overflow);*/
+    /*  SanitizerKind::SanitizerOrdinal Ordinal =*/
+    /*      isSigned ? SanitizerKind::SO_SignedIntegerOverflow*/
+    /*               : SanitizerKind::SO_UnsignedIntegerOverflow;*/
+    /*  EmitBinOpCheck(std::make_pair(NotOverflow, Ordinal), Ops);*/
+    /*} else*/
+    /*  CGF.EmitTrapCheck(Builder.CreateNot(overflow), OverflowKind);*/
+    /*return result;*/
   }
 
   // Branch in case of overflow.
@@ -4232,6 +4256,10 @@ Value *ScalarExprEmitter::EmitAdd(const BinOpInfo &op) {
   if (op.LHS->getType()->isPointerTy() ||
       op.RHS->getType()->isPointerTy())
     return emitPointerArithmetic(CGF, op, CodeGenFunction::NotSubtraction);
+
+  // Always check overflow on _NoWrap types
+  if (op.Ty->isNoWrapType())
+    return EmitOverflowCheckedBinOp(op);
 
   if (op.Ty->isSignedIntegerOrEnumerationType()) {
     switch (CGF.getLangOpts().getSignedOverflowBehavior()) {

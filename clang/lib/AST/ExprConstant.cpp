@@ -11945,6 +11945,10 @@ public:
   bool Success(const llvm::APSInt &SI, const Expr *E, APValue &Result) {
     assert(E->getType()->isIntegralOrEnumerationType() &&
            "Invalid evaluation result.");
+    llvm::errs() << "in IntExprEvaluator::Success() E->getType(): \n"; E->getType().dump();
+    llvm::errs() << "SI.isSigned()?: " << SI.isSigned() << "\n";
+    llvm::errs() << "is isSignedIntegerOrEnumerationType?: "
+                 << E->getType()->isSignedIntegerOrEnumerationType() << "\n";
     assert(SI.isSigned() == E->getType()->isSignedIntegerOrEnumerationType() &&
            "Invalid evaluation result.");
     assert(SI.getBitWidth() == Info.Ctx.getIntWidth(E->getType()) &&

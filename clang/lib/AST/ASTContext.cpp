@@ -7842,6 +7842,7 @@ unsigned ASTContext::getIntegerRank(const Type *T) const {
     return 3 + (getIntWidth(ShortTy) << 3);
   case BuiltinType::Int:
   case BuiltinType::UInt:
+  case BuiltinType::NoWrapUInt:
     return 4 + (getIntWidth(IntTy) << 3);
   case BuiltinType::Long:
   case BuiltinType::ULong:
@@ -14328,6 +14329,18 @@ QualType ASTContext::getCorrespondingNoWrapType(QualType Ty) const {
       llvm_unreachable("This Type is not supported for use with _NoWrap!");
     case BuiltinType::UInt:
       return NoWrapUnsignedIntTy;
+  }
+}
+
+/// Get the integral type that remains after removing _NoWrap specifier
+QualType ASTContext::getDroppedNoWrapType(QualType Ty) const {
+  if (!Ty->isNoWrapType()) return Ty;
+
+  switch (Ty->castAs<BuiltinType>()->getKind()) {
+    default:
+      llvm_unreachable("This Type is not supported for use with _NoWrap!");
+    case BuiltinType::NoWrapUInt:
+      return UnsignedIntTy;
   }
 }
 

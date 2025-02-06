@@ -881,6 +881,7 @@ bool PrintfSpecifier::fixType(QualType QT, const LangOptions &LangOpt,
   case BuiltinType::UInt:
   case BuiltinType::Int:
   case BuiltinType::Float:
+  case BuiltinType::NoWrapUInt:
     LM.setKind(VectorNumElts.isInvalid() ?
                LengthModifier::None : LengthModifier::AsShortLong);
     break;
