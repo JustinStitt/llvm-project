@@ -2488,6 +2488,9 @@ public:
   bool isIntegerType() const;     // C99 6.2.5p17 (int, char, bool, enum)
   bool isEnumeralType() const;
 
+  /// Determine whether this type is _Wrap or _NoWrap
+  bool isNoWrapType() const;
+                                  //
   /// Determine whether this type is a scoped enumeration type.
   bool isScopedEnumeralType() const;
   bool isBooleanType() const;
@@ -8568,6 +8571,14 @@ inline bool Type::isIntegerType() const {
       !IsEnumDeclScoped(ET->getDecl());
   }
   return isBitIntType();
+}
+
+inline bool Type::isNoWrapType() const {
+  // TODO (justinstitt): add the rest of the types
+  if (const auto *BT = dyn_cast<BuiltinType>(CanonicalType)) {
+    return BT->getKind() == BuiltinType::NoWrapUInt;
+  }
+  return false;
 }
 
 inline bool Type::isFixedPointType() const {

@@ -4226,6 +4226,9 @@ static Value* tryEmitFMulAdd(const BinOpInfo &op,
 }
 
 Value *ScalarExprEmitter::EmitAdd(const BinOpInfo &op) {
+  llvm::errs() << "in EmitAdd\n";
+  llvm::errs() << "got op.LHS->dump: \n"; op.LHS->getType()->dump();
+  llvm::errs() << "got op.RHS->dump: \n"; op.RHS->getType()->dump();
   if (op.LHS->getType()->isPointerTy() ||
       op.RHS->getType()->isPointerTy())
     return emitPointerArithmetic(CGF, op, CodeGenFunction::NotSubtraction);

@@ -894,6 +894,19 @@ bool DeclSpec::SetTypeSpecSat(SourceLocation Loc, const char *&PrevSpec,
   return false;
 }
 
+bool DeclSpec::SetTypeSpecNoWrap(SourceLocation Loc, const char *&PrevSpec,
+                                 unsigned &DiagID) {
+  // Cannot set twice
+  if (TypeSpecNoWrap) {
+    DiagID = diag::warn_duplicate_declspec;
+    PrevSpec = "_NoWrap";
+    return true;
+  }
+  TypeSpecNoWrap = true;
+  TSNoWrapLoc = Loc;
+  return false;
+}
+
 bool DeclSpec::SetTypeAltiVecVector(bool isAltiVecVector, SourceLocation Loc,
                           const char *&PrevSpec, unsigned &DiagID,
                           const PrintingPolicy &Policy) {

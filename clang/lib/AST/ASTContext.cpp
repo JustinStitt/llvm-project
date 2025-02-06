@@ -1338,6 +1338,9 @@ void ASTContext::InitBuiltinTypes(const TargetInfo &Target,
   InitBuiltinType(SatUnsignedFractTy,      BuiltinType::SatUFract);
   InitBuiltinType(SatUnsignedLongFractTy,  BuiltinType::SatULongFract);
 
+  // _Wrap and _NoWrap types
+  InitBuiltinType(NoWrapUnsignedIntTy, BuiltinType::NoWrapUInt);
+
   // GNU extension, 128-bit integers.
   InitBuiltinType(Int128Ty,            BuiltinType::Int128);
   InitBuiltinType(UnsignedInt128Ty,    BuiltinType::UInt128);
@@ -2100,6 +2103,7 @@ TypeInfo ASTContext::getTypeInfoImpl(const Type *T) const {
       break;
     case BuiltinType::UInt:
     case BuiltinType::Int:
+    case BuiltinType::NoWrapUInt:
       Width = Target->getIntWidth();
       Align = Target->getIntAlign();
       break;
@@ -8766,7 +8770,9 @@ static char getObjCEncodingForPrimitiveType(const ASTContext *C,
     case BuiltinType::Char16:
     case BuiltinType::UShort:     return 'S';
     case BuiltinType::Char32:
-    case BuiltinType::UInt:       return 'I';
+    case BuiltinType::UInt:
+    case BuiltinType::NoWrapUInt:
+        return 'I';
     case BuiltinType::ULong:
         return C->getTargetInfo().getLongWidth() == 32 ? 'L' : 'Q';
     case BuiltinType::UInt128:    return 'T';
@@ -14311,6 +14317,17 @@ QualType ASTContext::getCorrespondingSaturatedType(QualType Ty) const {
       return SatUnsignedFractTy;
     case BuiltinType::ULongFract:
       return SatUnsignedLongFractTy;
+  }
+}
+
+QualType ASTContext::getCorrespondingNoWrapType(QualType Ty) const {
+  if (Ty->isNoWrapType()) return Ty;
+
+  switch (Ty->castAs<BuiltinType>()->getKind()) {
+    default:
+      llvm_unreachable("This Type is not supported for use with _NoWrap!");
+    case BuiltinType::UInt:
+      return NoWrapUnsignedIntTy;
   }
 }
 

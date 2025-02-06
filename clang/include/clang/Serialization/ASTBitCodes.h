@@ -1120,6 +1120,9 @@ enum PredefinedTypeIDs {
   /// \brief The '__ibm128' type
   PREDEF_TYPE_IBM128_ID = 74,
 
+  /// \brief The '_NoWrap unsigned int' type
+  PREDEF_TYPE_NOWRAP_UINT_ID = 75,
+
 /// OpenCL image types with auto numeration
 #define IMAGE_TYPE(ImgType, Id, SingletonId, Access, Suffix)                   \
   PREDEF_TYPE_##Id##_ID,

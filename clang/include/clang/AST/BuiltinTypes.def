@@ -95,6 +95,9 @@ UNSIGNED_TYPE(ULongLong, UnsignedLongLongTy)
 // '__uint128_t'
 UNSIGNED_TYPE(UInt128, UnsignedInt128Ty)
 
+// '_NoWrap unsigned int'
+UNSIGNED_TYPE(NoWrapUInt, NoWrapUnsignedIntTy)
+
 //===- Signed Types -------------------------------------------------------===//
 
 // 'char' for targets where it's signed
@@ -120,6 +123,8 @@ SIGNED_TYPE(LongLong, LongLongTy)
 
 // '__int128_t'
 SIGNED_TYPE(Int128, Int128Ty)
+// WIP (justinstitt) ^ must be last element or conditional must be changed
+// according to Type.h isIntegerType() bounds checking
 
 //===- Fixed point types --------------------------------------------------===//
 

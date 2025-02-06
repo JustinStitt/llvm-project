@@ -12279,6 +12279,10 @@ GCCTypeClass EvaluateBuiltinClassifyType(QualType T,
     case BuiltinType::UInt128:
       return GCCTypeClass::Integer;
 
+    // _Wrap and _NoWrap types
+    case BuiltinType::NoWrapUInt:
+      return GCCTypeClass::Integer;
+
     case BuiltinType::UShortAccum:
     case BuiltinType::UAccum:
     case BuiltinType::ULongAccum:

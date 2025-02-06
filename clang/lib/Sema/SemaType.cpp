@@ -1058,6 +1058,8 @@ static QualType ConvertDeclSpecToType(TypeProcessingState &state) {
         }
         break;
       }
+      if (DS.isTypeSpecNoWrap())
+        Result = Context.getCorrespondingNoWrapType(Result);
     }
     break;
   }
@@ -1419,6 +1421,11 @@ static QualType ConvertDeclSpecToType(TypeProcessingState &state) {
   // Only fixed point types can be saturated
   if (DS.isTypeSpecSat() && !IsFixedPointType)
     S.Diag(DS.getTypeSpecSatLoc(), diag::err_invalid_saturation_spec)
+        << DS.getSpecifierName(DS.getTypeSpecType(),
+                               Context.getPrintingPolicy());
+
+  if (DS.isTypeSpecNoWrap() && DS.getTypeSpecType() != DeclSpec::TST_int)
+    S.Diag(DS.getTypeSpecNoWrapLoc(), diag::err_invalid_nowrap_spec)
         << DS.getSpecifierName(DS.getTypeSpecType(),
                                Context.getPrintingPolicy());
 

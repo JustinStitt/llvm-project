@@ -3365,6 +3365,10 @@ void CXXNameMangler::mangleType(const BuiltinType *T) {
     Out << "Dn";
     break;
 
+  case BuiltinType::NoWrapUInt:
+    llvm_unreachable("Wrapping types are not supported for C++!");
+    break;
+
 #define BUILTIN_TYPE(Id, SingletonId)
 #define PLACEHOLDER_TYPE(Id, SingletonId) \
   case BuiltinType::Id:

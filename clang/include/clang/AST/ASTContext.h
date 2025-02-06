@@ -1169,6 +1169,7 @@ public:
   CanQualType SignedCharTy, ShortTy, IntTy, LongTy, LongLongTy, Int128Ty;
   CanQualType UnsignedCharTy, UnsignedShortTy, UnsignedIntTy, UnsignedLongTy;
   CanQualType UnsignedLongLongTy, UnsignedInt128Ty;
+  CanQualType NoWrapUnsignedIntTy;
   CanQualType FloatTy, DoubleTy, LongDoubleTy, Float128Ty, Ibm128Ty;
   CanQualType ShortAccumTy, AccumTy,
       LongAccumTy;  // ISO/IEC JTC1 SC22 WG14 N1169 Extension
@@ -3172,6 +3173,8 @@ public:
   // fixed point types because there are unsigned integer types like bool and
   // char8_t that don't have signed equivalents.
   QualType getCorrespondingSignedFixedPointType(QualType Ty) const;
+
+  QualType getCorrespondingNoWrapType(QualType Ty) const;
 
   //===--------------------------------------------------------------------===//
   //                    Integer Values

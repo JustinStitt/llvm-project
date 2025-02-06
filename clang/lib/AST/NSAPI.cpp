@@ -376,6 +376,7 @@ NSAPI::getNSNumberFactoryMethodKind(QualType T) const {
   case BuiltinType::Int:
     return NSAPI::NSNumberWithInt;
   case BuiltinType::UInt:
+  case BuiltinType::NoWrapUInt:
     return NSAPI::NSNumberWithUnsignedInt;
   case BuiltinType::Long:
     return NSAPI::NSNumberWithLong;

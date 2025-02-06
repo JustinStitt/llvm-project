@@ -7636,6 +7636,9 @@ QualType ASTReader::GetType(TypeID ID) {
     case PREDEF_TYPE_OBJC_SEL:
       T = Context.ObjCBuiltinSelTy;
       break;
+    case PREDEF_TYPE_NOWRAP_UINT_ID:
+      T = Context.NoWrapUnsignedIntTy;
+      break;
 #define IMAGE_TYPE(ImgType, Id, SingletonId, Access, Suffix) \
     case PREDEF_TYPE_##Id##_ID: \
       T = Context.SingletonId; \

@@ -383,7 +383,10 @@ private:
   LLVM_PREFERRED_TYPE(bool)
   unsigned TypeSpecSat : 1;
   LLVM_PREFERRED_TYPE(bool)
+    unsigned TypeSpecNoWrap : 1;
+  LLVM_PREFERRED_TYPE(bool)
   unsigned ConstrainedAuto : 1;
+
 
   // type-qualifiers
   LLVM_PREFERRED_TYPE(TQ)
@@ -430,7 +433,8 @@ private:
 
   SourceLocation StorageClassSpecLoc, ThreadStorageClassSpecLoc;
   SourceRange TSWRange;
-  SourceLocation TSCLoc, TSSLoc, TSTLoc, AltiVecLoc, TSSatLoc, EllipsisLoc;
+  SourceLocation TSCLoc, TSSLoc, TSTLoc, AltiVecLoc, TSSatLoc, EllipsisLoc,
+      TSNoWrapLoc;
   /// TSTNameLoc - If TypeSpecType is any of class, enum, struct, union,
   /// typename, then this is the location of the named type (if present);
   /// otherwise, it is the same as TSTLoc. Hence, the pair TSTLoc and
@@ -489,12 +493,12 @@ public:
         TypeSpecSign(static_cast<unsigned>(TypeSpecifierSign::Unspecified)),
         TypeSpecType(TST_unspecified), TypeAltiVecVector(false),
         TypeAltiVecPixel(false), TypeAltiVecBool(false), TypeSpecOwned(false),
-        TypeSpecPipe(false), TypeSpecSat(false), ConstrainedAuto(false),
-        TypeQualifiers(TQ_unspecified), FS_inline_specified(false),
-        FS_forceinline_specified(false), FS_virtual_specified(false),
-        FS_noreturn_specified(false), FriendSpecifiedFirst(false),
-        ConstexprSpecifier(
-            static_cast<unsigned>(ConstexprSpecKind::Unspecified)),
+        TypeSpecPipe(false), TypeSpecSat(false), TypeSpecNoWrap(false),
+        ConstrainedAuto(false), TypeQualifiers(TQ_unspecified),
+        FS_inline_specified(false), FS_forceinline_specified(false),
+        FS_virtual_specified(false), FS_noreturn_specified(false),
+        FriendSpecifiedFirst(false), ConstexprSpecifier(static_cast<unsigned>(
+                                         ConstexprSpecKind::Unspecified)),
         Attrs(attrFactory), writtenBS(), ObjCQualifiers(nullptr) {}
 
   // storage-class-specifier
@@ -542,6 +546,7 @@ public:
   bool isTypeRep() const { return isTypeRep((TST) TypeSpecType); }
   bool isTypeSpecPipe() const { return TypeSpecPipe; }
   bool isTypeSpecSat() const { return TypeSpecSat; }
+  bool isTypeSpecNoWrap() const { return TypeSpecNoWrap; }
   bool isConstrainedAuto() const { return ConstrainedAuto; }
 
   ParsedType getRepAsType() const {
@@ -582,6 +587,7 @@ public:
   SourceLocation getTypeSpecTypeLoc() const { return TSTLoc; }
   SourceLocation getAltiVecLoc() const { return AltiVecLoc; }
   SourceLocation getTypeSpecSatLoc() const { return TSSatLoc; }
+  SourceLocation getTypeSpecNoWrapLoc() const { return TSNoWrapLoc; }
 
   SourceLocation getTypeSpecTypeNameLoc() const {
     assert(isDeclRep((TST)TypeSpecType) || isTypeRep((TST)TypeSpecType) ||
@@ -776,6 +782,8 @@ public:
                      const char *&PrevSpec, unsigned &DiagID,
                      const PrintingPolicy &Policy);
   bool SetTypeSpecSat(SourceLocation Loc, const char *&PrevSpec,
+                      unsigned &DiagID);
+  bool SetTypeSpecNoWrap(SourceLocation Loc, const char *&PrevSpec,
                       unsigned &DiagID);
 
   void SetPackIndexingExpr(SourceLocation EllipsisLoc, Expr *Pack);
