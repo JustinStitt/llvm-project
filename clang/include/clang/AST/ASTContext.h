@@ -3174,8 +3174,13 @@ public:
   // char8_t that don't have signed equivalents.
   QualType getCorrespondingSignedFixedPointType(QualType Ty) const;
 
+  // This method accepts builtin integer types and returns the appropriate
+  // builtin _NoWrap type.
   QualType getCorrespondingNoWrapType(QualType Ty) const;
-  QualType getDroppedNoWrapType(QualType Ty) const;
+
+  // This method accepts _NoWrap integer types and returns the appropriate
+  // builtin integer type.
+  QualType getCorrespondingDroppedNoWrapType(QualType Ty) const;
 
   //===--------------------------------------------------------------------===//
   //                    Integer Values

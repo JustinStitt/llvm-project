@@ -14333,7 +14333,7 @@ QualType ASTContext::getCorrespondingNoWrapType(QualType Ty) const {
 }
 
 /// Get the integral type that remains after removing _NoWrap specifier
-QualType ASTContext::getDroppedNoWrapType(QualType Ty) const {
+QualType ASTContext::getCorrespondingDroppedNoWrapType(QualType Ty) const {
   if (!Ty->isNoWrapType()) return Ty;
 
   switch (Ty->castAs<BuiltinType>()->getKind()) {

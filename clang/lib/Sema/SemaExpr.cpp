@@ -1571,8 +1571,8 @@ QualType Sema::handleNoWrapArithmeticConversion(ExprResult &LHS,
   QualType RHSType = RHS.get()->getType().getUnqualifiedType();
   assert(LHSType->isNoWrapType() || RHSType->isNoWrapType());
 
-  QualType DroppedLHSTy = Context.getDroppedNoWrapType(LHSType);
-  QualType DroppedRHSTy = Context.getDroppedNoWrapType(RHSType);
+  QualType DroppedLHSTy = Context.getCorrespondingDroppedNoWrapType(LHSType);
+  QualType DroppedRHSTy = Context.getCorrespondingDroppedNoWrapType(RHSType);
 
   assert(!DroppedLHSTy->isNoWrapType() && !DroppedRHSTy->isNoWrapType());
 
