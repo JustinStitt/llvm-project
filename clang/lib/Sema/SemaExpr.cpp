@@ -1576,7 +1576,6 @@ QualType Sema::handleNoWrapArithmeticConversion(ExprResult &LHS,
 
   assert(!DroppedLHSTy->isNoWrapType() && !DroppedRHSTy->isNoWrapType());
 
-  // FIXME: infinite recursion risk
   QualType ResultTy = handleIntegerConversion<doIntegralCast, doIntegralCast>(
       *this, LHS, RHS, DroppedLHSTy, DroppedRHSTy, ACK == ACK_CompAssign);
 

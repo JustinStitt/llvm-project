@@ -192,14 +192,28 @@ static bool CanElideOverflowCheck(const ASTContext &Ctx, const BinOpInfo &Op) {
   assert((isa<UnaryOperator>(Op.E) || isa<BinaryOperator>(Op.E)) &&
          "Expected a unary or binary operator");
 
-  // _NoWrap types should always be checked for overflow
-  /*if (Op.Ty->isNoWrapType())*/
-  /*  return false;*/
-
   // If the binop has constant inputs and we can prove there is no overflow,
   // we can elide the overflow check.
   if (!Op.mayHaveIntegerOverflow())
     return true;
+
+  const UnaryOperator *UO = dyn_cast<UnaryOperator>(Op.E);
+  const BinaryOperator *BO = cast<BinaryOperator>(Op.E);
+
+  if (UO && UO->getOpcode() == UO_Minus &&
+      Ctx.getLangOpts().isOverflowPatternExcluded(
+          LangOptions::OverflowPatternExclusionKind::NegUnsignedConst) &&
+      UO->isIntegerConstantExpr(Ctx))
+    return true;
+
+  if (BO->hasExcludedOverflowPattern())
+    return true;
+
+  // _NoWrap types should always be checked for overflow, unless an excluded
+  // overflow pattern is found.
+  if (Op.Ty->isNoWrapType())
+    return false;
+
 
   if (Op.Ty->isSignedIntegerType() &&
       Ctx.isTypeIgnoredBySanitizer(SanitizerKind::SignedIntegerOverflow,
@@ -213,24 +227,12 @@ static bool CanElideOverflowCheck(const ASTContext &Ctx, const BinOpInfo &Op) {
     return true;
   }
 
-  const UnaryOperator *UO = dyn_cast<UnaryOperator>(Op.E);
-
-  if (UO && UO->getOpcode() == UO_Minus &&
-      Ctx.getLangOpts().isOverflowPatternExcluded(
-          LangOptions::OverflowPatternExclusionKind::NegUnsignedConst) &&
-      UO->isIntegerConstantExpr(Ctx))
-    return true;
-
   // If a unary op has a widened operand, the op cannot overflow.
   if (UO)
     return !UO->canOverflow();
 
   // We usually don't need overflow checks for binops with widened operands.
   // Multiplication with promoted unsigned operands is a special case.
-  const auto *BO = cast<BinaryOperator>(Op.E);
-  if (BO->hasExcludedOverflowPattern())
-    return true;
-
   auto OptionalLHSTy = getUnwidenedIntegerType(Ctx, BO->getLHS());
   if (!OptionalLHSTy)
     return false;
@@ -4257,10 +4259,6 @@ Value *ScalarExprEmitter::EmitAdd(const BinOpInfo &op) {
       op.RHS->getType()->isPointerTy())
     return emitPointerArithmetic(CGF, op, CodeGenFunction::NotSubtraction);
 
-  // Always check overflow on _NoWrap types
-  if (op.Ty->isNoWrapType())
-    return EmitOverflowCheckedBinOp(op);
-
   if (op.Ty->isSignedIntegerOrEnumerationType()) {
     switch (CGF.getLangOpts().getSignedOverflowBehavior()) {
     case LangOptions::SOB_Defined:
@@ -4293,7 +4291,8 @@ Value *ScalarExprEmitter::EmitAdd(const BinOpInfo &op) {
   }
 
   if (op.Ty->isUnsignedIntegerType() &&
-      CGF.SanOpts.has(SanitizerKind::UnsignedIntegerOverflow) &&
+      (CGF.SanOpts.has(SanitizerKind::UnsignedIntegerOverflow) ||
+       op.Ty->isNoWrapType()) &&
       !CanElideOverflowCheck(CGF.getContext(), op))
     return EmitOverflowCheckedBinOp(op);
 
