@@ -368,6 +368,7 @@ NSAPI::getNSNumberFactoryMethodKind(QualType T) const {
     return NSAPI::NSNumberWithChar;
   case BuiltinType::Char_U:
   case BuiltinType::UChar:
+  case BuiltinType::NoWrapUChar:
     return NSAPI::NSNumberWithUnsignedChar;
   case BuiltinType::Short:
     return NSAPI::NSNumberWithShort;

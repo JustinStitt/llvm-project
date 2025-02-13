@@ -1121,7 +1121,10 @@ enum PredefinedTypeIDs {
   PREDEF_TYPE_IBM128_ID = 74,
 
   /// \brief The '_NoWrap unsigned int' type
-  PREDEF_TYPE_NOWRAP_UINT_ID = 75,
+  PREDEF_TYPE_NOWRAP_UCHAR_ID = 75,
+
+  /// \brief The '_NoWrap unsigned int' type
+  PREDEF_TYPE_NOWRAP_UINT_ID = 76,
 
 /// OpenCL image types with auto numeration
 #define IMAGE_TYPE(ImgType, Id, SingletonId, Access, Suffix)                   \
@@ -1160,7 +1163,7 @@ enum PredefinedTypeIDs {
 ///
 /// Type IDs for non-predefined types will start at
 /// NUM_PREDEF_TYPE_IDs.
-const unsigned NUM_PREDEF_TYPE_IDS = 514;
+const unsigned NUM_PREDEF_TYPE_IDS = 515;
 
 // Ensure we do not overrun the predefined types we reserved
 // in the enum PredefinedTypeIDs above.

@@ -879,9 +879,9 @@ bool PrintfSpecifier::fixType(QualType QT, const LangOptions &LangOpt,
     return false;
 
   case BuiltinType::UInt:
+  case BuiltinType::NoWrapUInt:
   case BuiltinType::Int:
   case BuiltinType::Float:
-  case BuiltinType::NoWrapUInt:
     LM.setKind(VectorNumElts.isInvalid() ?
                LengthModifier::None : LengthModifier::AsShortLong);
     break;
@@ -891,6 +891,7 @@ bool PrintfSpecifier::fixType(QualType QT, const LangOptions &LangOpt,
     break;
   case BuiltinType::Char_U:
   case BuiltinType::UChar:
+  case BuiltinType::NoWrapUChar:
   case BuiltinType::Char_S:
   case BuiltinType::SChar:
     LM.setKind(LengthModifier::AsChar);

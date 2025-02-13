@@ -8574,9 +8574,10 @@ inline bool Type::isIntegerType() const {
 }
 
 inline bool Type::isNoWrapType() const {
-  // TODO (justinstitt): add the rest of the types
+  // TODO (justinstitt): add the rest of the types and convert to >= and <=
   if (const auto *BT = dyn_cast<BuiltinType>(CanonicalType)) {
-    return BT->getKind() == BuiltinType::NoWrapUInt;
+    return BT->getKind() == BuiltinType::NoWrapUInt ||
+           BT->getKind() == BuiltinType::NoWrapUChar;
   }
   return false;
 }

@@ -922,6 +922,7 @@ llvm::DIType *CGDebugInfo::CreateType(const BuiltinType *BT) {
 #include "clang/Basic/AMDGPUTypes.def"
   case BuiltinType::UChar:
   case BuiltinType::Char_U:
+  case BuiltinType::NoWrapUChar:
     Encoding = llvm::dwarf::DW_ATE_unsigned_char;
     break;
   case BuiltinType::Char_S:

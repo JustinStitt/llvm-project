@@ -2722,6 +2722,7 @@ void MicrosoftCXXNameMangler::mangleType(const BuiltinType *T, Qualifiers,
   case BuiltinType::WChar_U:
     Out << "_W";
     break;
+  case BuiltinType::NoWrapUChar:
   case BuiltinType::NoWrapUInt:
     llvm_unreachable("Wrapping types are not supported for C++!");
     break;

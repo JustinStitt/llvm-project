@@ -2230,8 +2230,7 @@ bool Type::hasSignedIntegerRepresentation() const {
 bool Type::isUnsignedIntegerType() const {
   if (const auto *BT = dyn_cast<BuiltinType>(CanonicalType)) {
     return (BT->getKind() >= BuiltinType::Bool &&
-            BT->getKind() <= BuiltinType::UInt128) ||
-           BT->getKind() == BuiltinType::NoWrapUInt;
+            BT->getKind() <= BuiltinType::NoWrapUInt);
   }
 
   if (const auto *ET = dyn_cast<EnumType>(CanonicalType)) {
@@ -3380,6 +3379,8 @@ StringRef BuiltinType::getName(const PrintingPolicy &Policy) const {
     return "unsigned _Accum";
   case ULongAccum:
     return "unsigned long _Accum";
+  case NoWrapUChar:
+    return "_NoWrap unsigned char";
   case NoWrapUInt:
     return "_NoWrap unsigned int";
   case BuiltinType::ShortFract:

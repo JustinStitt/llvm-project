@@ -216,6 +216,9 @@ serialization::TypeIdxFromBuiltin(const BuiltinType *BT) {
   case BuiltinType::ObjCSel:
     ID = PREDEF_TYPE_OBJC_SEL;
     break;
+  case BuiltinType::NoWrapUChar:
+    ID = PREDEF_TYPE_NOWRAP_UCHAR_ID;
+    break;
   case BuiltinType::NoWrapUInt:
     ID = PREDEF_TYPE_NOWRAP_UINT_ID;
     break;

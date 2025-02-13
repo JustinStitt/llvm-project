@@ -7636,6 +7636,9 @@ QualType ASTReader::GetType(TypeID ID) {
     case PREDEF_TYPE_OBJC_SEL:
       T = Context.ObjCBuiltinSelTy;
       break;
+    case PREDEF_TYPE_NOWRAP_UCHAR_ID:
+      T = Context.NoWrapUnsignedCharTy;
+      break;
     case PREDEF_TYPE_NOWRAP_UINT_ID:
       T = Context.NoWrapUnsignedIntTy;
       break;

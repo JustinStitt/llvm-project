@@ -95,6 +95,9 @@ UNSIGNED_TYPE(ULongLong, UnsignedLongLongTy)
 // '__uint128_t'
 UNSIGNED_TYPE(UInt128, UnsignedInt128Ty)
 
+// '_NoWrap unsigned char'
+UNSIGNED_TYPE(NoWrapUChar, NoWrapUnsignedCharTy)
+
 // '_NoWrap unsigned int'
 UNSIGNED_TYPE(NoWrapUInt, NoWrapUnsignedIntTy)
 

@@ -840,6 +840,8 @@ void USRGenerator::VisitType(QualType T) {
           Out << "@BT@__bf16"; break;
         case BuiltinType::Ibm128:
           Out << "@BT@__ibm128"; break;
+        case BuiltinType::NoWrapUChar:
+          Out << "@BT@NoWrapUChar"; break;
         case BuiltinType::NoWrapUInt:
           Out << "@BT@NoWrapUInt"; break;
         case BuiltinType::ObjCId:

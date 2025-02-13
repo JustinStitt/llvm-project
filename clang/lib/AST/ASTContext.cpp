@@ -1339,6 +1339,7 @@ void ASTContext::InitBuiltinTypes(const TargetInfo &Target,
   InitBuiltinType(SatUnsignedLongFractTy,  BuiltinType::SatULongFract);
 
   // _Wrap and _NoWrap types
+  InitBuiltinType(NoWrapUnsignedCharTy, BuiltinType::NoWrapUChar);
   InitBuiltinType(NoWrapUnsignedIntTy, BuiltinType::NoWrapUInt);
 
   // GNU extension, 128-bit integers.
@@ -2080,6 +2081,7 @@ TypeInfo ASTContext::getTypeInfoImpl(const Type *T) const {
     case BuiltinType::UChar:
     case BuiltinType::SChar:
     case BuiltinType::Char8:
+    case BuiltinType::NoWrapUChar:
       Width = Target->getCharWidth();
       Align = Target->getCharAlign();
       break;
@@ -7836,6 +7838,7 @@ unsigned ASTContext::getIntegerRank(const Type *T) const {
   case BuiltinType::Char_U:
   case BuiltinType::SChar:
   case BuiltinType::UChar:
+  case BuiltinType::NoWrapUChar:
     return 2 + (getIntWidth(CharTy) << 3);
   case BuiltinType::Short:
   case BuiltinType::UShort:
@@ -8767,7 +8770,9 @@ static char getObjCEncodingForPrimitiveType(const ASTContext *C,
     case BuiltinType::Bool:       return 'B';
     case BuiltinType::Char8:
     case BuiltinType::Char_U:
-    case BuiltinType::UChar:      return 'C';
+    case BuiltinType::UChar:
+    case BuiltinType::NoWrapUChar:
+        return 'C';
     case BuiltinType::Char16:
     case BuiltinType::UShort:     return 'S';
     case BuiltinType::Char32:
@@ -14327,6 +14332,8 @@ QualType ASTContext::getCorrespondingNoWrapType(QualType Ty) const {
   switch (Ty->castAs<BuiltinType>()->getKind()) {
     default:
       llvm_unreachable("This Type is not supported for use with _NoWrap!");
+    case BuiltinType::UChar:
+      return NoWrapUnsignedCharTy;
     case BuiltinType::UInt:
       return NoWrapUnsignedIntTy;
   }
@@ -14339,6 +14346,8 @@ QualType ASTContext::getCorrespondingDroppedNoWrapType(QualType Ty) const {
   switch (Ty->castAs<BuiltinType>()->getKind()) {
     default:
       llvm_unreachable("This Type is not supported for use with _NoWrap!");
+    case BuiltinType::NoWrapUChar:
+      return UnsignedCharTy;
     case BuiltinType::NoWrapUInt:
       return UnsignedIntTy;
   }

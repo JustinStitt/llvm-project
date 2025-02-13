@@ -12284,6 +12284,7 @@ GCCTypeClass EvaluateBuiltinClassifyType(QualType T,
       return GCCTypeClass::Integer;
 
     // _Wrap and _NoWrap types
+    case BuiltinType::NoWrapUChar:
     case BuiltinType::NoWrapUInt:
       return GCCTypeClass::Integer;
 

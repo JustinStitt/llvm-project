@@ -3365,6 +3365,7 @@ void CXXNameMangler::mangleType(const BuiltinType *T) {
     Out << "Dn";
     break;
 
+  case BuiltinType::NoWrapUChar:
   case BuiltinType::NoWrapUInt:
     llvm_unreachable("Wrapping types are not supported for C++!");
     break;
