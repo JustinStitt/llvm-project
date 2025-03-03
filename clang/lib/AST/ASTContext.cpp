@@ -14328,6 +14328,7 @@ QualType ASTContext::getCorrespondingSaturatedType(QualType Ty) const {
 
 QualType ASTContext::getCorrespondingNoWrapType(QualType Ty) const {
   if (Ty->isNoWrapType()) return Ty;
+  llvm::errs() << "in getCorrespondingNoWrapType with Ty: \n"; Ty.dump();
 
   switch (Ty->castAs<BuiltinType>()->getKind()) {
     default:
@@ -14342,10 +14343,11 @@ QualType ASTContext::getCorrespondingNoWrapType(QualType Ty) const {
 /// Get the integral type that remains after removing _NoWrap specifier
 QualType ASTContext::getCorrespondingDroppedNoWrapType(QualType Ty) const {
   if (!Ty->isNoWrapType()) return Ty;
+  llvm::errs() << "in getCorrespondingDroppedNoWrapType with Ty: \n"; Ty.dump();
 
   switch (Ty->castAs<BuiltinType>()->getKind()) {
     default:
-      llvm_unreachable("This Type is not supported for use with _NoWrap!");
+      llvm_unreachable("This Type is not supported for use with _NoWrap");
     case BuiltinType::NoWrapUChar:
       return UnsignedCharTy;
     case BuiltinType::NoWrapUInt:

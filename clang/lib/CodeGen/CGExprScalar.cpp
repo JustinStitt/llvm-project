@@ -3888,6 +3888,7 @@ Value *ScalarExprEmitter::EmitOverflowCheckedBinOp(const BinOpInfo &Ops) {
   SanitizerHandler OverflowKind;
 
   bool isSigned = Ops.Ty->isSignedIntegerOrEnumerationType();
+  llvm::errs() << "in EmitOverflowCheckedBinOp isSigned: " << isSigned << "\n";
   switch (Ops.Opcode) {
   case BO_Add:
   case BO_AddAssign:

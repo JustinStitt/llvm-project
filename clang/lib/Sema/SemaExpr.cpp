@@ -1567,12 +1567,24 @@ QualType Sema::handleNoWrapArithmeticConversion(ExprResult &LHS,
                                                 ExprResult &RHS,
                                                 SourceLocation Loc,
                                                 Sema::ArithConvKind ACK) {
+  llvm::errs() << "in handleNoWrapArithmeticConversion\n";
   QualType LHSType = LHS.get()->getType().getUnqualifiedType();
   QualType RHSType = RHS.get()->getType().getUnqualifiedType();
   assert(LHSType->isNoWrapType() || RHSType->isNoWrapType());
 
   QualType DroppedLHSTy = Context.getCorrespondingDroppedNoWrapType(LHSType);
   QualType DroppedRHSTy = Context.getCorrespondingDroppedNoWrapType(RHSType);
+  if (LHSType->isNoWrapType() && !RHSType->isNoWrapType()) {
+    RHS = doIntegralCast(*this, RHS.get(), DroppedLHSTy);
+    llvm::errs() << "LHSType is: \n"; LHSType.dump();
+    llvm::errs() << "DroppedLHSTy is: \n"; DroppedLHSTy.dump();
+    llvm::errs() << "RHS is: \n"; RHS.get()->dump();
+    return LHSType;
+  } else if (!LHSType->isNoWrapType() && RHSType->isNoWrapType()) {
+    LHS = doIntegralCast(*this, LHS.get(), DroppedRHSTy);
+    return RHSType;
+  }
+
 
   assert(!DroppedLHSTy->isNoWrapType() && !DroppedRHSTy->isNoWrapType());
 

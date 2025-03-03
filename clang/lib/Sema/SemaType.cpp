@@ -918,6 +918,8 @@ static QualType ConvertDeclSpecToType(TypeProcessingState &state) {
              "Unknown TSS value");
       Result = Context.UnsignedCharTy;
     }
+    if (DS.isTypeSpecNoWrap())
+      Result = Context.getCorrespondingNoWrapType(Result);
     break;
   case DeclSpec::TST_wchar:
     if (DS.getTypeSpecSign() == TypeSpecifierSign::Unspecified)
@@ -1058,9 +1060,9 @@ static QualType ConvertDeclSpecToType(TypeProcessingState &state) {
         }
         break;
       }
-      if (DS.isTypeSpecNoWrap())
-        Result = Context.getCorrespondingNoWrapType(Result);
     }
+    if (DS.isTypeSpecNoWrap())
+      Result = Context.getCorrespondingNoWrapType(Result);
     break;
   }
   case DeclSpec::TST_bitint: {
@@ -1424,10 +1426,17 @@ static QualType ConvertDeclSpecToType(TypeProcessingState &state) {
         << DS.getSpecifierName(DS.getTypeSpecType(),
                                Context.getPrintingPolicy());
 
-  if (DS.isTypeSpecNoWrap() && DS.getTypeSpecType() != DeclSpec::TST_int)
-    S.Diag(DS.getTypeSpecNoWrapLoc(), diag::err_invalid_nowrap_spec)
-        << DS.getSpecifierName(DS.getTypeSpecType(),
-                               Context.getPrintingPolicy());
+  if (DS.isTypeSpecNoWrap()) {
+    switch (DS.getTypeSpecType()) {
+      default:
+        S.Diag(DS.getTypeSpecNoWrapLoc(), diag::err_invalid_nowrap_spec)
+            << DS.getSpecifierName(DS.getTypeSpecType(),
+                                  Context.getPrintingPolicy());
+        break;
+      case DeclSpec::TST_int: break;
+      case DeclSpec::TST_char: break;
+    }
+  }
 
   // Handle complex types.
   if (DS.getTypeSpecComplex() == DeclSpec::TSC_complex) {
