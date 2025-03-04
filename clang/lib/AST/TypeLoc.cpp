@@ -394,7 +394,25 @@ TypeSpecifierType BuiltinTypeLoc::getWrittenTypeSpec() const {
   case BuiltinType::SatULongFract:
   case BuiltinType::BFloat16:
   case BuiltinType::NoWrapUChar:
+  case BuiltinType::NoWrapUShort:
   case BuiltinType::NoWrapUInt:
+  case BuiltinType::NoWrapULong:
+  case BuiltinType::NoWrapULongLong:
+  case BuiltinType::WrapUChar:
+  case BuiltinType::WrapUShort:
+  case BuiltinType::WrapUInt:
+  case BuiltinType::WrapULong:
+  case BuiltinType::WrapULongLong:
+  case BuiltinType::NoWrapSChar:
+  case BuiltinType::NoWrapShort:
+  case BuiltinType::NoWrapInt:
+  case BuiltinType::NoWrapLong:
+  case BuiltinType::NoWrapLongLong:
+  case BuiltinType::WrapSChar:
+  case BuiltinType::WrapShort:
+  case BuiltinType::WrapInt:
+  case BuiltinType::WrapLong:
+  case BuiltinType::WrapLongLong:
     llvm_unreachable("Builtin type needs extra local data!");
     // Fall through, if the impossible happens.
 

@@ -444,6 +444,7 @@ KEYWORD(_Fract                      , KEYFIXEDPOINT)
 KEYWORD(_Sat                        , KEYFIXEDPOINT)
 
 // WIP Arithmetic wrapping types
+KEYWORD(_Wrap                       , KEYNOCXX)
 KEYWORD(_NoWrap                     , KEYNOCXX)
 
 // GNU Extensions (in impl-reserved namespace)

@@ -2230,7 +2230,7 @@ bool Type::hasSignedIntegerRepresentation() const {
 bool Type::isUnsignedIntegerType() const {
   if (const auto *BT = dyn_cast<BuiltinType>(CanonicalType)) {
     return (BT->getKind() >= BuiltinType::Bool &&
-            BT->getKind() <= BuiltinType::NoWrapUInt);
+            BT->getKind() <= BuiltinType::UInt128);
   }
 
   if (const auto *ET = dyn_cast<EnumType>(CanonicalType)) {
@@ -3381,8 +3381,44 @@ StringRef BuiltinType::getName(const PrintingPolicy &Policy) const {
     return "unsigned long _Accum";
   case NoWrapUChar:
     return "_NoWrap unsigned char";
+  case NoWrapUShort:
+    return "_NoWrap unsigned short";
   case NoWrapUInt:
     return "_NoWrap unsigned int";
+  case NoWrapULong:
+    return "_NoWrap unsigned long";
+  case NoWrapULongLong:
+    return "_NoWrap unsigned long long";
+  case WrapUChar:
+    return "_Wrap unsigned char";
+  case WrapUShort:
+    return "_Wrap unsigned short";
+  case WrapUInt:
+    return "_Wrap unsigned int";
+  case WrapULong:
+    return "_Wrap unsigned long";
+  case WrapULongLong:
+    return "_Wrap unsigned long long";
+  case NoWrapSChar:
+    return "_NoWrap signed char";
+  case NoWrapShort:
+    return "_NoWrap short";
+  case NoWrapInt:
+    return "_NoWrap int";
+  case NoWrapLong:
+    return "_NoWrap long";
+  case NoWrapLongLong:
+    return "_NoWrap long long";
+  case WrapSChar:
+    return "_Wrap char";
+  case WrapShort:
+    return "_Wrap short";
+  case WrapInt:
+    return "_Wrap int";
+  case WrapLong:
+    return "_Wrap long";
+  case WrapLongLong:
+    return "_Wrap long long";
   case BuiltinType::ShortFract:
     return "short _Fract";
   case BuiltinType::Fract:

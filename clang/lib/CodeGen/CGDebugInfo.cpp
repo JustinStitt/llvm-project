@@ -922,11 +922,14 @@ llvm::DIType *CGDebugInfo::CreateType(const BuiltinType *BT) {
 #include "clang/Basic/AMDGPUTypes.def"
   case BuiltinType::UChar:
   case BuiltinType::Char_U:
+  case BuiltinType::WrapUChar:
   case BuiltinType::NoWrapUChar:
     Encoding = llvm::dwarf::DW_ATE_unsigned_char;
     break;
   case BuiltinType::Char_S:
   case BuiltinType::SChar:
+  case BuiltinType::WrapSChar:
+  case BuiltinType::NoWrapSChar:
     Encoding = llvm::dwarf::DW_ATE_signed_char;
     break;
   case BuiltinType::Char8:
@@ -935,20 +938,35 @@ llvm::DIType *CGDebugInfo::CreateType(const BuiltinType *BT) {
     Encoding = llvm::dwarf::DW_ATE_UTF;
     break;
   case BuiltinType::UShort:
+  case BuiltinType::WrapUShort:
+  case BuiltinType::NoWrapUShort:
   case BuiltinType::UInt:
+  case BuiltinType::WrapUInt:
+  case BuiltinType::NoWrapUInt:
   case BuiltinType::UInt128:
   case BuiltinType::ULong:
+  case BuiltinType::WrapULong:
+  case BuiltinType::NoWrapULong:
   case BuiltinType::WChar_U:
   case BuiltinType::ULongLong:
-  case BuiltinType::NoWrapUInt:
+  case BuiltinType::WrapULongLong:
+  case BuiltinType::NoWrapULongLong:
     Encoding = llvm::dwarf::DW_ATE_unsigned;
     break;
   case BuiltinType::Short:
+  case BuiltinType::WrapShort:
+  case BuiltinType::NoWrapShort:
   case BuiltinType::Int:
+  case BuiltinType::WrapInt:
+  case BuiltinType::NoWrapInt:
   case BuiltinType::Int128:
   case BuiltinType::Long:
+  case BuiltinType::WrapLong:
+  case BuiltinType::NoWrapLong:
   case BuiltinType::WChar_S:
   case BuiltinType::LongLong:
+  case BuiltinType::WrapLongLong:
+  case BuiltinType::NoWrapLongLong:
     Encoding = llvm::dwarf::DW_ATE_signed;
     break;
   case BuiltinType::Bool:

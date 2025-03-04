@@ -1120,11 +1120,65 @@ enum PredefinedTypeIDs {
   /// \brief The '__ibm128' type
   PREDEF_TYPE_IBM128_ID = 74,
 
-  /// \brief The '_NoWrap unsigned int' type
-  PREDEF_TYPE_NOWRAP_UCHAR_ID = 75,
+  // \brief The '_NoWrap unsigned char' type
+  PREDEF_TYPE_NOWRAP_UCHAR = 75,
 
-  /// \brief The '_NoWrap unsigned int' type
-  PREDEF_TYPE_NOWRAP_UINT_ID = 76,
+  // \brief The '_NoWrap unsigned short' type
+  PREDEF_TYPE_NOWRAP_USHORT = 76,
+
+  // \brief The '_NoWrap unsigned int' type
+  PREDEF_TYPE_NOWRAP_UINT = 77,
+
+  // \brief The '_NoWrap unsigned long' type
+  PREDEF_TYPE_NOWRAP_ULONG = 78,
+
+  // \brief The '_NoWrap unsigned long long' type
+  PREDEF_TYPE_NOWRAP_ULONGLONG = 79,
+
+  // \brief The '_Wrap unsigned char' type
+  PREDEF_TYPE_WRAP_UCHAR = 80,
+
+  // \brief The '_Wrap unsigned short' type
+  PREDEF_TYPE_WRAP_USHORT = 81,
+
+  // \brief The '_Wrap unsigned int' type
+  PREDEF_TYPE_WRAP_UINT = 82,
+
+  // \brief The '_Wrap unsigned long' type
+  PREDEF_TYPE_WRAP_ULONG = 83,
+
+  // \brief The '_Wrap unsigned long long' type
+  PREDEF_TYPE_WRAP_ULONGLONG = 84,
+
+  // \brief The '_NoWrap signed char' type
+  PREDEF_TYPE_NOWRAP_SCHAR = 85,
+
+  // \brief The '_NoWrap short' type
+  PREDEF_TYPE_NOWRAP_SHORT = 86,
+
+  // \brief The '_NoWrap int' type
+  PREDEF_TYPE_NOWRAP_INT = 87,
+
+  // \brief The '_NoWrap long' type
+  PREDEF_TYPE_NOWRAP_LONG = 88,
+
+  // \brief The '_NoWrap long long' type
+  PREDEF_TYPE_NOWRAP_LONGLONG = 89,
+
+  // \brief The '_Wrap char' type
+  PREDEF_TYPE_WRAP_SCHAR = 90,
+
+  // \brief The '_Wrap short' type
+  PREDEF_TYPE_WRAP_SHORT = 91,
+
+  // \brief The '_Wrap int' type
+  PREDEF_TYPE_WRAP_INT = 92,
+
+  // \brief The '_Wrap long' type
+  PREDEF_TYPE_WRAP_LONG = 93,
+
+  // \brief The '_Wrap long long' type
+  PREDEF_TYPE_WRAP_LONGLONG = 94,
 
 /// OpenCL image types with auto numeration
 #define IMAGE_TYPE(ImgType, Id, SingletonId, Access, Suffix)                   \
@@ -1163,7 +1217,7 @@ enum PredefinedTypeIDs {
 ///
 /// Type IDs for non-predefined types will start at
 /// NUM_PREDEF_TYPE_IDs.
-const unsigned NUM_PREDEF_TYPE_IDS = 515;
+const unsigned NUM_PREDEF_TYPE_IDS = 533;
 
 // Ensure we do not overrun the predefined types we reserved
 // in the enum PredefinedTypeIDs above.

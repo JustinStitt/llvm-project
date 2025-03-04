@@ -92,14 +92,38 @@ UNSIGNED_TYPE(ULong, UnsignedLongTy)
 // 'unsigned long long'
 UNSIGNED_TYPE(ULongLong, UnsignedLongLongTy)
 
-// '__uint128_t'
-UNSIGNED_TYPE(UInt128, UnsignedInt128Ty)
-
 // '_NoWrap unsigned char'
 UNSIGNED_TYPE(NoWrapUChar, NoWrapUnsignedCharTy)
 
+// '_NoWrap unsigned short'
+UNSIGNED_TYPE(NoWrapUShort, NoWrapUnsignedShortTy)
+
 // '_NoWrap unsigned int'
 UNSIGNED_TYPE(NoWrapUInt, NoWrapUnsignedIntTy)
+
+// '_NoWrap unsigned long'
+UNSIGNED_TYPE(NoWrapULong, NoWrapUnsignedLongTy)
+
+// '_NoWrap unsigned long long'
+UNSIGNED_TYPE(NoWrapULongLong, NoWrapUnsignedLongLongTy)
+
+// '_Wrap unsigned char'
+UNSIGNED_TYPE(WrapUChar, WrapUnsignedCharTy)
+
+// '_Wrap unsigned short'
+UNSIGNED_TYPE(WrapUShort, WrapUnsignedShortTy)
+
+// '_Wrap unsigned int'
+UNSIGNED_TYPE(WrapUInt, WrapUnsignedIntTy)
+
+// '_Wrap unsigned long'
+UNSIGNED_TYPE(WrapULong, WrapUnsignedLongTy)
+
+// '_Wrap unsigned long long'
+UNSIGNED_TYPE(WrapULongLong, WrapUnsignedLongLongTy)
+
+// '__uint128_t'
+UNSIGNED_TYPE(UInt128, UnsignedInt128Ty)
 
 //===- Signed Types -------------------------------------------------------===//
 
@@ -124,10 +148,38 @@ SIGNED_TYPE(Long, LongTy)
 // 'long long' or 'signed long long'
 SIGNED_TYPE(LongLong, LongLongTy)
 
+// '_NoWrap signed char'
+SIGNED_TYPE(NoWrapSChar, NoWrapSignedCharTy)
+
+// '_NoWrap short' or '_NoWrap signed short'
+SIGNED_TYPE(NoWrapShort, NoWrapShortTy)
+
+// '_NoWrap int' or '_NoWrap signed int'
+SIGNED_TYPE(NoWrapInt, NoWrapIntTy)
+
+// '_NoWrap long' or '_NoWrap signed long'
+SIGNED_TYPE(NoWrapLong, NoWrapLongTy)
+
+// '_NoWrap long long' or '_NoWrap signed long long'
+SIGNED_TYPE(NoWrapLongLong, NoWrapLongLongTy)
+
+// '_Wrap char' or '_Wrap signed char'
+SIGNED_TYPE(WrapSChar, WrapSignedCharTy)
+
+// '_Wrap short' or '_Wrap signed short'
+SIGNED_TYPE(WrapShort, WrapShortTy)
+
+// '_Wrap int' or '_Wrap signed int'
+SIGNED_TYPE(WrapInt, WrapIntTy)
+
+// '_Wrap long' or '_Wrap signed long'
+SIGNED_TYPE(WrapLong, WrapLongTy)
+
+// '_Wrap long long' or '_Wrap signed long long'
+SIGNED_TYPE(WrapLongLong, WrapLongLongTy)
+
 // '__int128_t'
 SIGNED_TYPE(Int128, Int128Ty)
-// WIP (justinstitt) ^ must be last element or conditional must be changed
-// according to Type.h isIntegerType() bounds checking
 
 //===- Fixed point types --------------------------------------------------===//
 

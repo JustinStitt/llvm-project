@@ -217,10 +217,64 @@ serialization::TypeIdxFromBuiltin(const BuiltinType *BT) {
     ID = PREDEF_TYPE_OBJC_SEL;
     break;
   case BuiltinType::NoWrapUChar:
-    ID = PREDEF_TYPE_NOWRAP_UCHAR_ID;
+    ID = PREDEF_TYPE_NOWRAP_UCHAR;
+    break;
+  case BuiltinType::NoWrapUShort:
+    ID = PREDEF_TYPE_NOWRAP_USHORT;
     break;
   case BuiltinType::NoWrapUInt:
-    ID = PREDEF_TYPE_NOWRAP_UINT_ID;
+    ID = PREDEF_TYPE_NOWRAP_UINT;
+    break;
+  case BuiltinType::NoWrapULong:
+    ID = PREDEF_TYPE_NOWRAP_ULONG;
+    break;
+  case BuiltinType::NoWrapULongLong:
+    ID = PREDEF_TYPE_NOWRAP_ULONGLONG;
+    break;
+  case BuiltinType::WrapUChar:
+    ID = PREDEF_TYPE_WRAP_UCHAR;
+    break;
+  case BuiltinType::WrapUShort:
+    ID = PREDEF_TYPE_WRAP_USHORT;
+    break;
+  case BuiltinType::WrapUInt:
+    ID = PREDEF_TYPE_WRAP_UINT;
+    break;
+  case BuiltinType::WrapULong:
+    ID = PREDEF_TYPE_WRAP_ULONG;
+    break;
+  case BuiltinType::WrapULongLong:
+    ID = PREDEF_TYPE_WRAP_ULONGLONG;
+    break;
+  case BuiltinType::NoWrapSChar:
+    ID = PREDEF_TYPE_NOWRAP_SCHAR;
+    break;
+  case BuiltinType::NoWrapShort:
+    ID = PREDEF_TYPE_NOWRAP_SHORT;
+    break;
+  case BuiltinType::NoWrapInt:
+    ID = PREDEF_TYPE_NOWRAP_INT;
+    break;
+  case BuiltinType::NoWrapLong:
+    ID = PREDEF_TYPE_NOWRAP_LONG;
+    break;
+  case BuiltinType::NoWrapLongLong:
+    ID = PREDEF_TYPE_NOWRAP_LONGLONG;
+    break;
+  case BuiltinType::WrapSChar:
+    ID = PREDEF_TYPE_WRAP_SCHAR;
+    break;
+  case BuiltinType::WrapShort:
+    ID = PREDEF_TYPE_WRAP_SHORT;
+    break;
+  case BuiltinType::WrapInt:
+    ID = PREDEF_TYPE_WRAP_INT;
+    break;
+  case BuiltinType::WrapLong:
+    ID = PREDEF_TYPE_WRAP_LONG;
+    break;
+  case BuiltinType::WrapLongLong:
+    ID = PREDEF_TYPE_WRAP_LONGLONG;
     break;
 #define IMAGE_TYPE(ImgType, Id, SingletonId, Access, Suffix) \
   case BuiltinType::Id: \

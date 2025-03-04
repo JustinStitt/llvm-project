@@ -270,8 +270,8 @@ def err_invalid_sign_spec : Error<"'%0' cannot be signed or unsigned">;
 def err_invalid_width_spec : Error<
   "'%select{|short|long|long long}0 %1' is invalid">;
 def err_invalid_complex_spec : Error<"'_Complex %0' is invalid">;
-def err_invalid_nowrap_spec : Error<"'_NoWrap' specifier is only valid on "
-  "integral types, not '%0'">;
+def err_invalid_wrapping_spec : Error<"'%select{_Wrap|_NoWrap}0' specifier is only valid on "
+  "integral types, not '%1'">;
 
 def ext_auto_type_specifier : ExtWarn<
   "'auto' type specifier is a %select{C++11|HLSL 202y}0 extension">,

@@ -894,10 +894,23 @@ bool DeclSpec::SetTypeSpecSat(SourceLocation Loc, const char *&PrevSpec,
   return false;
 }
 
+bool DeclSpec::SetTypeSpecWrap(SourceLocation Loc, const char *&PrevSpec,
+                               unsigned &DiagID) {
+  // Cannot set twice
+  if (TypeSpecNoWrap || TypeSpecWrap) {
+    DiagID = diag::warn_duplicate_declspec;
+    PrevSpec = "_Wrap";
+    return true;
+  }
+  TypeSpecWrap = true;
+  TSWrapLoc = Loc;
+  return false;
+}
+
 bool DeclSpec::SetTypeSpecNoWrap(SourceLocation Loc, const char *&PrevSpec,
                                  unsigned &DiagID) {
   // Cannot set twice
-  if (TypeSpecNoWrap) {
+  if (TypeSpecNoWrap || TypeSpecWrap) {
     DiagID = diag::warn_duplicate_declspec;
     PrevSpec = "_NoWrap";
     return true;

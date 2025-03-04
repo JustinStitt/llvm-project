@@ -365,27 +365,45 @@ NSAPI::getNSNumberFactoryMethodKind(QualType T) const {
   switch (BT->getKind()) {
   case BuiltinType::Char_S:
   case BuiltinType::SChar:
+  case BuiltinType::WrapSChar:
+  case BuiltinType::NoWrapSChar:
     return NSAPI::NSNumberWithChar;
   case BuiltinType::Char_U:
   case BuiltinType::UChar:
+  case BuiltinType::WrapUChar:
   case BuiltinType::NoWrapUChar:
     return NSAPI::NSNumberWithUnsignedChar;
   case BuiltinType::Short:
+  case BuiltinType::WrapShort:
+  case BuiltinType::NoWrapShort:
     return NSAPI::NSNumberWithShort;
   case BuiltinType::UShort:
+  case BuiltinType::WrapUShort:
+  case BuiltinType::NoWrapUShort:
     return NSAPI::NSNumberWithUnsignedShort;
   case BuiltinType::Int:
+  case BuiltinType::WrapInt:
+  case BuiltinType::NoWrapInt:
     return NSAPI::NSNumberWithInt;
   case BuiltinType::UInt:
+  case BuiltinType::WrapUInt:
   case BuiltinType::NoWrapUInt:
     return NSAPI::NSNumberWithUnsignedInt;
   case BuiltinType::Long:
+  case BuiltinType::WrapLong:
+  case BuiltinType::NoWrapLong:
     return NSAPI::NSNumberWithLong;
   case BuiltinType::ULong:
+  case BuiltinType::WrapULong:
+  case BuiltinType::NoWrapULong:
     return NSAPI::NSNumberWithUnsignedLong;
   case BuiltinType::LongLong:
+  case BuiltinType::WrapLongLong:
+  case BuiltinType::NoWrapLongLong:
     return NSAPI::NSNumberWithLongLong;
   case BuiltinType::ULongLong:
+  case BuiltinType::WrapULongLong:
+  case BuiltinType::NoWrapULongLong:
     return NSAPI::NSNumberWithUnsignedLongLong;
   case BuiltinType::Float:
     return NSAPI::NSNumberWithFloat;

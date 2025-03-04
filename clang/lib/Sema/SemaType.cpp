@@ -920,6 +920,8 @@ static QualType ConvertDeclSpecToType(TypeProcessingState &state) {
     }
     if (DS.isTypeSpecNoWrap())
       Result = Context.getCorrespondingNoWrapType(Result);
+    else if (DS.isTypeSpecWrap())
+      Result = Context.getCorrespondingWrapType(Result);
     break;
   case DeclSpec::TST_wchar:
     if (DS.getTypeSpecSign() == TypeSpecifierSign::Unspecified)
@@ -1063,6 +1065,8 @@ static QualType ConvertDeclSpecToType(TypeProcessingState &state) {
     }
     if (DS.isTypeSpecNoWrap())
       Result = Context.getCorrespondingNoWrapType(Result);
+    else if (DS.isTypeSpecWrap())
+      Result = Context.getCorrespondingWrapType(Result);
     break;
   }
   case DeclSpec::TST_bitint: {
@@ -1425,16 +1429,20 @@ static QualType ConvertDeclSpecToType(TypeProcessingState &state) {
     S.Diag(DS.getTypeSpecSatLoc(), diag::err_invalid_saturation_spec)
         << DS.getSpecifierName(DS.getTypeSpecType(),
                                Context.getPrintingPolicy());
-
-  if (DS.isTypeSpecNoWrap()) {
+  if (DS.isTypeSpecNoWrap() || DS.isTypeSpecWrap()) {
     switch (DS.getTypeSpecType()) {
-      default:
-        S.Diag(DS.getTypeSpecNoWrapLoc(), diag::err_invalid_nowrap_spec)
-            << DS.getSpecifierName(DS.getTypeSpecType(),
-                                  Context.getPrintingPolicy());
-        break;
-      case DeclSpec::TST_int: break;
-      case DeclSpec::TST_char: break;
+    default:
+      S.Diag(DS.isTypeSpecNoWrap() ? DS.getTypeSpecNoWrapLoc()
+                                   : DS.getTypeSpecWrapLoc(),
+             diag::err_invalid_wrapping_spec)
+          << DS.isTypeSpecNoWrap()
+          << DS.getSpecifierName(DS.getTypeSpecType(),
+                                 Context.getPrintingPolicy());
+      break;
+    case DeclSpec::TST_int:
+      break;
+    case DeclSpec::TST_char:
+      break;
     }
   }
 

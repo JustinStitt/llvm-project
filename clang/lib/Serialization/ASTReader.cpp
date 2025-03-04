@@ -7636,12 +7636,67 @@ QualType ASTReader::GetType(TypeID ID) {
     case PREDEF_TYPE_OBJC_SEL:
       T = Context.ObjCBuiltinSelTy;
       break;
-    case PREDEF_TYPE_NOWRAP_UCHAR_ID:
+    case PREDEF_TYPE_NOWRAP_UCHAR:
       T = Context.NoWrapUnsignedCharTy;
       break;
-    case PREDEF_TYPE_NOWRAP_UINT_ID:
+    case PREDEF_TYPE_NOWRAP_USHORT:
+      T = Context.NoWrapUnsignedShortTy;
+      break;
+    case PREDEF_TYPE_NOWRAP_UINT:
       T = Context.NoWrapUnsignedIntTy;
       break;
+    case PREDEF_TYPE_NOWRAP_ULONG:
+      T = Context.NoWrapUnsignedLongTy;
+      break;
+    case PREDEF_TYPE_NOWRAP_ULONGLONG:
+      T = Context.NoWrapUnsignedLongLongTy;
+      break;
+    case PREDEF_TYPE_WRAP_UCHAR:
+      T = Context.WrapUnsignedCharTy;
+      break;
+    case PREDEF_TYPE_WRAP_USHORT:
+      T = Context.WrapUnsignedShortTy;
+      break;
+    case PREDEF_TYPE_WRAP_UINT:
+      T = Context.WrapUnsignedIntTy;
+      break;
+    case PREDEF_TYPE_WRAP_ULONG:
+      T = Context.WrapUnsignedLongTy;
+      break;
+    case PREDEF_TYPE_WRAP_ULONGLONG:
+      T = Context.WrapUnsignedLongLongTy;
+      break;
+    case PREDEF_TYPE_NOWRAP_SCHAR:
+      T = Context.NoWrapSignedCharTy;
+      break;
+    case PREDEF_TYPE_NOWRAP_SHORT:
+      T = Context.NoWrapShortTy;
+      break;
+    case PREDEF_TYPE_NOWRAP_INT:
+      T = Context.NoWrapIntTy;
+      break;
+    case PREDEF_TYPE_NOWRAP_LONG:
+      T = Context.NoWrapLongTy;
+      break;
+    case PREDEF_TYPE_NOWRAP_LONGLONG:
+      T = Context.NoWrapLongLongTy;
+      break;
+    case PREDEF_TYPE_WRAP_SCHAR:
+      T = Context.WrapSignedCharTy;
+      break;
+    case PREDEF_TYPE_WRAP_SHORT:
+      T = Context.WrapShortTy;
+      break;
+    case PREDEF_TYPE_WRAP_INT:
+      T = Context.WrapIntTy;
+      break;
+    case PREDEF_TYPE_WRAP_LONG:
+      T = Context.WrapLongTy;
+      break;
+    case PREDEF_TYPE_WRAP_LONGLONG:
+      T = Context.WrapLongLongTy;
+      break;
+
 #define IMAGE_TYPE(ImgType, Id, SingletonId, Access, Suffix) \
     case PREDEF_TYPE_##Id##_ID: \
       T = Context.SingletonId; \

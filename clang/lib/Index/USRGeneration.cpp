@@ -842,8 +842,44 @@ void USRGenerator::VisitType(QualType T) {
           Out << "@BT@__ibm128"; break;
         case BuiltinType::NoWrapUChar:
           Out << "@BT@NoWrapUChar"; break;
+        case BuiltinType::NoWrapUShort:
+          Out << "@BT@NoWrapUShort"; break;
         case BuiltinType::NoWrapUInt:
           Out << "@BT@NoWrapUInt"; break;
+        case BuiltinType::NoWrapULong:
+          Out << "@BT@NoWrapULong"; break;
+        case BuiltinType::NoWrapULongLong:
+          Out << "@BT@NoWrapULongLong"; break;
+        case BuiltinType::WrapUChar:
+          Out << "@BT@WrapUChar"; break;
+        case BuiltinType::WrapUShort:
+          Out << "@BT@WrapUShort"; break;
+        case BuiltinType::WrapUInt:
+          Out << "@BT@WrapUInt"; break;
+        case BuiltinType::WrapULong:
+          Out << "@BT@WrapULong"; break;
+        case BuiltinType::WrapULongLong:
+          Out << "@BT@WrapULongLong"; break;
+        case BuiltinType::NoWrapSChar:
+          Out << "@BT@NoWrapSChar"; break;
+        case BuiltinType::NoWrapShort:
+          Out << "@BT@NoWrapShort"; break;
+        case BuiltinType::NoWrapInt:
+          Out << "@BT@NoWrapInt"; break;
+        case BuiltinType::NoWrapLong:
+          Out << "@BT@NoWrapLong"; break;
+        case BuiltinType::NoWrapLongLong:
+          Out << "@BT@NoWrapLongLong"; break;
+        case BuiltinType::WrapSChar:
+          Out << "@BT@WrapSChar"; break;
+        case BuiltinType::WrapShort:
+          Out << "@BT@WrapShort"; break;
+        case BuiltinType::WrapInt:
+          Out << "@BT@WrapInt"; break;
+        case BuiltinType::WrapLong:
+          Out << "@BT@WrapLong"; break;
+        case BuiltinType::WrapLongLong:
+          Out << "@BT@WrapLongLong"; break;
         case BuiltinType::ObjCId:
           Out << 'o'; break;
         case BuiltinType::ObjCClass:

@@ -1339,8 +1339,26 @@ void ASTContext::InitBuiltinTypes(const TargetInfo &Target,
   InitBuiltinType(SatUnsignedLongFractTy,  BuiltinType::SatULongFract);
 
   // _Wrap and _NoWrap types
-  InitBuiltinType(NoWrapUnsignedCharTy, BuiltinType::NoWrapUChar);
-  InitBuiltinType(NoWrapUnsignedIntTy, BuiltinType::NoWrapUInt);
+  InitBuiltinType(NoWrapUnsignedCharTy,     BuiltinType::NoWrapUChar);
+  InitBuiltinType(NoWrapUnsignedShortTy,    BuiltinType::NoWrapUShort);
+  InitBuiltinType(NoWrapUnsignedIntTy,      BuiltinType::NoWrapUInt);
+  InitBuiltinType(NoWrapUnsignedLongTy,     BuiltinType::NoWrapULong);
+  InitBuiltinType(NoWrapUnsignedLongLongTy, BuiltinType::NoWrapULongLong);
+  InitBuiltinType(WrapUnsignedCharTy,       BuiltinType::WrapUChar);
+  InitBuiltinType(WrapUnsignedShortTy,      BuiltinType::WrapUShort);
+  InitBuiltinType(WrapUnsignedIntTy,        BuiltinType::WrapUInt);
+  InitBuiltinType(WrapUnsignedLongTy,       BuiltinType::WrapULong);
+  InitBuiltinType(WrapUnsignedLongLongTy,   BuiltinType::WrapULongLong);
+  InitBuiltinType(NoWrapSignedCharTy,       BuiltinType::NoWrapSChar);
+  InitBuiltinType(NoWrapShortTy,            BuiltinType::NoWrapShort);
+  InitBuiltinType(NoWrapIntTy,              BuiltinType::NoWrapInt);
+  InitBuiltinType(NoWrapLongTy,             BuiltinType::NoWrapLong);
+  InitBuiltinType(NoWrapLongLongTy,         BuiltinType::NoWrapLongLong);
+  InitBuiltinType(WrapSignedCharTy,         BuiltinType::WrapSChar);
+  InitBuiltinType(WrapShortTy,              BuiltinType::WrapShort);
+  InitBuiltinType(WrapIntTy,                BuiltinType::WrapInt);
+  InitBuiltinType(WrapLongTy,               BuiltinType::WrapLong);
+  InitBuiltinType(WrapLongLongTy,           BuiltinType::WrapLongLong);
 
   // GNU extension, 128-bit integers.
   InitBuiltinType(Int128Ty,            BuiltinType::Int128);
@@ -2081,7 +2099,10 @@ TypeInfo ASTContext::getTypeInfoImpl(const Type *T) const {
     case BuiltinType::UChar:
     case BuiltinType::SChar:
     case BuiltinType::Char8:
+    case BuiltinType::WrapUChar:
     case BuiltinType::NoWrapUChar:
+    case BuiltinType::WrapSChar:
+    case BuiltinType::NoWrapSChar:
       Width = Target->getCharWidth();
       Align = Target->getCharAlign();
       break;
@@ -2100,22 +2121,37 @@ TypeInfo ASTContext::getTypeInfoImpl(const Type *T) const {
       break;
     case BuiltinType::UShort:
     case BuiltinType::Short:
+    case BuiltinType::WrapUShort:
+    case BuiltinType::NoWrapUShort:
+    case BuiltinType::WrapShort:
+    case BuiltinType::NoWrapShort:
       Width = Target->getShortWidth();
       Align = Target->getShortAlign();
       break;
     case BuiltinType::UInt:
     case BuiltinType::Int:
+    case BuiltinType::WrapUInt:
     case BuiltinType::NoWrapUInt:
+    case BuiltinType::WrapInt:
+    case BuiltinType::NoWrapInt:
       Width = Target->getIntWidth();
       Align = Target->getIntAlign();
       break;
     case BuiltinType::ULong:
     case BuiltinType::Long:
+    case BuiltinType::WrapULong:
+    case BuiltinType::NoWrapULong:
+    case BuiltinType::WrapLong:
+    case BuiltinType::NoWrapLong:
       Width = Target->getLongWidth();
       Align = Target->getLongAlign();
       break;
     case BuiltinType::ULongLong:
     case BuiltinType::LongLong:
+    case BuiltinType::WrapULongLong:
+    case BuiltinType::NoWrapULongLong:
+    case BuiltinType::WrapLongLong:
+    case BuiltinType::NoWrapLongLong:
       Width = Target->getLongLongWidth();
       Align = Target->getLongLongAlign();
       break;
@@ -7838,20 +7874,38 @@ unsigned ASTContext::getIntegerRank(const Type *T) const {
   case BuiltinType::Char_U:
   case BuiltinType::SChar:
   case BuiltinType::UChar:
+  case BuiltinType::WrapUChar:
   case BuiltinType::NoWrapUChar:
+  case BuiltinType::WrapSChar:
+  case BuiltinType::NoWrapSChar:
     return 2 + (getIntWidth(CharTy) << 3);
   case BuiltinType::Short:
   case BuiltinType::UShort:
+  case BuiltinType::WrapUShort:
+  case BuiltinType::NoWrapUShort:
+  case BuiltinType::WrapShort:
+  case BuiltinType::NoWrapShort:
     return 3 + (getIntWidth(ShortTy) << 3);
   case BuiltinType::Int:
   case BuiltinType::UInt:
+  case BuiltinType::WrapUInt:
   case BuiltinType::NoWrapUInt:
+  case BuiltinType::WrapInt:
+  case BuiltinType::NoWrapInt:
     return 4 + (getIntWidth(IntTy) << 3);
   case BuiltinType::Long:
   case BuiltinType::ULong:
+  case BuiltinType::WrapULong:
+  case BuiltinType::NoWrapULong:
+  case BuiltinType::WrapLong:
+  case BuiltinType::NoWrapLong:
     return 5 + (getIntWidth(LongTy) << 3);
   case BuiltinType::LongLong:
   case BuiltinType::ULongLong:
+  case BuiltinType::WrapULongLong:
+  case BuiltinType::NoWrapULongLong:
+  case BuiltinType::WrapLongLong:
+  case BuiltinType::NoWrapLongLong:
     return 6 + (getIntWidth(LongLongTy) << 3);
   case BuiltinType::Int128:
   case BuiltinType::UInt128:
@@ -8771,27 +8825,51 @@ static char getObjCEncodingForPrimitiveType(const ASTContext *C,
     case BuiltinType::Char8:
     case BuiltinType::Char_U:
     case BuiltinType::UChar:
+    case BuiltinType::WrapUChar:
     case BuiltinType::NoWrapUChar:
         return 'C';
     case BuiltinType::Char16:
-    case BuiltinType::UShort:     return 'S';
+    case BuiltinType::UShort:
+    case BuiltinType::WrapUShort:
+    case BuiltinType::NoWrapUShort:
+        return 'S';
     case BuiltinType::Char32:
     case BuiltinType::UInt:
+    case BuiltinType::WrapUInt:
     case BuiltinType::NoWrapUInt:
         return 'I';
     case BuiltinType::ULong:
+    case BuiltinType::WrapULong:
+    case BuiltinType::NoWrapULong:
         return C->getTargetInfo().getLongWidth() == 32 ? 'L' : 'Q';
     case BuiltinType::UInt128:    return 'T';
-    case BuiltinType::ULongLong:  return 'Q';
+    case BuiltinType::ULongLong:
+    case BuiltinType::WrapULongLong:
+    case BuiltinType::NoWrapULongLong:
+      return 'Q';
     case BuiltinType::Char_S:
-    case BuiltinType::SChar:      return 'c';
-    case BuiltinType::Short:      return 's';
+    case BuiltinType::SChar:
+    case BuiltinType::WrapSChar:
+    case BuiltinType::NoWrapSChar:
+      return 'c';
+    case BuiltinType::Short:
+    case BuiltinType::WrapShort:
+    case BuiltinType::NoWrapShort:
+      return 's';
     case BuiltinType::WChar_S:
     case BuiltinType::WChar_U:
-    case BuiltinType::Int:        return 'i';
+    case BuiltinType::Int:
+    case BuiltinType::WrapInt:
+    case BuiltinType::NoWrapInt:
+      return 'i';
     case BuiltinType::Long:
+    case BuiltinType::WrapLong:
+    case BuiltinType::NoWrapLong:
       return C->getTargetInfo().getLongWidth() == 32 ? 'l' : 'q';
-    case BuiltinType::LongLong:   return 'q';
+    case BuiltinType::LongLong:
+    case BuiltinType::WrapLongLong:
+    case BuiltinType::NoWrapLongLong:
+      return 'q';
     case BuiltinType::Int128:     return 't';
     case BuiltinType::Float:      return 'f';
     case BuiltinType::Double:     return 'd';
@@ -14335,23 +14413,96 @@ QualType ASTContext::getCorrespondingNoWrapType(QualType Ty) const {
       llvm_unreachable("This Type is not supported for use with _NoWrap!");
     case BuiltinType::UChar:
       return NoWrapUnsignedCharTy;
+    case BuiltinType::UShort:
+      return NoWrapUnsignedShortTy;
     case BuiltinType::UInt:
       return NoWrapUnsignedIntTy;
+    case BuiltinType::ULong:
+      return NoWrapUnsignedLongTy;
+    case BuiltinType::ULongLong:
+      return NoWrapUnsignedLongLongTy;
+    case BuiltinType::SChar:
+      return NoWrapSignedCharTy;
+    case BuiltinType::Short:
+      return NoWrapShortTy;
+    case BuiltinType::Int:
+      return NoWrapIntTy;
+    case BuiltinType::Long:
+      return NoWrapLongTy;
+    case BuiltinType::LongLong:
+      return NoWrapLongLongTy;
   }
 }
 
-/// Get the integral type that remains after removing _NoWrap specifier
-QualType ASTContext::getCorrespondingDroppedNoWrapType(QualType Ty) const {
-  if (!Ty->isNoWrapType()) return Ty;
+QualType ASTContext::getCorrespondingWrapType(QualType Ty) const {
+  if (Ty->isWrapType()) return Ty;
+  llvm::errs() << "in getCorrespondingWrapType with Ty: \n"; Ty.dump();
+
+  switch (Ty->castAs<BuiltinType>()->getKind()) {
+    default:
+      llvm_unreachable("This Type is not supported for use with _Wrap!");
+    case BuiltinType::UChar:
+      return WrapUnsignedCharTy;
+    case BuiltinType::UShort:
+      return WrapUnsignedShortTy;
+    case BuiltinType::UInt:
+      return WrapUnsignedIntTy;
+    case BuiltinType::ULong:
+      return WrapUnsignedLongTy;
+    case BuiltinType::ULongLong:
+      return WrapUnsignedLongLongTy;
+    case BuiltinType::SChar:
+      return WrapSignedCharTy;
+    case BuiltinType::Short:
+      return WrapShortTy;
+    case BuiltinType::Int:
+      return WrapIntTy;
+    case BuiltinType::Long:
+      return WrapLongTy;
+    case BuiltinType::LongLong:
+      return WrapLongLongTy;
+  }
+}
+
+/// Get the integral type that remains after removing _Wrap and _NoWrap
+/// specifiers
+QualType ASTContext::getCorrespondingNonWrappingType(QualType Ty) const {
+  if (!Ty->isNoWrapType() || !Ty->isWrapType()) return Ty;
   llvm::errs() << "in getCorrespondingDroppedNoWrapType with Ty: \n"; Ty.dump();
 
   switch (Ty->castAs<BuiltinType>()->getKind()) {
     default:
       llvm_unreachable("This Type is not supported for use with _NoWrap");
+    case BuiltinType::WrapUChar:
     case BuiltinType::NoWrapUChar:
       return UnsignedCharTy;
+    case BuiltinType::WrapUShort:
+    case BuiltinType::NoWrapUShort:
+      return UnsignedShortTy;
+    case BuiltinType::WrapUInt:
     case BuiltinType::NoWrapUInt:
       return UnsignedIntTy;
+    case BuiltinType::WrapULong:
+    case BuiltinType::NoWrapULong:
+      return UnsignedLongTy;
+    case BuiltinType::WrapULongLong:
+    case BuiltinType::NoWrapULongLong:
+      return UnsignedLongLongTy;
+    case BuiltinType::WrapSChar:
+    case BuiltinType::NoWrapSChar:
+      return SignedCharTy;
+    case BuiltinType::WrapShort:
+    case BuiltinType::NoWrapShort:
+      return ShortTy;
+    case BuiltinType::WrapInt:
+    case BuiltinType::NoWrapInt:
+      return IntTy;
+    case BuiltinType::WrapLong:
+    case BuiltinType::NoWrapLong:
+      return LongTy;
+    case BuiltinType::WrapLongLong:
+    case BuiltinType::NoWrapLongLong:
+      return LongLongTy;
   }
 }
 

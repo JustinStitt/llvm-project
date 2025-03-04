@@ -2489,6 +2489,7 @@ public:
   bool isEnumeralType() const;
 
   /// Determine whether this type is _Wrap or _NoWrap
+  bool isWrapType() const;
   bool isNoWrapType() const;
                                   //
   /// Determine whether this type is a scoped enumeration type.
@@ -8573,11 +8574,22 @@ inline bool Type::isIntegerType() const {
   return isBitIntType();
 }
 
-inline bool Type::isNoWrapType() const {
-  // TODO (justinstitt): add the rest of the types and convert to >= and <=
+inline bool Type::isWrapType() const {
   if (const auto *BT = dyn_cast<BuiltinType>(CanonicalType)) {
-    return BT->getKind() == BuiltinType::NoWrapUInt ||
-           BT->getKind() == BuiltinType::NoWrapUChar;
+    return (BT->getKind() >= BuiltinType::WrapUChar &&
+            BT->getKind() <= BuiltinType::WrapULongLong) ||
+           (BT->getKind() >= BuiltinType::WrapSChar &&
+            BT->getKind() <= BuiltinType::WrapLongLong);
+  }
+  return false;
+}
+
+inline bool Type::isNoWrapType() const {
+  if (const auto *BT = dyn_cast<BuiltinType>(CanonicalType)) {
+    return (BT->getKind() >= BuiltinType::NoWrapUChar &&
+            BT->getKind() <= BuiltinType::NoWrapULongLong) ||
+           (BT->getKind() >= BuiltinType::NoWrapSChar &&
+            BT->getKind() <= BuiltinType::NoWrapLongLong);
   }
   return false;
 }

@@ -4594,6 +4594,9 @@ void Parser::ParseDeclarationSpecifiers(
              "with `-ffixed-point`");
       isInvalid = DS.SetTypeSpecSat(Loc, PrevSpec, DiagID);
       break;
+    case tok::kw__Wrap:
+      isInvalid = DS.SetTypeSpecWrap(Loc, PrevSpec, DiagID);
+      break;
     case tok::kw__NoWrap:
       isInvalid = DS.SetTypeSpecNoWrap(Loc, PrevSpec, DiagID);
       break;
@@ -5958,6 +5961,7 @@ bool Parser::isTypeSpecifierQualifier() {
   case tok::kw_volatile:
   case tok::kw_restrict:
   case tok::kw__Sat:
+  case tok::kw__Wrap:
   case tok::kw__NoWrap:
 
     // Debugger support.
@@ -6179,6 +6183,7 @@ bool Parser::isDeclarationSpecifier(
   case tok::kw_volatile:
   case tok::kw_restrict:
   case tok::kw__Sat:
+  case tok::kw__Wrap:
   case tok::kw__NoWrap:
 
     // function-specifier

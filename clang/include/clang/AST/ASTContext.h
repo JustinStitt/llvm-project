@@ -1169,7 +1169,13 @@ public:
   CanQualType SignedCharTy, ShortTy, IntTy, LongTy, LongLongTy, Int128Ty;
   CanQualType UnsignedCharTy, UnsignedShortTy, UnsignedIntTy, UnsignedLongTy;
   CanQualType UnsignedLongLongTy, UnsignedInt128Ty;
-  CanQualType NoWrapUnsignedIntTy, NoWrapUnsignedCharTy;
+  CanQualType NoWrapUnsignedCharTy, NoWrapUnsignedShortTy, NoWrapUnsignedIntTy,
+      NoWrapUnsignedLongTy, NoWrapUnsignedLongLongTy, WrapUnsignedCharTy,
+      WrapUnsignedShortTy, WrapUnsignedIntTy, WrapUnsignedLongTy,
+      WrapUnsignedLongLongTy;
+  CanQualType NoWrapSignedCharTy, NoWrapShortTy, NoWrapIntTy, NoWrapLongTy,
+      NoWrapLongLongTy, WrapSignedCharTy, WrapShortTy, WrapIntTy, WrapLongTy,
+      WrapLongLongTy;
   CanQualType FloatTy, DoubleTy, LongDoubleTy, Float128Ty, Ibm128Ty;
   CanQualType ShortAccumTy, AccumTy,
       LongAccumTy;  // ISO/IEC JTC1 SC22 WG14 N1169 Extension
@@ -3175,12 +3181,16 @@ public:
   QualType getCorrespondingSignedFixedPointType(QualType Ty) const;
 
   // This method accepts builtin integer types and returns the appropriate
+  // builtin _Wrap type.
+  QualType getCorrespondingWrapType(QualType Ty) const;
+
+  // This method accepts builtin integer types and returns the appropriate
   // builtin _NoWrap type.
   QualType getCorrespondingNoWrapType(QualType Ty) const;
 
-  // This method accepts _NoWrap integer types and returns the appropriate
-  // builtin integer type.
-  QualType getCorrespondingDroppedNoWrapType(QualType Ty) const;
+  // This method accepts a _Wrap or _NoWrap integer type and returns the
+  // appropriate builtin integer type.
+  QualType getCorrespondingNonWrappingType(QualType Ty) const;
 
   //===--------------------------------------------------------------------===//
   //                    Integer Values

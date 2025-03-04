@@ -1563,36 +1563,38 @@ void Sema::checkEnumArithmeticConversions(Expr *LHS, Expr *RHS,
   }
 }
 
-QualType Sema::handleNoWrapArithmeticConversion(ExprResult &LHS,
-                                                ExprResult &RHS,
-                                                SourceLocation Loc,
-                                                Sema::ArithConvKind ACK) {
-  llvm::errs() << "in handleNoWrapArithmeticConversion\n";
+QualType Sema::handleWrappingTypeArithmeticConversion(ExprResult &LHS,
+                                                      ExprResult &RHS,
+                                                      SourceLocation Loc,
+                                                      Sema::ArithConvKind ACK) {
   QualType LHSType = LHS.get()->getType().getUnqualifiedType();
   QualType RHSType = RHS.get()->getType().getUnqualifiedType();
-  assert(LHSType->isNoWrapType() || RHSType->isNoWrapType());
+  assert(LHSType->isNoWrapType() || LHSType->isWrapType());
+  assert(RHSType->isNoWrapType() || RHSType->isWrapType());
 
-  QualType DroppedLHSTy = Context.getCorrespondingDroppedNoWrapType(LHSType);
-  QualType DroppedRHSTy = Context.getCorrespondingDroppedNoWrapType(RHSType);
+  QualType DroppedLHSTy = Context.getCorrespondingNonWrappingType(LHSType);
+  QualType DroppedRHSTy = Context.getCorrespondingNonWrappingType(RHSType);
   if (LHSType->isNoWrapType() && !RHSType->isNoWrapType()) {
     RHS = doIntegralCast(*this, RHS.get(), DroppedLHSTy);
-    llvm::errs() << "LHSType is: \n"; LHSType.dump();
-    llvm::errs() << "DroppedLHSTy is: \n"; DroppedLHSTy.dump();
-    llvm::errs() << "RHS is: \n"; RHS.get()->dump();
     return LHSType;
   } else if (!LHSType->isNoWrapType() && RHSType->isNoWrapType()) {
     LHS = doIntegralCast(*this, LHS.get(), DroppedRHSTy);
     return RHSType;
+  } else if (LHSType->isWrapType() && !RHSType->isWrapType()) {
+    RHS = doIntegralCast(*this, RHS.get(), DroppedLHSTy);
+    return LHSType;
+  } else if (!LHSType->isWrapType() && RHSType->isWrapType()) {
+    LHS = doIntegralCast(*this, LHS.get(), DroppedRHSTy);
+    return RHSType;
   }
-
-
-  assert(!DroppedLHSTy->isNoWrapType() && !DroppedRHSTy->isNoWrapType());
 
   QualType ResultTy = handleIntegerConversion<doIntegralCast, doIntegralCast>(
       *this, LHS, RHS, DroppedLHSTy, DroppedRHSTy, ACK == ACK_CompAssign);
 
-  QualType NoWrapResultTy = Context.getCorrespondingNoWrapType(ResultTy);
-  return NoWrapResultTy;
+  if (LHSType->isNoWrapType() && RHSType->isNoWrapType())
+    return Context.getCorrespondingNoWrapType(ResultTy);
+
+  return Context.getCorrespondingWrapType(ResultTy);
 }
 
 /// UsualArithmeticConversions - Performs various conversions that are common to
@@ -1675,8 +1677,9 @@ QualType Sema::UsualArithmeticConversions(ExprResult &LHS, ExprResult &RHS,
   if (LHSType->isFixedPointType() || RHSType->isFixedPointType())
     return handleFixedPointConversion(*this, LHSType, RHSType);
 
-  if (LHSType->isNoWrapType() || RHSType->isNoWrapType())
-    return handleNoWrapArithmeticConversion(LHS, RHS, Loc, ACK);
+  if (LHSType->isNoWrapType() || RHSType->isNoWrapType() ||
+      LHSType->isWrapType() || RHSType->isWrapType())
+    return handleWrappingTypeArithmeticConversion(LHS, RHS, Loc, ACK);
 
   // Finally, we have two differing integer types.
   return handleIntegerConversion<doIntegralCast, doIntegralCast>

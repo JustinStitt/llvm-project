@@ -7584,11 +7584,12 @@ public:
   void checkEnumArithmeticConversions(Expr *LHS, Expr *RHS, SourceLocation Loc,
                                       Sema::ArithConvKind ACK);
 
-  // handleNoWrapArithmeticConversion - Perform conversions on non-wrapping
-  // integral types '_NoWrap'
-  QualType handleNoWrapArithmeticConversion(ExprResult &LHS, ExprResult &RHS,
-                                            SourceLocation Loc,
-                                            ArithConvKind ACK);
+  // handleNoWrapArithmeticConversion - Perform conversions on wrapping and
+  // non-wrapping arithmetic types '_Wrap' and '_NoWrap'
+  QualType handleWrappingTypeArithmeticConversion(ExprResult &LHS,
+                                                  ExprResult &RHS,
+                                                  SourceLocation Loc,
+                                                  ArithConvKind ACK);
 
   // UsualArithmeticConversions - performs the UsualUnaryConversions on it's
   // operands and then handles various conversions that are common to binary

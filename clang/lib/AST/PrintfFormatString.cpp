@@ -879,8 +879,11 @@ bool PrintfSpecifier::fixType(QualType QT, const LangOptions &LangOpt,
     return false;
 
   case BuiltinType::UInt:
+  case BuiltinType::WrapUInt:
   case BuiltinType::NoWrapUInt:
   case BuiltinType::Int:
+  case BuiltinType::WrapInt:
+  case BuiltinType::NoWrapInt:
   case BuiltinType::Float:
     LM.setKind(VectorNumElts.isInvalid() ?
                LengthModifier::None : LengthModifier::AsShortLong);
@@ -891,24 +894,39 @@ bool PrintfSpecifier::fixType(QualType QT, const LangOptions &LangOpt,
     break;
   case BuiltinType::Char_U:
   case BuiltinType::UChar:
+  case BuiltinType::WrapUChar:
   case BuiltinType::NoWrapUChar:
   case BuiltinType::Char_S:
   case BuiltinType::SChar:
+  case BuiltinType::WrapSChar:
+  case BuiltinType::NoWrapSChar:
     LM.setKind(LengthModifier::AsChar);
     break;
 
   case BuiltinType::Short:
+  case BuiltinType::WrapShort:
+  case BuiltinType::NoWrapShort:
   case BuiltinType::UShort:
+  case BuiltinType::WrapUShort:
+  case BuiltinType::NoWrapUShort:
     LM.setKind(LengthModifier::AsShort);
     break;
 
   case BuiltinType::Long:
+  case BuiltinType::WrapLong:
+  case BuiltinType::NoWrapLong:
   case BuiltinType::ULong:
+  case BuiltinType::WrapULong:
+  case BuiltinType::NoWrapULong:
     LM.setKind(LengthModifier::AsLong);
     break;
 
   case BuiltinType::LongLong:
+  case BuiltinType::WrapLongLong:
+  case BuiltinType::NoWrapLongLong:
   case BuiltinType::ULongLong:
+  case BuiltinType::WrapULongLong:
+  case BuiltinType::NoWrapULongLong:
     LM.setKind(LengthModifier::AsLongLong);
     break;
 

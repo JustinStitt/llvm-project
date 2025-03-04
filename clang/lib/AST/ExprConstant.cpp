@@ -12286,7 +12286,25 @@ GCCTypeClass EvaluateBuiltinClassifyType(QualType T,
 
     // _Wrap and _NoWrap types
     case BuiltinType::NoWrapUChar:
+    case BuiltinType::NoWrapUShort:
     case BuiltinType::NoWrapUInt:
+    case BuiltinType::NoWrapULong:
+    case BuiltinType::NoWrapULongLong:
+    case BuiltinType::WrapUChar:
+    case BuiltinType::WrapUShort:
+    case BuiltinType::WrapUInt:
+    case BuiltinType::WrapULong:
+    case BuiltinType::WrapULongLong:
+    case BuiltinType::NoWrapSChar:
+    case BuiltinType::NoWrapShort:
+    case BuiltinType::NoWrapInt:
+    case BuiltinType::NoWrapLong:
+    case BuiltinType::NoWrapLongLong:
+    case BuiltinType::WrapSChar:
+    case BuiltinType::WrapShort:
+    case BuiltinType::WrapInt:
+    case BuiltinType::WrapLong:
+    case BuiltinType::WrapLongLong:
       return GCCTypeClass::Integer;
 
     case BuiltinType::UShortAccum:

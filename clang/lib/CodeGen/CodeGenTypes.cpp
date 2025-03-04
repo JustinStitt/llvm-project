@@ -424,8 +424,26 @@ llvm::Type *CodeGenTypes::ConvertType(QualType T) {
     case BuiltinType::Char8:
     case BuiltinType::Char16:
     case BuiltinType::Char32:
+    case BuiltinType::WrapUChar:
     case BuiltinType::NoWrapUChar:
+    case BuiltinType::WrapSChar:
+    case BuiltinType::NoWrapSChar:
+    case BuiltinType::WrapShort:
+    case BuiltinType::NoWrapShort:
+    case BuiltinType::WrapUShort:
+    case BuiltinType::NoWrapUShort:
+    case BuiltinType::WrapUInt:
     case BuiltinType::NoWrapUInt:
+    case BuiltinType::WrapInt:
+    case BuiltinType::NoWrapInt:
+    case BuiltinType::WrapULong:
+    case BuiltinType::NoWrapULong:
+    case BuiltinType::WrapLong:
+    case BuiltinType::NoWrapLong:
+    case BuiltinType::WrapULongLong:
+    case BuiltinType::NoWrapULongLong:
+    case BuiltinType::WrapLongLong:
+    case BuiltinType::NoWrapLongLong:
     case BuiltinType::ShortAccum:
     case BuiltinType::Accum:
     case BuiltinType::LongAccum:
