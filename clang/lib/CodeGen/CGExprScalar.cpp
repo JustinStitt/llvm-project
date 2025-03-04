@@ -187,6 +187,19 @@ static bool IsWidenedIntegerOp(const ASTContext &Ctx, const Expr *E) {
   return getUnwidenedIntegerType(Ctx, E).has_value();
 }
 
+/// Check for wrapping types before defaulting to language options when
+/// considering signed overflow behaviors.
+static LangOptions::SignedOverflowBehaviorTy
+getSignedOverflowBehaviorConsideringWrappingTypes(CodeGenFunction &CGF,
+                                                  QualType Ty) {
+  if (Ty->isNoWrapType())
+    return LangOptions::SignedOverflowBehaviorTy::SOB_Trapping;
+  if (Ty->isWrapType())
+    return LangOptions::SignedOverflowBehaviorTy::SOB_Defined;
+
+  return CGF.getLangOpts().getSignedOverflowBehavior();
+}
+
 /// Check if we can skip the overflow check for \p Op.
 static bool CanElideOverflowCheck(const ASTContext &Ctx, const BinOpInfo &Op) {
   assert((isa<UnaryOperator>(Op.E) || isa<BinaryOperator>(Op.E)) &&
@@ -214,6 +227,9 @@ static bool CanElideOverflowCheck(const ASTContext &Ctx, const BinOpInfo &Op) {
   if (Op.Ty->isNoWrapType())
     return false;
 
+  // _Wrap types can elide overflow checks, their wrapping behavior is defined
+  if (Op.Ty->isWrapType())
+    return true;
 
   if (Op.Ty->isSignedIntegerType() &&
       Ctx.isTypeIgnoredBySanitizer(SanitizerKind::SignedIntegerOverflow,
@@ -774,7 +790,7 @@ public:
   // Binary Operators.
   Value *EmitMul(const BinOpInfo &Ops) {
     if (Ops.Ty->isSignedIntegerOrEnumerationType()) {
-      switch (CGF.getLangOpts().getSignedOverflowBehavior()) {
+      switch (getSignedOverflowBehaviorConsideringWrappingTypes(CGF, Ops.Ty)) {
       case LangOptions::SOB_Defined:
         if (!CGF.SanOpts.has(SanitizerKind::SignedIntegerOverflow))
           return Builder.CreateMul(Ops.LHS, Ops.RHS, "mul");
@@ -2812,7 +2828,8 @@ llvm::Value *ScalarExprEmitter::EmitIncDecConsiderOverflowBehavior(
   llvm::Value *Amount =
       llvm::ConstantInt::get(InVal->getType(), IsInc ? 1 : -1, true);
   StringRef Name = IsInc ? "inc" : "dec";
-  switch (CGF.getLangOpts().getSignedOverflowBehavior()) {
+  QualType Ty = E->getType();
+  switch (getSignedOverflowBehaviorConsideringWrappingTypes(CGF, Ty)) {
   case LangOptions::SOB_Defined:
     if (!CGF.SanOpts.has(SanitizerKind::SignedIntegerOverflow))
       return Builder.CreateAdd(InVal, Amount, Name);
@@ -4261,7 +4278,7 @@ Value *ScalarExprEmitter::EmitAdd(const BinOpInfo &op) {
     return emitPointerArithmetic(CGF, op, CodeGenFunction::NotSubtraction);
 
   if (op.Ty->isSignedIntegerOrEnumerationType()) {
-    switch (CGF.getLangOpts().getSignedOverflowBehavior()) {
+    switch (getSignedOverflowBehaviorConsideringWrappingTypes(CGF, op.Ty)) {
     case LangOptions::SOB_Defined:
       if (!CGF.SanOpts.has(SanitizerKind::SignedIntegerOverflow))
         return Builder.CreateAdd(op.LHS, op.RHS, "add");

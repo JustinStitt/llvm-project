@@ -1,6 +1,6 @@
 // Test the _NoWrap and _Wrap type specifiers
 
-// RUN: %clang_cc1 %s -emit-llvm -o - | FileCheck %s -check-prefix=NOSAN
+// RUN: %clang_cc1 -triple x86_64-linux-gnu %s -emit-llvm -o - | FileCheck %s -check-prefix=NOSAN
 
 // NOSAN-LABEL: @test_01
 void test_01(_NoWrap unsigned char A, int B) {
@@ -15,7 +15,19 @@ void test_01(_NoWrap unsigned char A, int B) {
 }
 
 // NOSAN-LABEL @test_02
-void test_02(_NoWrap unsigned int A, char B) {
+void test_02(_NoWrap unsigned short A, int B) {
+  // _NoWrap type should trap when no sanitizer is provided
+
+  // NOSAN: [[I:%.*]] = call { i16, i1 } @llvm.uadd.with.overflow.i16
+  // NOSAN-NEXT: extractvalue { i16, i1 } %2, 0
+  // NOSAN-NEXT: [[OF:%.*]] = extractvalue { i16, i1 } %2, 1
+  // NOSAN-NEXT: [[XOR:%.*]] = xor i1 [[OF]], true
+  // NOSAN-NEXT: br i1 [[XOR]], label %cont, label %trap
+  (A + B);
+}
+
+// NOSAN-LABEL @test_03
+void test_03(_NoWrap unsigned int A, char B) {
   // _NoWrap type should trap when no sanitizer is provided
 
   // NOSAN: [[I:%.*]] = call { i32, i1 } @llvm.uadd.with.overflow.i32
@@ -24,4 +36,28 @@ void test_02(_NoWrap unsigned int A, char B) {
   // NOSAN-NEXT: [[XOR:%.*]] = xor i1 [[OF]], true
   // NOSAN-NEXT: br i1 [[XOR]], label %cont, label %trap
   (B + A);
+}
+
+// NOSAN-LABEL @test_04
+void test_04(_NoWrap unsigned long A, unsigned int B) {
+  // _NoWrap type should trap when no sanitizer is provided
+
+  // NOSAN: [[I:%.*]] = call { i64, i1 } @llvm.uadd.with.overflow.i64
+  // NOSAN-NEXT: extractvalue { i64, i1 } %2, 0
+  // NOSAN-NEXT: [[OF:%.*]] = extractvalue { i64, i1 } %2, 1
+  // NOSAN-NEXT: [[XOR:%.*]] = xor i1 [[OF]], true
+  // NOSAN-NEXT: br i1 [[XOR]], label %cont, label %trap
+  (A + B);
+}
+
+// NOSAN-LABEL @test_05
+void test_05(_NoWrap unsigned long long A, unsigned int B) {
+  // _NoWrap type should trap when no sanitizer is provided
+
+  // NOSAN: [[I:%.*]] = call { i64, i1 } @llvm.uadd.with.overflow.i64
+  // NOSAN-NEXT: extractvalue { i64, i1 } %2, 0
+  // NOSAN-NEXT: [[OF:%.*]] = extractvalue { i64, i1 } %2, 1
+  // NOSAN-NEXT: [[XOR:%.*]] = xor i1 [[OF]], true
+  // NOSAN-NEXT: br i1 [[XOR]], label %cont, label %trap
+  (A + B);
 }
