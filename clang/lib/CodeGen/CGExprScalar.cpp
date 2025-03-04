@@ -3905,7 +3905,6 @@ Value *ScalarExprEmitter::EmitOverflowCheckedBinOp(const BinOpInfo &Ops) {
   SanitizerHandler OverflowKind;
 
   bool isSigned = Ops.Ty->isSignedIntegerOrEnumerationType();
-  llvm::errs() << "in EmitOverflowCheckedBinOp isSigned: " << isSigned << "\n";
   switch (Ops.Opcode) {
   case BO_Add:
   case BO_AddAssign:
@@ -3948,7 +3947,6 @@ Value *ScalarExprEmitter::EmitOverflowCheckedBinOp(const BinOpInfo &Ops) {
   const std::string *handlerName =
     &CGF.getLangOpts().OverflowHandler;
   if (handlerName->empty()) {
-    llvm::errs() << "in handlerName->empty()\n";
     // If the signed-integer-overflow sanitizer is enabled, emit a call to its
     // runtime. Otherwise, this is a -ftrapv check, so just emit a trap.
     if (isSigned) {
@@ -4270,9 +4268,6 @@ static Value* tryEmitFMulAdd(const BinOpInfo &op,
 }
 
 Value *ScalarExprEmitter::EmitAdd(const BinOpInfo &op) {
-  llvm::errs() << "in EmitAdd\n";
-  llvm::errs() << "got op.LHS->dump: \n"; op.LHS->getType()->dump();
-  llvm::errs() << "got op.RHS->dump: \n"; op.RHS->getType()->dump();
   if (op.LHS->getType()->isPointerTy() ||
       op.RHS->getType()->isPointerTy())
     return emitPointerArithmetic(CGF, op, CodeGenFunction::NotSubtraction);

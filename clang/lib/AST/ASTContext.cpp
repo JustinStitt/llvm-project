@@ -14406,7 +14406,6 @@ QualType ASTContext::getCorrespondingSaturatedType(QualType Ty) const {
 
 QualType ASTContext::getCorrespondingNoWrapType(QualType Ty) const {
   if (Ty->isNoWrapType()) return Ty;
-  llvm::errs() << "in getCorrespondingNoWrapType with Ty: \n"; Ty.dump();
 
   switch (Ty->castAs<BuiltinType>()->getKind()) {
     default:
@@ -14436,7 +14435,6 @@ QualType ASTContext::getCorrespondingNoWrapType(QualType Ty) const {
 
 QualType ASTContext::getCorrespondingWrapType(QualType Ty) const {
   if (Ty->isWrapType()) return Ty;
-  llvm::errs() << "in getCorrespondingWrapType with Ty: \n"; Ty.dump();
 
   switch (Ty->castAs<BuiltinType>()->getKind()) {
     default:
@@ -14468,7 +14466,6 @@ QualType ASTContext::getCorrespondingWrapType(QualType Ty) const {
 /// specifiers
 QualType ASTContext::getCorrespondingNonWrappingType(QualType Ty) const {
   if (!Ty->isNoWrapType() || !Ty->isWrapType()) return Ty;
-  llvm::errs() << "in getCorrespondingDroppedNoWrapType with Ty: \n"; Ty.dump();
 
   switch (Ty->castAs<BuiltinType>()->getKind()) {
     default:

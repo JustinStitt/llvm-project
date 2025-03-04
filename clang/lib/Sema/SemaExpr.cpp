@@ -1604,7 +1604,6 @@ QualType Sema::handleWrappingTypeArithmeticConversion(ExprResult &LHS,
 QualType Sema::UsualArithmeticConversions(ExprResult &LHS, ExprResult &RHS,
                                           SourceLocation Loc,
                                           ArithConvKind ACK) {
-  llvm::errs() << "in Sema::UsualArithmeticConversions\n";
   checkEnumArithmeticConversions(LHS.get(), RHS.get(), Loc, ACK);
 
   if (ACK != ACK_CompAssign) {
@@ -1621,9 +1620,6 @@ QualType Sema::UsualArithmeticConversions(ExprResult &LHS, ExprResult &RHS,
   // For example, "const float" and "float" are equivalent.
   QualType LHSType = LHS.get()->getType().getUnqualifiedType();
   QualType RHSType = RHS.get()->getType().getUnqualifiedType();
-
-  llvm::errs() << "LHSType dump: \n"; LHSType.dump();
-  llvm::errs() << "RHSType dump: \n"; RHSType.dump();
 
   // For conversion purposes, we ignore any atomic qualifier on the LHS.
   if (const AtomicType *AtomicLHS = LHSType->getAs<AtomicType>())

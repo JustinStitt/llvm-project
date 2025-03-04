@@ -11945,10 +11945,6 @@ public:
   bool Success(const llvm::APSInt &SI, const Expr *E, APValue &Result) {
     assert(E->getType()->isIntegralOrEnumerationType() &&
            "Invalid evaluation result.");
-    llvm::errs() << "in IntExprEvaluator::Success() E->getType(): \n"; E->getType().dump();
-    llvm::errs() << "SI.isSigned()?: " << SI.isSigned() << "\nSI: \n"; SI.dump();
-    llvm::errs() << "is isSignedIntegerOrEnumerationType?: "
-                 << E->getType()->isSignedIntegerOrEnumerationType() << "\n";
     assert(SI.isSigned() == E->getType()->isSignedIntegerOrEnumerationType() &&
            "Invalid evaluation result.");
     assert(SI.getBitWidth() == Info.Ctx.getIntWidth(E->getType()) &&
@@ -11957,7 +11953,6 @@ public:
     return true;
   }
   bool Success(const llvm::APSInt &SI, const Expr *E) {
-    llvm::errs() << "in pre Success\n";
     return Success(SI, E, Result);
   }
 
@@ -14009,9 +14004,6 @@ private:
     return IntEval.Success(Value, E, Result);
   }
   bool Success(const APSInt &Value, const Expr *E, APValue &Result) {
-    llvm::errs() << "in Other Success with Expr E: \n"; E->dump();
-    llvm::errs() << "and APSInt Value: \n"; Value.dump();
-    llvm::errs() << "with Signed: " << Value.isSigned() << "\n";
     return IntEval.Success(Value, E, Result);
   }
   bool Error(const Expr *E) {
@@ -14657,10 +14649,6 @@ bool RecordExprEvaluator::VisitCXXParenListInitExpr(
 }
 
 bool IntExprEvaluator::VisitBinaryOperator(const BinaryOperator *E) {
-  llvm::errs() << "in VisitBinaryOperator\nLHS: \n";
-  E->getLHS()->dump();
-  llvm::errs() << "RHS: \n";
-  E->getRHS()->dump();
   // We don't support assignment in C. C++ assignments don't get here because
   // assignment is an lvalue in C++.
   if (E->isAssignmentOp()) {
