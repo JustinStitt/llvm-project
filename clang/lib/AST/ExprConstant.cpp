@@ -12295,16 +12295,6 @@ GCCTypeClass EvaluateBuiltinClassifyType(QualType T,
     case BuiltinType::WrapUInt:
     case BuiltinType::WrapULong:
     case BuiltinType::WrapULongLong:
-    case BuiltinType::NoWrapSChar:
-    case BuiltinType::NoWrapShort:
-    case BuiltinType::NoWrapInt:
-    case BuiltinType::NoWrapLong:
-    case BuiltinType::NoWrapLongLong:
-    case BuiltinType::WrapSChar:
-    case BuiltinType::WrapShort:
-    case BuiltinType::WrapInt:
-    case BuiltinType::WrapLong:
-    case BuiltinType::WrapLongLong:
       return GCCTypeClass::Integer;
 
     case BuiltinType::UShortAccum:

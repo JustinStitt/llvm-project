@@ -1569,8 +1569,8 @@ QualType Sema::handleWrappingTypeArithmeticConversion(ExprResult &LHS,
                                                       Sema::ArithConvKind ACK) {
   QualType LHSType = LHS.get()->getType().getUnqualifiedType();
   QualType RHSType = RHS.get()->getType().getUnqualifiedType();
-  assert(LHSType->isNoWrapType() || LHSType->isWrapType());
-  assert(RHSType->isNoWrapType() || RHSType->isWrapType());
+  assert(LHSType->isNoWrapType() || LHSType->isWrapType() ||
+         RHSType->isNoWrapType() || RHSType->isWrapType());
 
   QualType DroppedLHSTy = Context.getCorrespondingNonWrappingType(LHSType);
   QualType DroppedRHSTy = Context.getCorrespondingNonWrappingType(RHSType);
