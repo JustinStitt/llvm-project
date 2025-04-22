@@ -4423,24 +4423,25 @@ Value *ScalarExprEmitter::EmitAdd(const BinOpInfo &op) {
 
   if (op.Ty->isSignedIntegerOrEnumerationType() ||
       op.Ty->isUnsignedIntegerType()) {
-    const bool hasSanitizer =
-        op.Ty->isUnsignedIntegerType()
-            ? CGF.SanOpts.has(SanitizerKind::UnsignedIntegerOverflow)
-            : CGF.SanOpts.has(SanitizerKind::SignedIntegerOverflow);
+    const bool isSigned = op.Ty->isSignedIntegerOrEnumerationType();
+    const bool hasSan =
+        isSigned ? CGF.SanOpts.has(SanitizerKind::SignedIntegerOverflow)
+                 : CGF.SanOpts.has(SanitizerKind::UnsignedIntegerOverflow);
     switch (getOverflowBehaviorConsideringType(CGF, op.Ty)) {
     case LangOptions::OB_Wrap:
       return Builder.CreateAdd(op.LHS, op.RHS, "add");
     case LangOptions::OB_FWrapv:
-      if (op.Ty->isSignedIntegerOrEnumerationType() && !hasSanitizer)
+      if (!hasSan)
         return Builder.CreateAdd(op.LHS, op.RHS, "add");
       [[fallthrough]];
     case LangOptions::OB_Unset:
-      if (!hasSanitizer)
-        return Builder.CreateNSWAdd(op.LHS, op.RHS, "add");
+      if (!hasSan)
+        return isSigned ? Builder.CreateNSWAdd(op.LHS, op.RHS, "add")
+                        : Builder.CreateAdd(op.LHS, op.RHS, "add");
       [[fallthrough]];
     case LangOptions::OB_NoWrap:
       if (CanElideOverflowCheck(CGF.getContext(), op))
-        return Builder.CreateNSWAdd(op.LHS, op.RHS, "add");
+        return Builder.CreateAdd(op.LHS, op.RHS, "add");
       return EmitOverflowCheckedBinOp(op);
     }
   }
