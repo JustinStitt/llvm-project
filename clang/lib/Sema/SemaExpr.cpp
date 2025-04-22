@@ -1421,40 +1421,28 @@ static QualType handleOverflowBehaviorTypeConversion(Sema &S, ExprResult &LHS,
   QualType LHSType = LHS.get()->getType().getUnqualifiedType();
   QualType RHSType = RHS.get()->getType().getUnqualifiedType();
 
-  QualType DroppedLHSTy = LHSType;
-  QualType DroppedRHSTy = RHSType;
+  QualType LHSUnderlyingTy = LHSType;
+  QualType RHSUnderlyingTy = RHSType;
 
-  if (auto *NSAT = dyn_cast<OverflowBehaviorType>(LHSType))
-    DroppedLHSTy = NSAT->getUnderlyingType();
+  if (auto *OBT = dyn_cast<OverflowBehaviorType>(LHSType))
+    LHSUnderlyingTy = OBT->getUnderlyingType();
 
-  if (auto *NSAT = dyn_cast<OverflowBehaviorType>(RHSType))
-    DroppedRHSTy = NSAT->getUnderlyingType();
+  if (auto *OBT = dyn_cast<OverflowBehaviorType>(RHSType))
+    RHSUnderlyingTy = OBT->getUnderlyingType();
+
+  assert(LHSUnderlyingTy->isIntegerType() && RHSUnderlyingTy->isIntegerType() &&
+         "Non-integer type conversion not supported for OverflowBehaviorTypes");
 
   if (LHSType->isOverflowBehaviorType() &&
       !RHSType->isOverflowBehaviorType()) {
-    RHS = doIntegralCast(S, RHS.get(), DroppedLHSTy);
+    RHS = doIntegralCast(S, RHS.get(), LHSUnderlyingTy);
     return LHSType;
   }
-  if (!LHSType->isOverflowBehaviorType() &&
-      RHSType->isOverflowBehaviorType()) {
-    LHS = doIntegralCast(S, LHS.get(), DroppedRHSTy);
-    return RHSType;
-  }
-  if (LHSType->isOverflowBehaviorType() &&
-      !RHSType->isOverflowBehaviorType()) {
-    RHS = doIntegralCast(S, RHS.get(), DroppedLHSTy);
-    return LHSType;
-  }
-  if (!LHSType->isOverflowBehaviorType() &&
-      RHSType->isOverflowBehaviorType()) {
-    LHS = doIntegralCast(S, LHS.get(), DroppedRHSTy);
-    return RHSType;
-  }
 
-  QualType ResultTy = handleIntegerConversion<doIntegralCast, doIntegralCast>(
-      S, LHS, RHS, DroppedLHSTy, DroppedRHSTy, IsCompAssign);
+  if (!IsCompAssign)
+    LHS = doIntegralCast(S, LHS.get(), RHSUnderlyingTy);
 
-  return ResultTy;
+  return RHSType;
 }
 
 /// Return the rank of a given fixed point or integer type. The value itself

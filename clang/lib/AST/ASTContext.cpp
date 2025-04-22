@@ -11588,6 +11588,16 @@ QualType ASTContext::mergeTypes(QualType LHS, QualType RHS, bool OfBlockPointer,
       if (!AT->isDeduced() && AT->isGNUAutoType())
         return LHS;
     }
+    // Allow OverflowBehaviorTypes to merge with types that match its
+    // underlying type.
+    if (const OverflowBehaviorType *OBT = LHS->getAs<OverflowBehaviorType>()) {
+      return mergeTypes(OBT->getUnderlyingType(), RHS, OfBlockPointer,
+                        Unqualified, BlockReturnType, IsConditionalOperator);
+    }
+    if (const OverflowBehaviorType *OBT = RHS->getAs<OverflowBehaviorType>()) {
+      return mergeTypes(LHS, OBT->getUnderlyingType(), OfBlockPointer,
+                        Unqualified, BlockReturnType, IsConditionalOperator);
+    }
     return {};
   }
 
