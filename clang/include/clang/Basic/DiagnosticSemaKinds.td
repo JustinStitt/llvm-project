@@ -3944,8 +3944,11 @@ def note_cannot_use_trivial_abi_reason : Note<
 
 // OverflowBehavior attribute
 def err_overflow_behavior_unknown_ident : Error<
-  "'%0' is not a valid argument to attribute %1, only 'wrap' and 'no_wrap'"
+  "'%0' is not a valid argument to attribute %1, only 'wrap' and 'no_wrap' "
   "are supported">;
+def warn_overflow_behavior_non_integer_type : Warning<
+  "%0 attribute cannot be applied to non-integer type %1; attribute ignored">,
+  InGroup<IgnoredAttributes>;
 
 // Availability attribute
 def warn_availability_unknown_platform : Warning<

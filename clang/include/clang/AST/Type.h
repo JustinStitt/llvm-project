@@ -6267,7 +6267,7 @@ private:
   QualType UnderlyingType;
   OverflowBehaviorKind BehaviorKind;
 
-  OverflowBehaviorType(QualType Canon, QualType Wrapped, OverflowBehaviorKind Kind);
+  OverflowBehaviorType(QualType Canon, QualType Underlying, OverflowBehaviorKind Kind);
 public:
 
   QualType getUnderlyingType() const { return UnderlyingType; }

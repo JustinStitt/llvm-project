@@ -3966,9 +3966,10 @@ void TypeCoupledDeclRefInfo::setFromOpaqueValue(void *V) {
 }
 
 OverflowBehaviorType::OverflowBehaviorType(
-    QualType Canon, QualType Wrapped, OverflowBehaviorType::OverflowBehaviorKind Kind)
-    : Type(OverflowBehavior, Canon, Wrapped->getDependence()),
-      UnderlyingType(Wrapped), BehaviorKind(Kind) {}
+    QualType Canon, QualType Underlying,
+    OverflowBehaviorType::OverflowBehaviorKind Kind)
+    : Type(OverflowBehavior, Canon, Underlying->getDependence()),
+      UnderlyingType(Underlying), BehaviorKind(Kind) {}
 
 BoundsAttributedType::BoundsAttributedType(TypeClass TC, QualType Wrapped,
                                            QualType Canon)

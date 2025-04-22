@@ -5460,7 +5460,7 @@ QualType ASTContext::getBTFTagAttributedType(const BTFTypeTagAttr *BTFAttr,
 }
 
 QualType
-ASTContext::getOverflowBehaviorType(const OverflowBehaviorAttr *Attr, QualType Wrapped) const {
+ASTContext::getOverflowBehaviorType(const OverflowBehaviorAttr *Attr, QualType Underlying) const {
   IdentifierInfo *II = Attr->getBehaviorKind();
   StringRef IdentName = II->getName();
   OverflowBehaviorType::OverflowBehaviorKind Kind;
@@ -5469,16 +5469,16 @@ ASTContext::getOverflowBehaviorType(const OverflowBehaviorAttr *Attr, QualType W
   } else if (IdentName == "no_wrap") {
     Kind = OverflowBehaviorType::OverflowBehaviorKind::NoWrap;
   } else {
-    return Wrapped;
+    return Underlying;
   }
 
-  return getOverflowBehaviorType(Kind, Wrapped);
+  return getOverflowBehaviorType(Kind, Underlying);
 }
 
 QualType
-ASTContext::getOverflowBehaviorType(OverflowBehaviorType::OverflowBehaviorKind Kind, QualType Wrapped) const {
+ASTContext::getOverflowBehaviorType(OverflowBehaviorType::OverflowBehaviorKind Kind, QualType Underlying) const {
   llvm::FoldingSetNodeID ID;
-  OverflowBehaviorType::Profile(ID, Wrapped, Kind);
+  OverflowBehaviorType::Profile(ID, Underlying, Kind);
   void *InsertPos = nullptr;
 
   if (OverflowBehaviorType *OBT =
@@ -5487,15 +5487,15 @@ ASTContext::getOverflowBehaviorType(OverflowBehaviorType::OverflowBehaviorKind K
   }
 
   QualType Canonical;
-  if (!Wrapped.isCanonical()) {
-    Canonical = getOverflowBehaviorType(Kind, getCanonicalType(Wrapped));
+  if (!Underlying.isCanonical()) {
+    Canonical = getOverflowBehaviorType(Kind, getCanonicalType(Underlying));
     OverflowBehaviorType *NewOBT = OverflowBehaviorTypes.FindNodeOrInsertPos(ID, InsertPos);
     assert(!NewOBT && "Shouldn't be in the map!");
     (void)NewOBT;
   }
 
   OverflowBehaviorType *Ty = new (*this, alignof(OverflowBehaviorType))
-    OverflowBehaviorType(Canonical, Wrapped, Kind);
+    OverflowBehaviorType(Canonical, Underlying, Kind);
 
   Types.push_back(Ty);
   OverflowBehaviorTypes.InsertNode(Ty, InsertPos);

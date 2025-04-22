@@ -188,23 +188,37 @@ static bool IsWidenedIntegerOp(const ASTContext &Ctx, const Expr *E) {
   return getUnwidenedIntegerType(Ctx, E).has_value();
 }
 
-/// Consider OverflowBehaviorTypes and language options to calculate final
-/// overflow behavior.
-static LangOptions::SignedOverflowBehaviorTy
-getSignedOverflowBehaviorConsideringType(const CodeGenFunction &CGF,
-                                         const QualType Ty) {
-  OverflowBehaviorType::OverflowBehaviorKind Kind;
-  if (Ty->isOverflowBehaviorType()) {
-    Kind = cast<OverflowBehaviorType>(Ty)->getBehaviorKind();
-    switch (Kind) {
+/// Consider OverflowBehaviorType and language options to calculate the final
+/// overflow behavior for an expression. There are no language options for
+/// unsigned overflow semantics so there is nothing to consider there.
+static LangOptions::OverflowBehaviorKind
+getOverflowBehaviorConsideringType(const CodeGenFunction &CGF,
+                                   const QualType Ty) {
+  const OverflowBehaviorType *OBT = Ty->getAs<OverflowBehaviorType>();
+  /// FIXME: Having two enums named `OverflowBehaviorKind` is not ideal, these
+  /// should be unified into one coherent enum that supports both unsigned and
+  /// signed overflow behavior semantics.
+  if (OBT) {
+    switch (OBT->getBehaviorKind()) {
     case OverflowBehaviorType::OverflowBehaviorKind::Wrap:
-      return LangOptions::SignedOverflowBehaviorTy::SOB_Defined;
+      return LangOptions::OverflowBehaviorKind::OB_Wrap;
     case OverflowBehaviorType::OverflowBehaviorKind::NoWrap:
-      return LangOptions::SignedOverflowBehaviorTy::SOB_Trapping;
+      return LangOptions::OverflowBehaviorKind::OB_NoWrap;
     }
-    llvm_unreachable("unrecognized OverflowBehaviorKind");
-  } else {
-    return CGF.getLangOpts().getSignedOverflowBehavior();
+    llvm_unreachable("Unknown OverflowBehaviorKind");
+  }
+
+  if (Ty->isUnsignedIntegerType()) {
+    return LangOptions::OverflowBehaviorKind::OB_Unset;
+  }
+
+  switch (CGF.getLangOpts().getSignedOverflowBehavior()) {
+  case LangOptions::SignedOverflowBehaviorTy::SOB_Defined:
+    return LangOptions::OverflowBehaviorKind::OB_FWrapv;
+  case LangOptions::SignedOverflowBehaviorTy::SOB_Undefined:
+    return LangOptions::OverflowBehaviorKind::OB_Unset;
+  case LangOptions::SignedOverflowBehaviorTy::SOB_Trapping:
+    return LangOptions::OverflowBehaviorKind::OB_NoWrap;
   }
 }
 
@@ -246,12 +260,12 @@ static bool CanElideOverflowCheck(const ASTContext &Ctx, const BinOpInfo &Op) {
   if (UO)
     return !UO->canOverflow();
 
-  // We usually don't need overflow checks for binops with widened operands.
-  // Multiplication with promoted unsigned operands is a special case.
   const auto *BO = cast<BinaryOperator>(Op.E);
   if (BO->hasExcludedOverflowPattern())
     return true;
 
+  // We usually don't need overflow checks for binops with widened operands.
+  // Multiplication with promoted unsigned operands is a special case.
   auto OptionalLHSTy = getUnwidenedIntegerType(Ctx, BO->getLHS());
   if (!OptionalLHSTy)
     return false;
@@ -4090,14 +4104,25 @@ Value *ScalarExprEmitter::EmitOverflowCheckedBinOp(const BinOpInfo &Ops) {
   const std::string *handlerName =
     &CGF.getLangOpts().OverflowHandler;
   if (handlerName->empty()) {
-    // If the signed-integer-overflow sanitizer is enabled, emit a call to its
-    // runtime. Otherwise, this is a -ftrapv check, so just emit a trap.
-    if (!isSigned || CGF.SanOpts.has(SanitizerKind::SignedIntegerOverflow)) {
-      llvm::Value *NotOverflow = Builder.CreateNot(overflow);
-      SanitizerKind::SanitizerOrdinal Ordinal =
-          isSigned ? SanitizerKind::SO_SignedIntegerOverflow
-                   : SanitizerKind::SO_UnsignedIntegerOverflow;
-      EmitBinOpCheck(std::make_pair(NotOverflow, Ordinal), Ops);
+    // If no -ftrapv handler has been specified, try to use sanitizer runtimes
+    // if available otherwise just emit a trap. It is possible for unsigned
+    // arithmetic to result in a trap due to the OverflowBehaviorType attribute
+    // which describes overflow behavior on a per-type basis.
+    if (isSigned) {
+      if (CGF.SanOpts.has(SanitizerKind::SignedIntegerOverflow)) {
+        llvm::Value *NotOf = Builder.CreateNot(overflow);
+        EmitBinOpCheck(
+            std::make_pair(NotOf, SanitizerKind::SO_SignedIntegerOverflow),
+            Ops);
+      } else
+        CGF.EmitTrapCheck(Builder.CreateNot(overflow), OverflowKind);
+      return result;
+    }
+    if (CGF.SanOpts.has(SanitizerKind::UnsignedIntegerOverflow)) {
+      llvm::Value *NotOf = Builder.CreateNot(overflow);
+      EmitBinOpCheck(
+          std::make_pair(NotOf, SanitizerKind::SO_UnsignedIntegerOverflow),
+          Ops);
     } else
       CGF.EmitTrapCheck(Builder.CreateNot(overflow), OverflowKind);
     return result;
@@ -4396,17 +4421,24 @@ Value *ScalarExprEmitter::EmitAdd(const BinOpInfo &op) {
       op.RHS->getType()->isPointerTy())
     return emitPointerArithmetic(CGF, op, CodeGenFunction::NotSubtraction);
 
-  if (op.Ty->isSignedIntegerOrEnumerationType()) {
-    switch (getSignedOverflowBehaviorConsideringType(CGF, op.Ty)) {
-    case LangOptions::SOB_Defined:
-      if (!CGF.SanOpts.has(SanitizerKind::SignedIntegerOverflow))
+  if (op.Ty->isSignedIntegerOrEnumerationType() ||
+      op.Ty->isUnsignedIntegerType()) {
+    const bool hasSanitizer =
+        op.Ty->isUnsignedIntegerType()
+            ? CGF.SanOpts.has(SanitizerKind::UnsignedIntegerOverflow)
+            : CGF.SanOpts.has(SanitizerKind::SignedIntegerOverflow);
+    switch (getOverflowBehaviorConsideringType(CGF, op.Ty)) {
+    case LangOptions::OB_Wrap:
+      return Builder.CreateAdd(op.LHS, op.RHS, "add");
+    case LangOptions::OB_FWrapv:
+      if (op.Ty->isSignedIntegerOrEnumerationType() && !hasSanitizer)
         return Builder.CreateAdd(op.LHS, op.RHS, "add");
       [[fallthrough]];
-    case LangOptions::SOB_Undefined:
-      if (!CGF.SanOpts.has(SanitizerKind::SignedIntegerOverflow))
+    case LangOptions::OB_Unset:
+      if (!hasSanitizer)
         return Builder.CreateNSWAdd(op.LHS, op.RHS, "add");
       [[fallthrough]];
-    case LangOptions::SOB_Trapping:
+    case LangOptions::OB_NoWrap:
       if (CanElideOverflowCheck(CGF.getContext(), op))
         return Builder.CreateNSWAdd(op.LHS, op.RHS, "add");
       return EmitOverflowCheckedBinOp(op);
@@ -4426,11 +4458,6 @@ Value *ScalarExprEmitter::EmitAdd(const BinOpInfo &op) {
     CodeGenFunction::CGFPOptionsRAII FPOptsRAII(CGF, op.FPFeatures);
     return MB.CreateAdd(op.LHS, op.RHS);
   }
-
-  if (op.Ty->isUnsignedIntegerType() &&
-      CGF.SanOpts.has(SanitizerKind::UnsignedIntegerOverflow) &&
-      !CanElideOverflowCheck(CGF.getContext(), op))
-    return EmitOverflowCheckedBinOp(op);
 
   if (op.LHS->getType()->isFPOrFPVectorTy()) {
     CodeGenFunction::CGFPOptionsRAII FPOptsRAII(CGF, op.FPFeatures);

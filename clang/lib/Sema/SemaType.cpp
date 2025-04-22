@@ -301,8 +301,8 @@ namespace {
     /// Get a OverflowBehaviorType type for the overflow_behavior type attribute.
     QualType
     getOverflowBehaviorType(OverflowBehaviorType::OverflowBehaviorKind Kind,
-                            QualType WrappedType) {
-      return sema.Context.getOverflowBehaviorType(Kind, WrappedType);
+                            QualType UnderlyingType) {
+      return sema.Context.getOverflowBehaviorType(Kind, UnderlyingType);
     }
 
     /// Completely replace the \c auto in \p TypeWithAuto by
@@ -6614,31 +6614,45 @@ static void HandleOverflowBehaviorAttr(QualType &Type, const ParsedAttr &Attr,
     return;
   }
 
-  if (!Attr.isArgIdent(0)) {
-    S.Diag(Attr.getLoc(), diag::err_attribute_argument_type) << Attr
-                                                       << AANT_ArgumentString;
+  // Check that the underlying type is an integer type
+  if (!Type->isIntegerType()) {
+    S.Diag(Attr.getLoc(), diag::warn_overflow_behavior_non_integer_type)
+        << Attr << Type.getAsString();
     Attr.setInvalid();
-    return;
   }
 
+  StringRef KindName = "";
+  IdentifierInfo *Ident = nullptr;
 
-  IdentifierInfo *Ident = dyn_cast<IdentifierInfo>(Attr.getArgAsIdent(0)->Ident);
+  if (Attr.isArgIdent(0)) {
+    Ident = dyn_cast<IdentifierInfo>(Attr.getArgAsIdent(0)->Ident);
+    KindName = Ident->getName();
+  }
+
+  // Support identifier or string argument types. Failure to provide one of
+  // these two types results in a diagnostic that hints towards using string
+  // arguments (either "wrap" or "no_wrap") as this is the most common use
+  // pattern.
   if (!Ident) {
-    S.Diag(Attr.getLoc(), diag::err_attribute_argument_type)
-        << Attr << AANT_ArgumentIdentifier;
-    Attr.setInvalid();
-    return;
+    auto *Str = dyn_cast<StringLiteral>(Attr.getArgAsExpr(0));
+    if (Str)
+      KindName = Str->getString();
+    else {
+      S.Diag(Attr.getLoc(), diag::err_attribute_argument_type)
+          << Attr << AANT_ArgumentString;
+      Attr.setInvalid();
+      return;
+    }
   }
 
-  StringRef IdentName = Ident->getName();
   OverflowBehaviorType::OverflowBehaviorKind Kind;
-  if (IdentName == "wrap") {
+  if (KindName == "wrap") {
     Kind = OverflowBehaviorType::OverflowBehaviorKind::Wrap;
-  } else if (IdentName == "no_wrap") {
+  } else if (KindName == "no_wrap") {
     Kind = OverflowBehaviorType::OverflowBehaviorKind::NoWrap;
   } else {
     S.Diag(Attr.getLoc(), diag::err_overflow_behavior_unknown_ident)
-        << IdentName << Attr;
+        << KindName << Attr;
     Attr.setInvalid();
     return;
   }
@@ -8930,6 +8944,7 @@ static void processTypeAttrs(TypeProcessingState &state, QualType &type,
       break;
     case ParsedAttr::AT_OverflowBehavior:
       HandleOverflowBehaviorAttr(type, attr, state);
+      attr.setUsedAsTypeAttr();
       break;
     case ParsedAttr::AT_LifetimeCaptureBy:
       if (TAL == TAL_DeclChunk)
