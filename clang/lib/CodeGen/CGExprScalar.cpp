@@ -245,11 +245,6 @@ static bool CanElideOverflowCheck(const ASTContext &Ctx, const BinOpInfo &Op) {
   }
 
   const UnaryOperator *UO = dyn_cast<UnaryOperator>(Op.E);
-  const auto *BO = cast<BinaryOperator>(Op.E);
-
-  if (BO->hasExcludedOverflowPattern())
-    return true;
-
   if (UO && UO->getOpcode() == UO_Minus &&
       Ctx.getLangOpts().isOverflowPatternExcluded(
           LangOptions::OverflowPatternExclusionKind::NegUnsignedConst) &&
@@ -267,6 +262,10 @@ static bool CanElideOverflowCheck(const ASTContext &Ctx, const BinOpInfo &Op) {
                                    Op.Ty)) {
     return true;
   }
+
+  const auto *BO = dyn_cast<BinaryOperator>(Op.E);
+  if (BO && BO->hasExcludedOverflowPattern())
+    return true;
 
   // If a unary op has a widened operand, the op cannot overflow.
   if (UO)
@@ -4437,6 +4436,8 @@ Value *ScalarExprEmitter::EmitAdd(const BinOpInfo &op) {
       op.RHS->getType()->isPointerTy())
     return emitPointerArithmetic(CGF, op, CodeGenFunction::NotSubtraction);
 
+  // FIXME: maybe we want to emit NUWAdd for unsigned non-wrapping types
+  // should depend on -fno-strict-overflow (-fwrapv)
   if (op.Ty->isSignedIntegerOrEnumerationType() ||
       op.Ty->isUnsignedIntegerType()) {
     const bool isSigned = op.Ty->isSignedIntegerOrEnumerationType();
@@ -4457,7 +4458,8 @@ Value *ScalarExprEmitter::EmitAdd(const BinOpInfo &op) {
       [[fallthrough]];
     case LangOptions::OB_NoWrap:
       if (CanElideOverflowCheck(CGF.getContext(), op))
-        return Builder.CreateAdd(op.LHS, op.RHS, "add");
+        return isSigned ? Builder.CreateNSWAdd(op.LHS, op.RHS, "add")
+                        : Builder.CreateAdd(op.LHS, op.RHS, "add");
       return EmitOverflowCheckedBinOp(op);
     }
   }
