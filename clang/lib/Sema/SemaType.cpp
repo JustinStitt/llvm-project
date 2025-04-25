@@ -6619,6 +6619,7 @@ static void HandleOverflowBehaviorAttr(QualType &Type, const ParsedAttr &Attr,
     S.Diag(Attr.getLoc(), diag::warn_overflow_behavior_non_integer_type)
         << Attr << Type.getAsString();
     Attr.setInvalid();
+    return;
   }
 
   StringRef KindName = "";

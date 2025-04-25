@@ -236,6 +236,26 @@ static bool CanElideOverflowCheck(const ASTContext &Ctx, const BinOpInfo &Op) {
   if (!Op.mayHaveIntegerOverflow())
     return true;
 
+  if (const auto *OBT = Op.Ty->getAs<OverflowBehaviorType>()) {
+    if (OBT->getBehaviorKind() ==
+        OverflowBehaviorType::OverflowBehaviorKind::Wrap)
+      return true;
+    if (OBT->getBehaviorKind() == OverflowBehaviorType::OverflowBehaviorKind::NoWrap)
+      return false;
+  }
+
+  const UnaryOperator *UO = dyn_cast<UnaryOperator>(Op.E);
+  const auto *BO = cast<BinaryOperator>(Op.E);
+
+  if (BO->hasExcludedOverflowPattern())
+    return true;
+
+  if (UO && UO->getOpcode() == UO_Minus &&
+      Ctx.getLangOpts().isOverflowPatternExcluded(
+          LangOptions::OverflowPatternExclusionKind::NegUnsignedConst) &&
+      UO->isIntegerConstantExpr(Ctx))
+    return true;
+
   if (Op.Ty->isSignedIntegerType() &&
       Ctx.isTypeIgnoredBySanitizer(SanitizerKind::SignedIntegerOverflow,
                                    Op.Ty)) {
@@ -248,21 +268,9 @@ static bool CanElideOverflowCheck(const ASTContext &Ctx, const BinOpInfo &Op) {
     return true;
   }
 
-  const UnaryOperator *UO = dyn_cast<UnaryOperator>(Op.E);
-
-  if (UO && UO->getOpcode() == UO_Minus &&
-      Ctx.getLangOpts().isOverflowPatternExcluded(
-          LangOptions::OverflowPatternExclusionKind::NegUnsignedConst) &&
-      UO->isIntegerConstantExpr(Ctx))
-    return true;
-
   // If a unary op has a widened operand, the op cannot overflow.
   if (UO)
     return !UO->canOverflow();
-
-  const auto *BO = cast<BinaryOperator>(Op.E);
-  if (BO->hasExcludedOverflowPattern())
-    return true;
 
   // We usually don't need overflow checks for binops with widened operands.
   // Multiplication with promoted unsigned operands is a special case.
@@ -1183,8 +1191,16 @@ void ScalarExprEmitter::EmitIntegerTruncationCheck(Value *Src, QualType SrcType,
     return;
 
   // Does some SSCL ignore this type?
-  if (CGF.getContext().isTypeIgnoredBySanitizer(
-          SanitizerMask::bitPosToMask(Check.second.second), DstType))
+  const bool ignoredBySanitizer = CGF.getContext().isTypeIgnoredBySanitizer(
+      SanitizerMask::bitPosToMask(Check.second.second), DstType);
+
+  // Consider OverflowBehaviorTypes which override SSCL type entries for
+  // truncation sanitizers.
+  if (const auto *OBT = DstType->getAs<OverflowBehaviorType>()) {
+    if (OBT->getBehaviorKind() !=
+        OverflowBehaviorType::OverflowBehaviorKind::NoWrap)
+      return;
+  } else if (ignoredBySanitizer)
     return;
 
   llvm::Constant *StaticArgs[] = {
