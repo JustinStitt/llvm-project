@@ -847,6 +847,8 @@ public:
   bool isTypeIgnoredBySanitizer(const SanitizerMask &Mask,
                                 const QualType &Ty) const;
 
+  bool isUnaryOverflowPatternExcluded(const UnaryOperator *UO);
+
   const XRayFunctionFilter &getXRayFilter() const {
     return *XRayFilter;
   }
