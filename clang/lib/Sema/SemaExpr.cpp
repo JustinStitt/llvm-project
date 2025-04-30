@@ -14134,11 +14134,6 @@ static QualType CheckIncrementDecrementOperand(Sema &S, Expr *Op,
   if (const AtomicType *ResAtomicType = ResType->getAs<AtomicType>())
     ResType = ResAtomicType->getValueType();
 
-  // Overflow behavior types can be used for increment and decrement where the
-  // underlying type can.
-  if (const OverflowBehaviorType *OBT = ResType->getAs<OverflowBehaviorType>())
-    ResType = OBT->getUnderlyingType();
-
   assert(!ResType.isNull() && "no type for increment/decrement expression");
 
   if (S.getLangOpts().CPlusPlus && ResType->isBooleanType()) {
@@ -14161,6 +14156,8 @@ static QualType CheckIncrementDecrementOperand(Sema &S, Expr *Op,
     // C99 6.5.2.4p2, 6.5.6p2
     if (!checkArithmeticOpPointerOperand(S, OpLoc, Op))
       return QualType();
+  } else if (ResType->isOverflowBehaviorType()) {
+    // OK!
   } else if (ResType->isObjCObjectPointerType()) {
     // On modern runtimes, ObjC pointer arithmetic is forbidden.
     // Otherwise, we just need a complete type.
