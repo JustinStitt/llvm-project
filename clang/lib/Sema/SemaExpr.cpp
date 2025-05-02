@@ -1433,19 +1433,17 @@ static QualType handleOverflowBehaviorTypeConversion(Sema &S, ExprResult &LHS,
           S, LHS, RHS, LHSType, RHSType, IsCompAssign);
   }
 
-  // NoWrap has precedence over Wrap; eagerly convert Wrap types to NoWrap types
+  // NoWrap has precedence over Wrap; eagerly cast Wrap types to NoWrap types
   if ((LhsOBT && !RhsOBT) ||
       (LhsOBT && RhsOBT &&
        RhsOBT->getBehaviorKind() !=
            OverflowBehaviorType::OverflowBehaviorKind::NoWrap)) {
-    RHS = doIntegralCast(S, RHS.get(),
-                         LhsOBT ? LhsOBT->getUnderlyingType(): LHSType);
+    RHS = doIntegralCast(S, RHS.get(), LHSType);
     return LHSType;
   }
 
   if (!IsCompAssign)
-    LHS = doIntegralCast(S, LHS.get(),
-                         RhsOBT ? RhsOBT->getUnderlyingType() : RHSType);
+    LHS = doIntegralCast(S, LHS.get(), RHSType);
 
   return RHSType;
 }

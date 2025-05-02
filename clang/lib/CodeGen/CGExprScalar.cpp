@@ -3973,11 +3973,18 @@ void ScalarExprEmitter::EmitUndefinedBehaviorIntegerDivAndRemCheck(
                                     SanitizerKind::SO_IntegerDivideByZero));
   }
 
+  // Wrapping types can elide the following checks
+  bool isWrappingType = false;
+  if (const auto *OBT = Ops.Ty->getAs<OverflowBehaviorType>()) {
+    isWrappingType = OBT->getBehaviorKind() ==
+                     OverflowBehaviorType::OverflowBehaviorKind::Wrap;
+  }
+
   const auto *BO = cast<BinaryOperator>(Ops.E);
   if (CGF.SanOpts.has(SanitizerKind::SignedIntegerOverflow) &&
       Ops.Ty->hasSignedIntegerRepresentation() &&
       !IsWidenedIntegerOp(CGF.getContext(), BO->getLHS()) &&
-      Ops.mayHaveIntegerOverflow()) {
+      Ops.mayHaveIntegerOverflow() && !isWrappingType) {
     llvm::IntegerType *Ty = cast<llvm::IntegerType>(Zero->getType());
 
     llvm::Value *IntMin =
