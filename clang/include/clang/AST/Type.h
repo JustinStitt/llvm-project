@@ -1151,6 +1151,13 @@ public:
   /// Returns true if it is a WebAssembly Funcref Type.
   bool isWebAssemblyFuncrefType() const;
 
+
+  /// Returns true if it is a OverflowBehaviorType of Wrap kind.
+  bool isWrapType() const;
+
+  /// Returns true if it is a OverflowBehaviorType of NoWrap kind.
+  bool isNoWrapType() const;
+
   // Don't promise in the API that anything besides 'const' can be
   // easily added.
 
@@ -6272,6 +6279,11 @@ public:
 
   QualType getUnderlyingType() const { return UnderlyingType; }
   OverflowBehaviorKind getBehaviorKind() const { return BehaviorKind; }
+
+  bool isWrapKind() const { return BehaviorKind == OverflowBehaviorKind::Wrap; }
+  bool isNoWrapKind() const {
+    return BehaviorKind == OverflowBehaviorKind::NoWrap;
+  }
 
   OverflowBehaviorKind setBehaviorKind(OverflowBehaviorKind Kind) {
     BehaviorKind = Kind;

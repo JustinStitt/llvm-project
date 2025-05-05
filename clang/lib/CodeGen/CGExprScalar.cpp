@@ -232,13 +232,10 @@ static bool CanElideOverflowCheck(ASTContext &Ctx, const BinOpInfo &Op) {
   if (!Op.mayHaveIntegerOverflow())
     return true;
 
-  if (const auto *OBT = Op.Ty->getAs<OverflowBehaviorType>()) {
-    if (OBT->getBehaviorKind() ==
-        OverflowBehaviorType::OverflowBehaviorKind::Wrap)
-      return true;
-    if (OBT->getBehaviorKind() == OverflowBehaviorType::OverflowBehaviorKind::NoWrap)
-      return false;
-  }
+  if (Op.Ty.isWrapType())
+    return true;
+  if (Op.Ty.isNoWrapType())
+    return false;
 
   const UnaryOperator *UO = dyn_cast<UnaryOperator>(Op.E);
 
@@ -3973,18 +3970,11 @@ void ScalarExprEmitter::EmitUndefinedBehaviorIntegerDivAndRemCheck(
                                     SanitizerKind::SO_IntegerDivideByZero));
   }
 
-  // Wrapping types can elide the following checks
-  bool isWrappingType = false;
-  if (const auto *OBT = Ops.Ty->getAs<OverflowBehaviorType>()) {
-    isWrappingType = OBT->getBehaviorKind() ==
-                     OverflowBehaviorType::OverflowBehaviorKind::Wrap;
-  }
-
   const auto *BO = cast<BinaryOperator>(Ops.E);
   if (CGF.SanOpts.has(SanitizerKind::SignedIntegerOverflow) &&
       Ops.Ty->hasSignedIntegerRepresentation() &&
       !IsWidenedIntegerOp(CGF.getContext(), BO->getLHS()) &&
-      Ops.mayHaveIntegerOverflow() && !isWrappingType) {
+      Ops.mayHaveIntegerOverflow() && !Ops.Ty.isWrapType()) {
     llvm::IntegerType *Ty = cast<llvm::IntegerType>(Zero->getType());
 
     llvm::Value *IntMin =

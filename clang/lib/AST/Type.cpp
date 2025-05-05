@@ -2960,6 +2960,22 @@ bool QualType::isWebAssemblyFuncrefType() const {
          getAddressSpace() == LangAS::wasm_funcref;
 }
 
+bool QualType::isWrapType() const {
+  if (const auto *OBT = getCanonicalType()->getAs<OverflowBehaviorType>())
+    return OBT->getBehaviorKind() ==
+           OverflowBehaviorType::OverflowBehaviorKind::Wrap;
+
+  return false;
+}
+
+bool QualType::isNoWrapType() const {
+  if (const auto *OBT = getCanonicalType()->getAs<OverflowBehaviorType>())
+    return OBT->getBehaviorKind() ==
+           OverflowBehaviorType::OverflowBehaviorKind::NoWrap;
+
+  return false;
+}
+
 QualType::PrimitiveDefaultInitializeKind
 QualType::isNonTrivialToPrimitiveDefaultInitialize() const {
   if (const auto *RT =

@@ -1421,8 +1421,8 @@ static QualType handleOverflowBehaviorTypeConversion(Sema &S, ExprResult &LHS,
   QualType LHSType = LHS.get()->getType().getUnqualifiedType();
   QualType RHSType = RHS.get()->getType().getUnqualifiedType();
 
-  const OverflowBehaviorType *LhsOBT = dyn_cast<OverflowBehaviorType>(LHSType);
-  const OverflowBehaviorType *RhsOBT = dyn_cast<OverflowBehaviorType>(RHSType);
+  const OverflowBehaviorType *LhsOBT = LHSType->getAs<OverflowBehaviorType>();
+  const OverflowBehaviorType *RhsOBT = RHSType->getAs<OverflowBehaviorType>();
 
   assert(LHSType->isIntegerType() && RHSType->isIntegerType() &&
          "Non-integer type conversion not supported for OverflowBehaviorTypes");
@@ -1435,9 +1435,7 @@ static QualType handleOverflowBehaviorTypeConversion(Sema &S, ExprResult &LHS,
 
   // NoWrap has precedence over Wrap; eagerly cast Wrap types to NoWrap types
   if ((LhsOBT && !RhsOBT) ||
-      (LhsOBT && RhsOBT &&
-       RhsOBT->getBehaviorKind() !=
-           OverflowBehaviorType::OverflowBehaviorKind::NoWrap)) {
+      (LhsOBT && RhsOBT && !RhsOBT->isNoWrapKind())) {
     RHS = doIntegralCast(S, RHS.get(), LHSType);
     return LHSType;
   }

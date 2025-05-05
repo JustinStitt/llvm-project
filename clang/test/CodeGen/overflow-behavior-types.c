@@ -97,3 +97,4 @@ void test3(void) {
 // -ftrapv, -fwrapv
 // SCL integration
 // -ftrapv-handler
+// -Winteger-overflow warnings silenced with __wrap (probably add this in Sema test)
