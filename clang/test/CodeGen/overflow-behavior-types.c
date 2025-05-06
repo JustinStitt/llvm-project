@@ -88,6 +88,17 @@ void test3(void) {
   (e - f);
 }
 
+typedef int __attribute__((overflow_behavior(wrap))) wrap_int;
+typedef int __attribute__((overflow_behavior(no_wrap))) nowrap_int;
+// DEFAULT-LABEL: define {{.*}} @typedefs
+void typedefs(nowrap_int a, wrap_int b) {
+  // DEFAULT: llvm.sadd.with.overflow.i32
+  (a + 100);
+
+  // DEFAULT: add i32
+  (b + 100);
+}
+
 // TODO:
 // [x] unsigned types
 // [x] various bitwidths
