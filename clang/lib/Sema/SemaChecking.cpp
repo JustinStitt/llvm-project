@@ -8003,6 +8003,10 @@ CheckPrintfHandler::checkFormatExpr(const analyze_printf::PrintfSpecifier &FS,
     ExprTy = TET->getUnderlyingExpr()->getType();
   }
 
+  if (const OverflowBehaviorType *OBT =
+          dyn_cast<OverflowBehaviorType>(ExprTy.getCanonicalType()))
+    ExprTy = OBT->getUnderlyingType();
+
   // When using the format attribute in C++, you can receive a function or an
   // array that will necessarily decay to a pointer when passed to the final
   // format consumer. Apply decay before type comparison.
@@ -10241,6 +10245,8 @@ struct IntRange {
       T = CT->getElementType().getTypePtr();
     if (const AtomicType *AT = dyn_cast<AtomicType>(T))
       T = AT->getValueType().getTypePtr();
+    if (const OverflowBehaviorType *OBT = dyn_cast<OverflowBehaviorType>(T))
+      T = OBT->getUnderlyingType().getTypePtr();
 
     if (!C.getLangOpts().CPlusPlus) {
       // For enum types in C code, use the underlying datatype.
@@ -10291,6 +10297,8 @@ struct IntRange {
       T = AT->getValueType().getTypePtr();
     if (const EnumType *ET = dyn_cast<EnumType>(T))
       T = C.getCanonicalType(ET->getDecl()->getIntegerType()).getTypePtr();
+    if (const OverflowBehaviorType *OBT = dyn_cast<OverflowBehaviorType>(T))
+      T = OBT->getUnderlyingType().getTypePtr();
 
     if (const auto *EIT = dyn_cast<BitIntType>(T))
       return IntRange(EIT->getNumBits(), EIT->isUnsigned());

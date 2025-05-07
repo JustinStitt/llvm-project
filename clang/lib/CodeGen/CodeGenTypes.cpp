@@ -770,6 +770,11 @@ llvm::Type *CodeGenTypes::ConvertType(QualType T) {
   case Type::HLSLAttributedResource:
     ResultType = CGM.getHLSLRuntime().convertHLSLSpecificType(Ty);
     break;
+  case Type::OverflowBehavior:
+    // FIXME: (justinstitt): is this what we want here?
+    ResultType =
+        ConvertType(dyn_cast<OverflowBehaviorType>(Ty)->getUnderlyingType());
+    break;
   }
 
   assert(ResultType && "Didn't convert a type?");

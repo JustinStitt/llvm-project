@@ -3754,6 +3754,11 @@ void MicrosoftCXXNameMangler::mangleType(const HLSLAttributedResourceType *T,
   llvm_unreachable("HLSL uses Itanium name mangling");
 }
 
+void MicrosoftCXXNameMangler::mangleType(const OverflowBehaviorType *T,
+                                         Qualifiers, SourceRange Range) {
+  llvm_unreachable("OverflowBehaviorType uses Itanium name mangling");
+}
+
 // <this-adjustment> ::= <no-adjustment> | <static-adjustment> |
 //                       <virtual-adjustment>
 // <no-adjustment>      ::= A # private near

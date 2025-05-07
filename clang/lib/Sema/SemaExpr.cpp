@@ -1415,6 +1415,37 @@ static QualType handleComplexIntConversion(Sema &S, ExprResult &LHS,
   return ComplexType;
 }
 
+static QualType handleOverflowBehaviorTypeConversion(Sema &S, ExprResult &LHS,
+                                                     ExprResult &RHS,
+                                                     bool IsCompAssign) {
+  QualType LHSType = LHS.get()->getType().getUnqualifiedType();
+  QualType RHSType = RHS.get()->getType().getUnqualifiedType();
+
+  const OverflowBehaviorType *LhsOBT = LHSType->getAs<OverflowBehaviorType>();
+  const OverflowBehaviorType *RhsOBT = RHSType->getAs<OverflowBehaviorType>();
+
+  assert(LHSType->isIntegerType() && RHSType->isIntegerType() &&
+         "Non-integer type conversion not supported for OverflowBehaviorTypes");
+
+  if (LhsOBT && RhsOBT) {
+    if (LhsOBT->getBehaviorKind() == RhsOBT->getBehaviorKind())
+      return handleIntegerConversion<doIntegralCast, doIntegralCast>(
+          S, LHS, RHS, LHSType, RHSType, IsCompAssign);
+  }
+
+  // NoWrap has precedence over Wrap; eagerly cast Wrap types to NoWrap types
+  if ((LhsOBT && !RhsOBT) ||
+      (LhsOBT && RhsOBT && !RhsOBT->isNoWrapKind())) {
+    RHS = doIntegralCast(S, RHS.get(), LHSType);
+    return LHSType;
+  }
+
+  if (!IsCompAssign)
+    LHS = doIntegralCast(S, LHS.get(), RHSType);
+
+  return RHSType;
+}
+
 /// Return the rank of a given fixed point or integer type. The value itself
 /// doesn't matter, but the values must be increasing with proper increasing
 /// rank as described in N1169 4.1.1.
@@ -1571,6 +1602,14 @@ void Sema::checkEnumArithmeticConversions(Expr *LHS, Expr *RHS,
 QualType Sema::UsualArithmeticConversions(ExprResult &LHS, ExprResult &RHS,
                                           SourceLocation Loc,
                                           ArithConvKind ACK) {
+#ifdef JUSTINDBG
+  llvm::errs() << "in UsualArithmeticConversions\n";
+  llvm::errs() << "LHS.dump()"; LHS.get()->dump();
+  llvm::errs() << "RHS.dump()"; RHS.get()->dump();
+  llvm::errs() << "LHS og type dump: "; LHS.get()->getType().dump();
+  llvm::errs() << "RHS og type dump: "; RHS.get()->getType().dump();
+#endif
+
   checkEnumArithmeticConversions(LHS.get(), RHS.get(), Loc, ACK);
 
   if (ACK != ACK_CompAssign) {
@@ -1593,8 +1632,9 @@ QualType Sema::UsualArithmeticConversions(ExprResult &LHS, ExprResult &RHS,
     LHSType = AtomicLHS->getValueType();
 
   // If both types are identical, no conversion is needed.
-  if (Context.hasSameType(LHSType, RHSType))
+  if (Context.hasSameType(LHSType, RHSType)) {
     return Context.getCommonSugaredType(LHSType, RHSType);
+  }
 
   // If either side is a non-arithmetic type (e.g. a pointer), we are done.
   // The caller can deal with this (e.g. pointer + int).
@@ -1639,6 +1679,12 @@ QualType Sema::UsualArithmeticConversions(ExprResult &LHS, ExprResult &RHS,
 
   if (LHSType->isFixedPointType() || RHSType->isFixedPointType())
     return handleFixedPointConversion(*this, LHSType, RHSType);
+
+  if (LHSType->isOverflowBehaviorType() ||
+      RHSType->isOverflowBehaviorType()) {
+    return handleOverflowBehaviorTypeConversion(*this, LHS, RHS,
+                                                ACK == ACK_CompAssign);
+  }
 
   // Finally, we have two differing integer types.
   return handleIntegerConversion<doIntegralCast, doIntegralCast>
@@ -4532,6 +4578,7 @@ static void captureVariablyModifiedType(ASTContext &Context, QualType T,
     case Type::UnaryTransform:
     case Type::Attributed:
     case Type::BTFTagAttributed:
+    case Type::OverflowBehavior:
     case Type::HLSLAttributedResource:
     case Type::SubstTemplateTypeParm:
     case Type::MacroQualified:
@@ -9975,6 +10022,7 @@ static bool tryVectorConvertAndSplat(Sema &S, ExprResult *scalar,
                                      QualType vectorEltTy,
                                      QualType vectorTy,
                                      unsigned &DiagID) {
+  llvm::errs() << "in tryVectorConvertAndSplat with scalarTy: "; scalarTy.dump();
   // The conversion to apply to the scalar before splatting it,
   // if necessary.
   CastKind scalarCast = CK_NoOp;
@@ -11046,6 +11094,9 @@ static void diagnosePointerIncompatibility(Sema &S, SourceLocation Loc,
 QualType Sema::CheckAdditionOperands(ExprResult &LHS, ExprResult &RHS,
                                      SourceLocation Loc, BinaryOperatorKind Opc,
                                      QualType* CompLHSTy) {
+#ifdef JUSTINDBG
+  llvm::errs() << "in CheckAdditionOperands\n";
+#endif
   checkArithmeticNull(*this, LHS, RHS, Loc, /*IsCompare=*/false);
 
   if (LHS.get()->getType()->isVectorType() ||
@@ -13830,6 +13881,9 @@ QualType Sema::CheckAssignmentOperands(Expr *LHSExpr, ExprResult &RHS,
                                        SourceLocation Loc,
                                        QualType CompoundType,
                                        BinaryOperatorKind Opc) {
+#ifdef JUSTINDBG
+  llvm::errs() << "in CheckAssignmentOperands\n";
+#endif
   assert(!LHSExpr->hasPlaceholderType(BuiltinType::PseudoObject));
 
   // Verify that LHS is a modifiable lvalue, and emit error if not.
@@ -14106,6 +14160,8 @@ static QualType CheckIncrementDecrementOperand(Sema &S, Expr *Op,
     // C99 6.5.2.4p2, 6.5.6p2
     if (!checkArithmeticOpPointerOperand(S, OpLoc, Op))
       return QualType();
+  } else if (ResType->isOverflowBehaviorType()) {
+    // OK!
   } else if (ResType->isObjCObjectPointerType()) {
     // On modern runtimes, ObjC pointer arithmetic is forbidden.
     // Otherwise, we just need a complete type.

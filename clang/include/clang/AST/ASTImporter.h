@@ -342,6 +342,10 @@ class TypeSourceInfo;
     /// error.
     llvm::Expected<Attr *> Import(const Attr *FromAttr);
 
+    // TODO (justinstitt): do we need this?
+    /*llvm::Expected<OverflowBehaviorType::OverflowBehaviorKind>*/
+    /*Import(OverflowBehaviorType::OverflowBehaviorKind FromKind);*/
+
     /// Import the given declaration from the "from" context into the
     /// "to" context.
     ///
