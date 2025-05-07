@@ -232,15 +232,18 @@ static bool CanElideOverflowCheck(ASTContext &Ctx, const BinOpInfo &Op) {
   if (!Op.mayHaveIntegerOverflow())
     return true;
 
+  const UnaryOperator *UO = dyn_cast<UnaryOperator>(Op.E);
+  if (UO && Ctx.isUnaryOverflowPatternExcluded(UO))
+    return true;
+
+  const auto *BO = dyn_cast<BinaryOperator>(Op.E);
+  if (BO && BO->hasExcludedOverflowPattern())
+    return true;
+
   if (Op.Ty.isWrapType())
     return true;
   if (Op.Ty.isNoWrapType())
     return false;
-
-  const UnaryOperator *UO = dyn_cast<UnaryOperator>(Op.E);
-
-  if (UO && Ctx.isUnaryOverflowPatternExcluded(UO))
-    return true;
 
   if (Op.Ty->isSignedIntegerType() &&
       Ctx.isTypeIgnoredBySanitizer(SanitizerKind::SignedIntegerOverflow,
@@ -253,10 +256,6 @@ static bool CanElideOverflowCheck(ASTContext &Ctx, const BinOpInfo &Op) {
                                    Op.Ty)) {
     return true;
   }
-
-  const auto *BO = dyn_cast<BinaryOperator>(Op.E);
-  if (BO && BO->hasExcludedOverflowPattern())
-    return true;
 
   // If a unary op has a widened operand, the op cannot overflow.
   if (UO)

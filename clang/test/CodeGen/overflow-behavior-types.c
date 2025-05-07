@@ -1,5 +1,10 @@
 // RUN: %clang_cc1 -triple x86_64-linux-gnu %s -fsanitize=signed-integer-overflow,unsigned-integer-overflow,implicit-signed-integer-truncation,implicit-unsigned-integer-truncation -emit-llvm -o - | FileCheck %s --check-prefix=DEFAULT
 
+// RUN: %clang_cc1 -triple x86_64-linux-gnu %s \
+// RUN: -fsanitize-undefined-ignore-overflow-pattern=all \
+// RUN: -fsanitize=signed-integer-overflow,unsigned-integer-overflow,implicit-signed-integer-truncation,implicit-unsigned-integer-truncation \
+// RUN: -emit-llvm -o - | FileCheck %s --check-prefix=EXCL
+
 #define __wrap __attribute__((overflow_behavior("wrap")))
 #define __nowrap __attribute__((overflow_behavior("no_wrap")))
 
@@ -99,13 +104,27 @@ void typedefs(nowrap_int a, wrap_int b) {
   (b + 100);
 }
 
+// EXCL-LABEL: define {{.*}} @ignored_patterns
+void ignored_patterns(unsigned long __attribute__((overflow_behavior(no_wrap))) a) {
+  // EXCL: %[[T0:.*]] = load i64, ptr %a.addr
+  // EXCL-NEXT: add i64 %[[T0]], -1
+  while (a--) { /*...*/ }
+
+  // EXCL: %[[T1:.*]] = load i64, ptr %a.addr
+  // EXCL: %[[T2:.*]] = load volatile i64, ptr %b
+  // EXCL-NEXT: add i64 %[[T1]], %[[T2]]
+  volatile unsigned long __attribute__((overflow_behavior(no_wrap))) b;
+  if (a + b < a) { /*...*/ }
+}
+
 // TODO:
 // [x] unsigned types
 // [x] various bitwidths
 // [x] truncation
 // [x] negation
 // [x] competing OBT kinds (wrap vs nowrap)
-// -ftrapv, -fwrapv
-// SCL integration
-// -ftrapv-handler
-// -Winteger-overflow warnings silenced with __wrap (probably add this in Sema test)
+// [] pattern exclusions (WIP)
+// [] -ftrapv, -fwrapv
+// [] -ftrapv-handler
+// [x] SCL integration
+// [x] -Winteger-overflow warnings silenced with __wrap (probably add this in Sema test)
