@@ -2477,6 +2477,7 @@ bool CXXNameMangler::mangleUnresolvedTypeOrSimpleId(QualType Ty,
   case Type::Paren:
   case Type::Attributed:
   case Type::BTFTagAttributed:
+  case Type::OverflowBehavior:
   case Type::HLSLAttributedResource:
   case Type::Auto:
   case Type::DeducedTemplateSpecialization:
@@ -4654,6 +4655,13 @@ void CXXNameMangler::mangleType(const PipeType *T) {
   // A.1 Data types and A.3 Summary of changes
   // <type> ::= 8ocl_pipe
   Out << "8ocl_pipe";
+}
+
+void CXXNameMangler::mangleType(const OverflowBehaviorType *T) {
+  // <type> ::= U <source-name> <type>  # vendor extended type qualifier
+  // (Until there's a standardized mangling...)
+  Out << "9nosanitize_attributed";
+  mangleType(T->getUnderlyingType());
 }
 
 void CXXNameMangler::mangleType(const BitIntType *T) {

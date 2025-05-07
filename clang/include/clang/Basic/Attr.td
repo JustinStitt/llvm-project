@@ -4995,3 +4995,11 @@ def OpenACCRoutineDecl :InheritableAttr {
     void printPrettyPragma(raw_ostream &OS, const PrintingPolicy &Policy) const;
   }];
 }
+
+def OverflowBehavior : TypeAttr {
+  let Spellings = [Clang<"overflow_behavior">];
+  let Args = [IdentifierArgument<"BehaviorKind">];
+  let Subjects = SubjectList<[Var, TypedefName, Field]>;
+  let Documentation = [Undocumented];
+  let LangOpts = [COnly];
+}

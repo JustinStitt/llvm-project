@@ -696,6 +696,11 @@ ExprResult Sema::ImpCastExprToType(Expr *E, QualType Ty,
                                    CastKind Kind, ExprValueKind VK,
                                    const CXXCastPath *BasePath,
                                    CheckedConversionKind CCK) {
+#ifdef JUSTINDBG
+  llvm::errs() << "[ImpCastExprToType]\n";
+  llvm::errs() << "E->dump()\n"; E->dump();
+  llvm::errs() << "Ty->dump()\n"; Ty->dump();
+#endif
 #ifndef NDEBUG
   if (VK == VK_PRValue && !E->isPRValue()) {
     switch (Kind) {

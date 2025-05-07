@@ -3265,7 +3265,11 @@ addAssociatedClassesAndNamespaces(AssociatedLookup &Result, QualType Ty) {
 
     case Type::HLSLAttributedResource:
       T = cast<HLSLAttributedResourceType>(T)->getWrappedType().getTypePtr();
+      continue;
+    case Type::OverflowBehavior:
+      T = cast<OverflowBehaviorType>(T)->getUnderlyingType().getTypePtr();
     }
+
 
     if (Queue.empty())
       break;

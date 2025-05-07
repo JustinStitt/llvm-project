@@ -869,6 +869,45 @@ ASTContext::insertCanonicalTemplateTemplateParmDeclInternal(
   return CanonTTP;
 }
 
+/// For the purposes of overflow pattern exclusion, does this match the
+/// while(i--) pattern?
+static bool matchesPostDecrInWhile(const UnaryOperator *UO, bool isInc,
+                                   bool isPre, ASTContext &Ctx) {
+  if (isInc || isPre)
+    return false;
+
+  // -fsanitize-undefined-ignore-overflow-pattern=unsigned-post-decr-while
+  if (!Ctx.getLangOpts().isOverflowPatternExcluded(
+          LangOptions::OverflowPatternExclusionKind::PostDecrInWhile))
+    return false;
+
+  // all Parents (usually just one) must be a WhileStmt
+  for (const auto &Parent : Ctx.getParentMapContext().getParents(*UO))
+    if (!Parent.get<WhileStmt>())
+      return false;
+
+  return true;
+}
+
+bool ASTContext::isUnaryOverflowPatternExcluded(const UnaryOperator *UO) {
+
+  // -fsanitize-undefined-ignore-overflow-pattern=negated-unsigned-const
+  // ... like -1UL;
+  if (UO->getOpcode() == UO_Minus &&
+      getLangOpts().isOverflowPatternExcluded(
+          LangOptions::OverflowPatternExclusionKind::NegUnsignedConst) &&
+      UO->isIntegerConstantExpr(*this)) {
+    return true;
+  }
+
+  const bool isInc = UO->isIncrementOp();
+  const bool isPre = UO->isPrefix();
+  if (matchesPostDecrInWhile(UO, isInc, isPre, *this))
+    return true;
+
+  return false;
+}
+
 /// Check if a type can have its sanitizer instrumentation elided based on its
 /// presence within an ignorelist.
 bool ASTContext::isTypeIgnoredBySanitizer(const SanitizerMask &Mask,
@@ -2470,6 +2509,10 @@ TypeInfo ASTContext::getTypeInfoImpl(const Type *T) const {
     return getTypeInfo(
         cast<BTFTagAttributedType>(T)->getWrappedType().getTypePtr());
 
+  case Type::OverflowBehavior:
+    return getTypeInfo(
+        cast<OverflowBehaviorType>(T)->getUnderlyingType().getTypePtr());
+
   case Type::HLSLAttributedResource:
     return getTypeInfo(
         cast<HLSLAttributedResourceType>(T)->getWrappedType().getTypePtr());
@@ -3487,6 +3530,9 @@ static void encodeTypeForFunctionPointerAuth(const ASTContext &Ctx,
   case Type::HLSLAttributedResource:
     llvm_unreachable("should never get here");
     break;
+  case Type::OverflowBehavior:
+    llvm_unreachable("should never get here");
+    break;
   case Type::DeducedTemplateSpecialization:
   case Type::Auto:
 #define NON_CANONICAL_TYPE(Class, Base) case Type::Class:
@@ -3630,6 +3676,12 @@ ASTContext::adjustType(QualType Orig,
     const auto *BTFT = dyn_cast<BTFTagAttributedType>(Orig);
     return getBTFTagAttributedType(BTFT->getAttr(),
                                    adjustType(BTFT->getWrappedType(), Adjust));
+  }
+
+  case Type::OverflowBehavior: {
+    const auto *OB = dyn_cast<OverflowBehaviorType>(Orig);
+    return getOverflowBehaviorType(
+        OB->getBehaviorKind(), adjustType(OB->getUnderlyingType(), Adjust));
   }
 
   case Type::Elaborated: {
@@ -4206,6 +4258,7 @@ QualType ASTContext::getVariableArrayDecayedType(QualType type) const {
   case Type::DependentBitInt:
   case Type::ArrayParameter:
   case Type::HLSLAttributedResource:
+  case Type::OverflowBehavior:
     llvm_unreachable("type should never be variably-modified");
 
   // These types can be variably-modified but should never need to
@@ -5442,6 +5495,49 @@ QualType ASTContext::getBTFTagAttributedType(const BTFTypeTagAttr *BTFAttr,
   Types.push_back(Ty);
   BTFTagAttributedTypes.InsertNode(Ty, InsertPos);
 
+  return QualType(Ty, 0);
+}
+
+QualType
+ASTContext::getOverflowBehaviorType(const OverflowBehaviorAttr *Attr, QualType Underlying) const {
+  IdentifierInfo *II = Attr->getBehaviorKind();
+  StringRef IdentName = II->getName();
+  OverflowBehaviorType::OverflowBehaviorKind Kind;
+  if (IdentName == "wrap") {
+    Kind = OverflowBehaviorType::OverflowBehaviorKind::Wrap;
+  } else if (IdentName == "no_wrap") {
+    Kind = OverflowBehaviorType::OverflowBehaviorKind::NoWrap;
+  } else {
+    return Underlying;
+  }
+
+  return getOverflowBehaviorType(Kind, Underlying);
+}
+
+QualType
+ASTContext::getOverflowBehaviorType(OverflowBehaviorType::OverflowBehaviorKind Kind, QualType Underlying) const {
+  llvm::FoldingSetNodeID ID;
+  OverflowBehaviorType::Profile(ID, Underlying, Kind);
+  void *InsertPos = nullptr;
+
+  if (OverflowBehaviorType *OBT =
+          OverflowBehaviorTypes.FindNodeOrInsertPos(ID, InsertPos)) {
+    return QualType(OBT, 0);
+  }
+
+  QualType Canonical;
+  if (!Underlying.isCanonical()) {
+    Canonical = getOverflowBehaviorType(Kind, getCanonicalType(Underlying));
+    OverflowBehaviorType *NewOBT = OverflowBehaviorTypes.FindNodeOrInsertPos(ID, InsertPos);
+    assert(!NewOBT && "Shouldn't be in the map!");
+    (void)NewOBT;
+  }
+
+  OverflowBehaviorType *Ty = new (*this, alignof(OverflowBehaviorType))
+    OverflowBehaviorType(Canonical, Underlying, Kind);
+
+  Types.push_back(Ty);
+  OverflowBehaviorTypes.InsertNode(Ty, InsertPos);
   return QualType(Ty, 0);
 }
 
@@ -7882,6 +7978,9 @@ unsigned ASTContext::getIntegerRank(const Type *T) const {
   if (const auto *EIT = dyn_cast<BitIntType>(T))
     return 0 + (EIT->getNumBits() << 3);
 
+  if (const auto *OBT = dyn_cast<OverflowBehaviorType>(T))
+    return getIntegerRank(OBT->getUnderlyingType().getTypePtr());
+
   switch (cast<BuiltinType>(T)->getKind()) {
   default: llvm_unreachable("getIntegerRank(): not a built-in integer");
   case BuiltinType::Bool:
@@ -9355,6 +9454,7 @@ void ASTContext::getObjCEncodingForTypeImpl(QualType T, std::string &S,
     return;
 
   case Type::HLSLAttributedResource:
+  case Type::OverflowBehavior:
     llvm_unreachable("unexpected type");
 
   case Type::ArrayParameter:
@@ -11530,6 +11630,16 @@ QualType ASTContext::mergeTypes(QualType LHS, QualType RHS, bool OfBlockPointer,
       if (!AT->isDeduced() && AT->isGNUAutoType())
         return LHS;
     }
+    // Allow OverflowBehaviorTypes to merge with types that match its
+    // underlying type.
+    if (const OverflowBehaviorType *OBT = LHS->getAs<OverflowBehaviorType>()) {
+      return mergeTypes(OBT->getUnderlyingType(), RHS, OfBlockPointer,
+                        Unqualified, BlockReturnType, IsConditionalOperator);
+    }
+    if (const OverflowBehaviorType *OBT = RHS->getAs<OverflowBehaviorType>()) {
+      return mergeTypes(LHS, OBT->getUnderlyingType(), OfBlockPointer,
+                        Unqualified, BlockReturnType, IsConditionalOperator);
+    }
     return {};
   }
 
@@ -11785,6 +11895,16 @@ QualType ASTContext::mergeTypes(QualType LHS, QualType RHS, bool OfBlockPointer,
         LHSTy->getContainedType() == RHSTy->getContainedType())
       return LHS;
     return {};
+  }
+  case Type::OverflowBehavior: {
+    const OverflowBehaviorType *LHSTy = LHS->castAs<OverflowBehaviorType>();
+    const OverflowBehaviorType *RHSTy = RHS->castAs<OverflowBehaviorType>();
+
+    assert(LHSTy->getUnderlyingType() == RHSTy->getUnderlyingType());
+
+    if (LHSTy->getBehaviorKind() != RHSTy->getBehaviorKind())
+      return {};
+    return LHS;
   }
   }
 
@@ -14052,6 +14172,14 @@ static QualType getCommonNonSugarTypeNode(ASTContext &Ctx, const Type *X,
         getCommonTypeKeyword(NX, NY),
         getCommonQualifier(Ctx, NX, NY, /*IsSame=*/true), NX->getIdentifier());
   }
+  case Type::OverflowBehavior: {
+    // FIXME: (justinstitt) also half-baked, just uses LHS' attrs, no idea if I
+    // even need this though
+    const auto *NX = cast<OverflowBehaviorType>(X),
+               *NY = cast<OverflowBehaviorType>(Y);
+    return Ctx.getOverflowBehaviorType(NX->getBehaviorKind(),
+                                       NX->getUnderlyingType());
+  }
   case Type::DependentTemplateSpecialization: {
     const auto *TX = cast<DependentTemplateSpecializationType>(X),
                *TY = cast<DependentTemplateSpecializationType>(Y);
@@ -14188,6 +14316,12 @@ static QualType getCommonSugarTypeNode(ASTContext &Ctx, const Type *X,
         cast<BTFTagAttributedType>(Y)->getAttr()->getBTFTypeTag())
       return QualType();
     return Ctx.getBTFTagAttributedType(AX, Ctx.getQualifiedType(Underlying));
+  }
+  case Type::OverflowBehavior: {
+    // TODO (justinstitt): probably more to do here, since we are only
+    // considering one of the types currently.
+    OverflowBehaviorType::OverflowBehaviorKind Kind = cast<OverflowBehaviorType>(X)->getBehaviorKind();
+    return Ctx.getOverflowBehaviorType(Kind, Ctx.getQualifiedType(Underlying));
   }
   case Type::Auto: {
     const auto *AX = cast<AutoType>(X), *AY = cast<AutoType>(Y);
