@@ -871,9 +871,11 @@ ASTContext::insertCanonicalTemplateTemplateParmDeclInternal(
 
 /// For the purposes of overflow pattern exclusion, does this match the
 /// while(i--) pattern?
-static bool matchesPostDecrInWhile(const UnaryOperator *UO, bool isInc,
-                                   bool isPre, ASTContext &Ctx) {
-  if (isInc || isPre)
+static bool matchesPostDecrInWhile(const UnaryOperator *UO, ASTContext &Ctx) {
+  if (UO->getOpcode() != UO_PostDec)
+    return false;
+
+  if (!UO->getType()->isUnsignedIntegerType())
     return false;
 
   // -fsanitize-undefined-ignore-overflow-pattern=unsigned-post-decr-while
@@ -882,15 +884,12 @@ static bool matchesPostDecrInWhile(const UnaryOperator *UO, bool isInc,
     return false;
 
   // all Parents (usually just one) must be a WhileStmt
-  for (const auto &Parent : Ctx.getParentMapContext().getParents(*UO))
-    if (!Parent.get<WhileStmt>())
-      return false;
-
-  return true;
+  return llvm::all_of(
+      Ctx.getParentMapContext().getParents(*UO),
+      [](const DynTypedNode &P) { return P.get<WhileStmt>() != nullptr; });
 }
 
 bool ASTContext::isUnaryOverflowPatternExcluded(const UnaryOperator *UO) {
-
   // -fsanitize-undefined-ignore-overflow-pattern=negated-unsigned-const
   // ... like -1UL;
   if (UO->getOpcode() == UO_Minus &&
@@ -900,9 +899,7 @@ bool ASTContext::isUnaryOverflowPatternExcluded(const UnaryOperator *UO) {
     return true;
   }
 
-  const bool isInc = UO->isIncrementOp();
-  const bool isPre = UO->isPrefix();
-  if (matchesPostDecrInWhile(UO, isInc, isPre, *this))
+  if (matchesPostDecrInWhile(UO, *this))
     return true;
 
   return false;
