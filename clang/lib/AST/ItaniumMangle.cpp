@@ -4658,9 +4658,7 @@ void CXXNameMangler::mangleType(const PipeType *T) {
 }
 
 void CXXNameMangler::mangleType(const OverflowBehaviorType *T) {
-  // <type> ::= U <source-name> <type>  # vendor extended type qualifier
-  // (Until there's a standardized mangling...)
-  Out << "9nosanitize_attributed";
+  Out << "U9Obt_";
   mangleType(T->getUnderlyingType());
 }
 

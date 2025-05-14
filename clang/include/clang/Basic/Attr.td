@@ -5001,5 +5001,4 @@ def OverflowBehavior : TypeAttr {
   let Args = [IdentifierArgument<"BehaviorKind">];
   let Subjects = SubjectList<[Var, TypedefName, Field]>;
   let Documentation = [Undocumented];
-  let LangOpts = [COnly];
 }
