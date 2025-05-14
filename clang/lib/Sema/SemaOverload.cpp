@@ -2180,6 +2180,12 @@ static bool tryAtomicConversion(Sema &S, Expr *From, QualType ToType,
                                 StandardConversionSequence &SCS,
                                 bool CStyle);
 
+static bool tryOverflowBehaviorTypeConversion(Sema &S, Expr *From,
+                                              QualType ToType,
+                                              bool InOverloadResolution,
+                                              StandardConversionSequence &SCS,
+                                              bool CStyle);
+
 /// IsStandardConversion - Determines whether there is a standard
 /// conversion sequence (C++ [conv], C++ [over.ics.scs]) from the
 /// expression From to the type ToType. Standard conversion sequences
@@ -2439,6 +2445,9 @@ static bool IsStandardConversion(Sema &S, Expr* From, QualType ToType,
                                  CStyle)) {
     // tryAtomicConversion has updated the standard conversion sequence
     // appropriately.
+    return true;
+  } else if (tryOverflowBehaviorTypeConversion(
+                 S, From, ToType, InOverloadResolution, SCS, CStyle)) {
     return true;
   } else if (ToType->isEventT() &&
              From->isIntegerConstantExpr(S.getASTContext()) &&
@@ -3813,6 +3822,30 @@ static bool tryAtomicConversion(Sema &S, Expr *From, QualType ToType,
   SCS.Third = InnerSCS.Third;
   SCS.QualificationIncludesObjCLifetime
     = InnerSCS.QualificationIncludesObjCLifetime;
+  SCS.setToType(2, InnerSCS.getToType(2));
+  return true;
+}
+
+static bool tryOverflowBehaviorTypeConversion(Sema &S, Expr *From,
+                                              QualType ToType,
+                                              bool InOverloadResolution,
+                                              StandardConversionSequence &SCS,
+                                              bool CStyle) {
+  const OverflowBehaviorType *ToOBT = ToType->getAs<OverflowBehaviorType>();
+  if (!ToOBT)
+    return false;
+
+  StandardConversionSequence InnerSCS;
+  if (!IsStandardConversion(S, From, ToOBT->getUnderlyingType(),
+                            InOverloadResolution, InnerSCS, CStyle,
+                            /*AllowObjCWritebackConversion=*/false))
+    return false;
+
+  SCS.Second = InnerSCS.Second;
+  SCS.setToType(1, InnerSCS.getToType(1));
+  SCS.Third = InnerSCS.Third;
+  SCS.QualificationIncludesObjCLifetime =
+      InnerSCS.QualificationIncludesObjCLifetime;
   SCS.setToType(2, InnerSCS.getToType(2));
   return true;
 }
