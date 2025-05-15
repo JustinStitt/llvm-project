@@ -117,6 +117,11 @@ CompareQualificationConversions(Sema &S,
                                 const StandardConversionSequence& SCS2);
 
 static ImplicitConversionSequence::CompareKind
+CompareOverflowBehaviorConversions(Sema &S,
+                                   const StandardConversionSequence &SCS1,
+                                   const StandardConversionSequence &SCS2);
+
+static ImplicitConversionSequence::CompareKind
 CompareDerivedToBaseConversions(Sema &S, SourceLocation Loc,
                                 const StandardConversionSequence& SCS1,
                                 const StandardConversionSequence& SCS2);
@@ -4630,6 +4635,10 @@ CompareStandardConversionSequences(Sema &S, SourceLocation Loc,
         = CompareQualificationConversions(S, SCS1, SCS2))
     return QualCK;
 
+  if (ImplicitConversionSequence::CompareKind ObtCK =
+          CompareOverflowBehaviorConversions(S, SCS1, SCS2))
+    return ObtCK;
+
   if (SCS1.ReferenceBinding && SCS2.ReferenceBinding) {
     // C++ [over.ics.rank]p3b4:
     //   -- S1 and S2 are reference bindings (8.5.3), and the types to
@@ -4739,6 +4748,23 @@ CompareStandardConversionSequences(Sema &S, SourceLocation Loc,
                  ? ImplicitConversionSequence::Better
                  : ImplicitConversionSequence::Worse;
   }
+  return ImplicitConversionSequence::Indistinguishable;
+}
+
+/// CompareOverflowBehaviorConversions - Compares two standard conversion
+/// sequences to determine whether they can be ranked based on their
+/// OverflowBehaviorType's underlying type.
+static ImplicitConversionSequence::CompareKind
+CompareOverflowBehaviorConversions(Sema &S,
+                                   const StandardConversionSequence &SCS1,
+                                   const StandardConversionSequence &SCS2) {
+  const auto *OBT1 = SCS1.getFromType()->getAs<OverflowBehaviorType>();
+  const auto *OBT2 = SCS2.getFromType()->getAs<OverflowBehaviorType>();
+  if (OBT1 && OBT1->getUnderlyingType() == SCS1.getToType(2))
+    return ImplicitConversionSequence::Better;
+  if (OBT2 && OBT2->getUnderlyingType() == SCS2.getToType(2))
+    return ImplicitConversionSequence::Worse;
+
   return ImplicitConversionSequence::Indistinguishable;
 }
 
