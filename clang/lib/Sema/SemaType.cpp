@@ -6606,6 +6606,14 @@ static void HandleOverflowBehaviorAttr(QualType &Type, const ParsedAttr &Attr,
                                        TypeProcessingState &State) {
   Sema &S = State.getSema();
 
+  // Check for -foverflow-behavior-types
+  if (!S.getLangOpts().OverflowBehaviorTypes) {
+    S.Diag(Attr.getLoc(), diag::warn_overflow_behavior_attribute_disabled)
+        << Attr << 1;
+    Attr.setInvalid();
+    return;
+  }
+
   // Check the number of attribute arguments.
   if (Attr.getNumArgs() != 1) {
     S.Diag(Attr.getLoc(), diag::err_attribute_wrong_number_arguments)

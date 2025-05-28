@@ -14172,6 +14172,7 @@ static QualType getCommonNonSugarTypeNode(ASTContext &Ctx, const Type *X,
   case Type::OverflowBehavior: {
     // FIXME: (justinstitt) also half-baked, just uses LHS' attrs, no idea if I
     // even need this though
+    // maybe add as SUGAR_FREE_TYPE in the macro above ^^^
     const auto *NX = cast<OverflowBehaviorType>(X),
                *NY = cast<OverflowBehaviorType>(Y);
     return Ctx.getOverflowBehaviorType(NX->getBehaviorKind(),
