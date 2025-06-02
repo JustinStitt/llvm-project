@@ -1,8 +1,8 @@
 // RUN: rm -rf %t
 // RUN: split-file %s %t
 
-// RUN: %clang_cc1 -triple x86_64-linux-gnu %t/test.c -fsanitize-ignorelist=%t/sio.scl -fsanitize=signed-integer-overflow -emit-llvm -o - | FileCheck %s --check-prefix=SIO
-// RUN: %clang_cc1 -triple x86_64-linux-gnu %t/test.c -fsanitize-ignorelist=%t/uio.scl -fsanitize=unsigned-integer-overflow -emit-llvm -o - | FileCheck %s --check-prefix=UIO
+// RUN: %clang_cc1 -triple x86_64-linux-gnu %t/test.c -fsanitize-ignorelist=%t/sio.scl -foverflow-behavior-types -fsanitize=signed-integer-overflow -emit-llvm -o - | FileCheck %s --check-prefix=SIO
+// RUN: %clang_cc1 -triple x86_64-linux-gnu %t/test.c -fsanitize-ignorelist=%t/uio.scl -foverflow-behavior-types -fsanitize=unsigned-integer-overflow -emit-llvm -o - | FileCheck %s --check-prefix=UIO
 
 //--- sio.scl
 [signed-integer-overflow]

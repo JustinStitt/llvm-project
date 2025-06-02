@@ -1,4 +1,4 @@
-// RUN: %clang_cc1 -triple x86_64-linux-gnu %s \
+// RUN: %clang_cc1 -triple x86_64-linux-gnu %s -foverflow-behavior-types \
 // RUN: -fsanitize=signed-integer-overflow,unsigned-integer-overflow,implicit-signed-integer-truncation,implicit-unsigned-integer-truncation \
 // RUN: -emit-llvm -o - | FileCheck %s --check-prefix=DEFAULT
 

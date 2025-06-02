@@ -1,18 +1,18 @@
-// RUN: %clang_cc1 -triple x86_64-linux-gnu %s \
+// RUN: %clang_cc1 -triple x86_64-linux-gnu -foverflow-behavior-types %s \
 // RUN: -fsanitize=signed-integer-overflow,unsigned-integer-overflow,implicit-signed-integer-truncation,implicit-unsigned-integer-truncation \
 // RUN: -emit-llvm -o - | FileCheck %s --check-prefix=DEFAULT
 
-// RUN: %clang_cc1 -triple x86_64-linux-gnu %s -ftrapv \
+// RUN: %clang_cc1 -triple x86_64-linux-gnu -foverflow-behavior-types %s -ftrapv \
 // RUN: -fsanitize-undefined-ignore-overflow-pattern=all \
 // RUN: -fsanitize=signed-integer-overflow,unsigned-integer-overflow,implicit-signed-integer-truncation,implicit-unsigned-integer-truncation \
 // RUN: -emit-llvm -o - | FileCheck %s --check-prefix=DEFAULT
 
-// RUN: %clang_cc1 -triple x86_64-linux-gnu %s -fwrapv \
+// RUN: %clang_cc1 -triple x86_64-linux-gnu -foverflow-behavior-types %s -fwrapv \
 // RUN: -fsanitize-undefined-ignore-overflow-pattern=all \
 // RUN: -fsanitize=signed-integer-overflow,unsigned-integer-overflow,implicit-signed-integer-truncation,implicit-unsigned-integer-truncation \
 // RUN: -emit-llvm -o - | FileCheck %s --check-prefix=DEFAULT
 
-// RUN: %clang_cc1 -triple x86_64-linux-gnu %s \
+// RUN: %clang_cc1 -triple x86_64-linux-gnu -foverflow-behavior-types %s \
 // RUN: -fsanitize-undefined-ignore-overflow-pattern=all \
 // RUN: -fsanitize=signed-integer-overflow,unsigned-integer-overflow,implicit-signed-integer-truncation,implicit-unsigned-integer-truncation \
 // RUN: -emit-llvm -o - | FileCheck %s --check-prefix=EXCL
