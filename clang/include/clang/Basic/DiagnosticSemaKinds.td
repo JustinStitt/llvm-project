@@ -3948,10 +3948,10 @@ def err_overflow_behavior_unknown_ident : Error<
   "are supported">;
 def warn_overflow_behavior_non_integer_type : Warning<
   "%0 attribute cannot be applied to non-integer type %1; attribute ignored">,
-  InGroup<IgnoredAttributes>;
+  InGroup<OverflowBehaviorAttributeIgnored>;
 def warn_overflow_behavior_attribute_disabled : Warning<
   "%0 attribute is ignored because it is not enabled; pass -foverflow-behavior-types">,
-  InGroup<IgnoredAttributes>;
+  InGroup<OverflowBehaviorAttributeIgnored>;
 
 // Availability attribute
 def warn_availability_unknown_platform : Warning<

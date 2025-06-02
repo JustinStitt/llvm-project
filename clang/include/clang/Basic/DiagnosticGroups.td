@@ -1552,6 +1552,8 @@ def CTADMaybeUnsupported : DiagGroup<"ctad-maybe-unsupported">;
 
 def FortifySource : DiagGroup<"fortify-source", [FormatOverflow, FormatTruncation]>;
 
+def OverflowBehaviorAttributeIgnored : DiagGroup<"overflow-behavior-attribute-ignored">;
+
 def MaxTokens : DiagGroup<"max-tokens"> {
   code Documentation = [{
 The warning is issued if the number of pre-processor tokens exceeds
