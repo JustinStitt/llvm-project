@@ -128,15 +128,3 @@ void ignored_patterns(unsigned long __attribute__((overflow_behavior(no_wrap))) 
   volatile unsigned long __attribute__((overflow_behavior(no_wrap))) b;
   if (a + b < a) { /*...*/ }
 }
-
-// TODO:
-// [x] unsigned types
-// [x] various bitwidths
-// [x] truncation
-// [x] negation
-// [x] competing OBT kinds (wrap vs nowrap)
-// [] pattern exclusions (WIP)
-// [] -ftrapv, -fwrapv
-// [] -ftrapv-handler
-// [x] SCL integration
-// [x] -Winteger-overflow warnings silenced with __wrap (probably add this in Sema test)
