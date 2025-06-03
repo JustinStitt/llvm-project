@@ -3,12 +3,14 @@
 // RUN: -emit-llvm -o - | FileCheck %s --check-prefix=DEFAULT
 
 // RUN: %clang_cc1 -triple x86_64-linux-gnu -foverflow-behavior-types %s -ftrapv \
-// RUN: -fsanitize-undefined-ignore-overflow-pattern=all \
 // RUN: -fsanitize=signed-integer-overflow,unsigned-integer-overflow,implicit-signed-integer-truncation,implicit-unsigned-integer-truncation \
 // RUN: -emit-llvm -o - | FileCheck %s --check-prefix=DEFAULT
 
+// RUN: %clang_cc1 -triple x86_64-linux-gnu -foverflow-behavior-types %s \
+// RUN: -ftrapv -ftrapv-handler OVERFLOW_HANDLER \
+// RUN: -emit-llvm -o - | FileCheck %s --check-prefix=TRAPV-HANDLER
+
 // RUN: %clang_cc1 -triple x86_64-linux-gnu -foverflow-behavior-types %s -fwrapv \
-// RUN: -fsanitize-undefined-ignore-overflow-pattern=all \
 // RUN: -fsanitize=signed-integer-overflow,unsigned-integer-overflow,implicit-signed-integer-truncation,implicit-unsigned-integer-truncation \
 // RUN: -emit-llvm -o - | FileCheck %s --check-prefix=DEFAULT
 
@@ -17,15 +19,31 @@
 // RUN: -fsanitize=signed-integer-overflow,unsigned-integer-overflow,implicit-signed-integer-truncation,implicit-unsigned-integer-truncation \
 // RUN: -emit-llvm -o - | FileCheck %s --check-prefix=EXCL
 
+// RUN: %clang_cc1 -triple x86_64-linux-gnu -foverflow-behavior-types %s \
+// RUN: -emit-llvm -o - | FileCheck %s --check-prefix=NOSAN
+
 #define __wrap __attribute__((overflow_behavior("wrap")))
 #define __nowrap __attribute__((overflow_behavior("no_wrap")))
 
 // DEFAULT-LABEL: define {{.*}} @test1
+// TRAPV-HANDLER-LABEL: define {{.*}} @test1
+// NOSAN-LABEL: define {{.*}} @test1
 void test1(int __wrap a, int __nowrap b) {
   // DEFAULT: add i32
+  // TRAPV-HANDLER: add i32
+  // NOSAN: add i32
   (a + 1);
 
   // DEFAULT: llvm.sadd.with.overflow.i32
+  // TRAPV-HANDLER: %[[T0:.*]] = load i32, ptr %b
+  // TRAPV-HANDLER: call {{.*}} @OVERFLOW_HANDLER(i64 %[[T0]]
+  // NOSAN: %[[T0:.*]] = load i32, ptr %b
+  // NOSAN-NEXT: %[[T1:.*]] = call {{.*}} @llvm.sadd.with.overflow.i32(i32 %[[T0]]
+  // NOSAN: %[[OF:.*]] = extractvalue {{.*}} %[[T1]], 1
+  // NOSAN-NEXT: %[[XOR:.*]] = xor i1 %[[OF]]
+  // NOSAN-NEXT: br i1 %[[XOR]]{{.*}}cont, label %[[TRAP:.*]], !prof
+  // NOSAN: [[TRAP]]:
+  // NOSAN-NEXT: call void @llvm.ubsantrap
   (b + 1);
 
   // DEFAULT: sub i32 0
