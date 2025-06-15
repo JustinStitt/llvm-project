@@ -61,3 +61,24 @@ void test_overload2(wrap_int a) {
   // to be clear, this is the same ambiguity expected when using a non-OBT int type.
   add_one(a); // expected-error {{call to 'add_one' is ambiguous}}
 }
+
+#define __no_wrap __attribute__((overflow_behavior(no_wrap)))
+void func(__no_wrap int i);
+void func(int i); // Overload, not invalid redeclaration
+
+template <typename Ty>
+struct S {};
+
+template <>
+struct S<__no_wrap int> {};
+
+template <>
+struct S<int> {};
+
+void ptr(int a) {
+  int __no_wrap *p = &a; // expected-error {{cannot initialize a variable of type '__no_wrap int *'}} {{.*}} {{with an rvalue of type 'int *'}}
+}
+
+void ptr2(__no_wrap int a) {
+  int *p = &a; // expected-error {{cannot initialize a variable of type 'int *'}} {{.*}} {{with an rvalue of type '__no_wrap int *'}}
+}
