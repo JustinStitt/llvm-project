@@ -380,6 +380,16 @@ This attribute may not be
 supported by other compilers, so consider using it together with
 ``#if defined(__clang__)``.
 
+Disabling Overflow Instrumentation with ``__attribute__((overflow_behavior(wrap)))``
+------------------------------------------------------------------------------------
+
+Lorem ipsum
+
+Enforcing Overflow Instrumentation with ``__attribute__((overflow_behavior(no_wrap)))``
+---------------------------------------------------------------------------------------
+
+Lorem ipsum
+
 Suppressing Errors in Recompiled Code (Ignorelist)
 --------------------------------------------------
 

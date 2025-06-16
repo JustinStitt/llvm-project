@@ -205,6 +205,8 @@ New Compiler Flags
   The feature has `existed <https://clang.llvm.org/docs/SourceBasedCodeCoverage.html#running-the-instrumented-program>`_)
   for a while and this is just a user facing option.
 
+- New option ``-foverflow-behavior-types`` added to enable parsing of the ``overflow_behavior`` type attribute.
+
 Deprecated Compiler Flags
 -------------------------
 
@@ -288,6 +290,10 @@ related warnings within the method body.
   ``[no_]fine_grained_memory``, and ``[no_]ignore_denormal_mode``. These are
   particularly relevant for AMDGPU targets, where they map to corresponding IR
   metadata.
+
+- Introduced a new type attribute ``__attribute__((overflow_behavior))`` which
+  currently accepts either ``wrap`` or ``no_wrap`` as an argument, enabling
+  type-level control over overflow behavior.
 
 Improvements to Clang's diagnostics
 -----------------------------------

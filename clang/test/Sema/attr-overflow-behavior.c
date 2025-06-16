@@ -14,3 +14,10 @@ void foo() {
   (2147483647 + 100); // expected-warning {{overflow in expression; result is }}
   (ok_wrap)2147483647 + 100; // no warn
 }
+
+#define __no_wrap __attribute__((overflow_behavior(no_wrap)))
+
+void ptr(int a) {
+  int __no_wrap *p = &a;
+}
+
