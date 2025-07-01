@@ -9121,6 +9121,12 @@ checkPointerTypesForAssignment(Sema &S, QualType LHSType, QualType RHSType,
   // C99 6.5.16.1p1 (constraint 3): both operands are pointers to qualified or
   // unqualified versions of compatible types, ...
   QualType ltrans = QualType(lhptee, 0), rtrans = QualType(rhptee, 0);
+
+  if (ltrans->isOverflowBehaviorType() || rtrans->isOverflowBehaviorType()) {
+    if (!S.Context.hasSameType(ltrans, rtrans))
+      return Sema::IncompatiblePointer;
+  }
+
   if (!S.Context.typesAreCompatible(ltrans, rtrans)) {
     // Check if the pointee types are compatible ignoring the sign.
     // We explicitly check for char so that we catch "char" vs
