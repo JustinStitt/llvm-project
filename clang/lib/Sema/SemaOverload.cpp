@@ -4758,11 +4758,13 @@ static ImplicitConversionSequence::CompareKind
 CompareOverflowBehaviorConversions(Sema &S,
                                    const StandardConversionSequence &SCS1,
                                    const StandardConversionSequence &SCS2) {
-  const auto *OBT1 = SCS1.getFromType()->getAs<OverflowBehaviorType>();
-  const auto *OBT2 = SCS2.getFromType()->getAs<OverflowBehaviorType>();
-  if (OBT1 && OBT1->getUnderlyingType() == SCS1.getToType(2))
+
+  if (SCS1.getFromType()->isOverflowBehaviorType() &&
+      SCS1.getToType(2)->isOverflowBehaviorType())
     return ImplicitConversionSequence::Better;
-  if (OBT2 && OBT2->getUnderlyingType() == SCS2.getToType(2))
+
+  if (SCS2.getFromType()->isOverflowBehaviorType() &&
+      SCS2.getToType(2)->isOverflowBehaviorType())
     return ImplicitConversionSequence::Worse;
 
   return ImplicitConversionSequence::Indistinguishable;

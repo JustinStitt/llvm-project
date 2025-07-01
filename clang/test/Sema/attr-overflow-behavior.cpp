@@ -30,29 +30,22 @@ void f() {
 
 class TestOverload {
   public:
-    int x;
-    TestOverload() = delete;
-    TestOverload(int x) : x(x) {}
-
-    void operator<<(int other) {
-      this->x += other;
-    }
-
-    void operator<<(char other) {
-      this->x += (int)other;
-    }
+    void operator<<(int other); // expected-note {{candidate function}}
+    void operator<<(char other); // expected-note {{candidate function}}
 };
 
 void test_overload1() {
   wrap_int a = 4;
-  TestOverload TO(10);
-  TO << a;
+  TestOverload TO;
+  TO << a; // expected-error {{use of overloaded operator '<<' is ambiguous}}
 }
 
+// expected-note@+1 {{candidate function}}
 int add_one(long a) { // expected-note {{candidate function}}
   return (a + 1);
 }
 
+// expected-note@+1 {{candidate function}}
 int add_one(char a) { // expected-note {{candidate function}}
   return (a + 1);
 }
@@ -60,6 +53,8 @@ int add_one(char a) { // expected-note {{candidate function}}
 void test_overload2(wrap_int a) {
   // to be clear, this is the same ambiguity expected when using a non-OBT int type.
   add_one(a); // expected-error {{call to 'add_one' is ambiguous}}
+  long __attribute__((overflow_behavior(no_wrap))) b; // don't consider underlying type an exact match.
+  add_one(b); // expected-error {{call to 'add_one' is ambiguous}}
 }
 
 #define __no_wrap __attribute__((overflow_behavior(no_wrap)))
