@@ -50,6 +50,11 @@ int add_one(char a) { // expected-note {{candidate function}}
   return (a + 1);
 }
 
+// expected-note@+1 {{candidate function}}
+int add_one(int a) { // expected-note {{candidate function}}
+  return (a + 1);
+}
+
 void test_overload2(wrap_int a) {
   // to be clear, this is the same ambiguity expected when using a non-OBT int type.
   add_one(a); // expected-error {{call to 'add_one' is ambiguous}}

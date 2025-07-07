@@ -2383,6 +2383,14 @@ static bool IsStandardConversion(Sema &S, Expr* From, QualType ToType,
     // Complex promotion (Clang extension)
     SCS.Second = ICK_Complex_Promotion;
     FromType = ToType.getUnqualifiedType();
+  } else if (S.IsOverflowBehaviorTypePromotion(FromType, ToType)) {
+    // OverflowBehaviorType promotions
+    SCS.Second = ICK_Integral_Promotion;
+    FromType = ToType.getUnqualifiedType();
+  } else if (S.IsOverflowBehaviorTypeConversion(FromType, ToType)) {
+    // OverflowBehaviorType conversions
+    SCS.Second = ICK_Integral_Conversion;
+    FromType = ToType.getUnqualifiedType();
   } else if (ToType->isBooleanType() &&
              (FromType->isArithmeticType() ||
               FromType->isAnyPointerType() ||
@@ -2796,6 +2804,33 @@ bool Sema::IsComplexPromotion(QualType FromType, QualType ToType) {
                                   ToComplex->getElementType()) ||
     IsIntegralPromotion(nullptr, FromComplex->getElementType(),
                         ToComplex->getElementType());
+}
+
+bool Sema::IsOverflowBehaviorTypePromotion(QualType FromType, QualType ToType) {
+  if (!getLangOpts().OverflowBehaviorTypes)
+    return false;
+
+  if (!FromType->isOverflowBehaviorType() || !ToType->isOverflowBehaviorType())
+    return false;
+
+  return Context.getTypeSize(FromType) < Context.getTypeSize(ToType);
+}
+
+bool Sema::IsOverflowBehaviorTypeConversion(QualType FromType,
+                                            QualType ToType) {
+  if (!getLangOpts().OverflowBehaviorTypes)
+    return false;
+
+  if (FromType->isOverflowBehaviorType() && !ToType->isOverflowBehaviorType())
+    return true;
+
+  if (!FromType->isOverflowBehaviorType() && ToType->isOverflowBehaviorType())
+    return true;
+
+  if (FromType->isOverflowBehaviorType() && ToType->isOverflowBehaviorType())
+    return Context.getTypeSize(FromType) > Context.getTypeSize(ToType);
+
+  return false;
 }
 
 /// BuildSimilarlyQualifiedPointerType - In a pointer conversion from

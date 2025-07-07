@@ -58,8 +58,11 @@ void test_auto(char __wrap a) {
   (b - 1); // no instrumentation
 }
 
-/*
- *  C++ stuff to test:
- *  - pass by reference
- *  - generics <>
- * */
+
+int overloadme(__no_wrap int a) { return 0; }
+int overloadme(int a) { return 1; } // make sure we pick this one
+// DEFAULT-LABEL: define {{.*}}test_overload_set_exact_match
+int test_overload_set_exact_match(int a) {
+  // DEFAULT: call {{.*}} @_Z10overloadmei
+  return overloadme(a);
+}
