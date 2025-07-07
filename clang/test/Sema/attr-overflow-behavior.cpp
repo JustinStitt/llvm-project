@@ -86,3 +86,12 @@ void ptr(int a) {
 void ptr2(__no_wrap int a) {
   int *p = &a; // expected-error {{cannot initialize a variable of type 'int *'}} {{.*}} {{with an rvalue of type '__no_wrap int *'}}
 }
+
+void overloadme(__no_wrap int a); // expected-note {{candidate function}}
+void overloadme(short a); // expected-note {{candidate function}}
+
+void test_overload_ambiguity() {
+  int a;
+  overloadme(a); // expected-error {{call to 'overloadme' is ambiguous}}
+}
+
