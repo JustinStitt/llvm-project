@@ -383,14 +383,24 @@ supported by other compilers, so consider using it together with
 Disabling Overflow Instrumentation with ``__attribute__((overflow_behavior(wrap)))``
 ------------------------------------------------------------------------------------
 
-Lorem ipsum
+For more fine-grained control over how integer overflow is handled, you can use
+the ``__attribute__((overflow_behavior(wrap)))`` attribute. This attribute can
+be applied to ``typedef`` declarations and integer types to specify that
+arithmetic operations on that type should wrap on overflow. This can be used to
+disable overflow sanitization for specific types, while leaving it enabled for
+all other types.
+
+For more information, see :doc:`OverflowBehaviorTypes`.
 
 Enforcing Overflow Instrumentation with ``__attribute__((overflow_behavior(no_wrap)))``
 ---------------------------------------------------------------------------------------
 
-Lorem ipsum
+Conversely, you can use ``__attribute__((overflow_behavior(no_wrap)))`` to
+enforce overflow checks for a specific type, even when ``-fwrapv`` is enabled
+globally. This is useful for ensuring that critical calculations are always
+checked for overflow, regardless of the global compiler settings.
 
-TODO (justinstitt): populate new file ./OverflowBehaviorTypes.rst
+For more information, see :doc:`OverflowBehaviorTypes`.
 
 Suppressing Errors in Recompiled Code (Ignorelist)
 --------------------------------------------------
