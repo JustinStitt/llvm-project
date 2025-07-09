@@ -8,7 +8,7 @@ OverflowBehaviorTypes
 Introduction
 ============
 
-Clang provides an attribute that allows developers to have fine-grained control
+Clang provides a type attribute that allows developers to have fine-grained control
 over the overflow behavior of integer types. The ``overflow_behavior``
 attribute can be used to specify how arithmetic operations on a given integer
 type should behave upon overflow. This is particularly useful for projects that
@@ -29,8 +29,11 @@ Where ``behavior`` can be one of the following:
 * ``wrap``: Specifies that arithmetic operations on the integer type should
   wrap on overflow. This is equivalent to the behavior of ``-fwrapv``, but it
   applies only to the attributed type and may be used with both signed and
-  unsigned types. When this is enabled, UBSan's integer overflow checks are
-  suppressed for the attributed type.
+  unsigned types. When this is enabled, UBSan's integer overflow and integer
+  truncation checks (``signed-integer-overflow``,
+  ``unsigned-integer-overflow``, ``implicit-signed-integer-truncation``, and
+  ``implicit-unsigned-integer-truncation``) are suppressed for the attributed
+  type.
 
 * ``no_wrap``: Specifies that arithmetic operations on the integer type should
   be checked for overflow. When using the ``signed-integer-overflow`` sanitizer
@@ -47,10 +50,10 @@ Here is an example of how to use the ``overflow_behavior`` attribute with a ``ty
 
 .. code-block:: c++
 
-  typedef int __attribute__((overflow_behavior(wrap))) wrapping_int;
+  typedef unsigned int __attribute__((overflow_behavior(no_wrap))) non_wrapping_uint;
 
-  wrapping_int add_one(wrapping_int a) {
-    return a + 1; // No overflow check for this operation.
+  non_wrapping_uint add_one(non_wrapping_uint a) {
+    return a + 1; // Overflow is checked for this operation.
   }
 
 Here is an example of how to use the ``overflow_behavior`` attribute with a type directly:
@@ -59,8 +62,12 @@ Here is an example of how to use the ``overflow_behavior`` attribute with a type
 
   int mul_alot(int n) {
     int __attribute__((overflow_behavior(wrap))) a = n;
-    return a * 1337; // No overflow check for this operation.
+    return a * 1337; // Potential overflow is not checked and is well-defined
   }
+
+"Well-defined" overflow is consistent with two's complement wrap-around
+semantics and won't be removed via eager compiler optimizations (like some
+undefined behavior might).
 
 Overflow behavior types are implicitly convertible to and from built-in
 integral types.
@@ -71,29 +78,41 @@ overflow behavior types the same as normal integral promotions and conversions.
 Interaction with Command-Line Flags and Sanitizer Special Case Lists
 ====================================================================
 
-The ``overflow_behavior`` attribute interacts with the ``-ftrapv``,
-``-fwrapv``, and the Sanitizer Special Case List (SSCL) by wholly overriding
-these global flags. The following table summarizes the interactions:
+The ``overflow_behavior`` attribute interacts with sanitizers, ``-ftrapv``,
+``-fwrapv``, and Sanitizer Special Case Lists (SSCL) by wholly overriding these
+global flags. The following table summarizes the interactions:
 
 .. list-table:: Overflow Behavior Precedence
-   :widths: 20 20 20 20
+   :widths: 15 15 15 15 20 15
    :header-rows: 1
 
    * - Behavior
+     - Default(No Flags)
      - -ftrapv
      - -fwrapv
+     - Sanitizers
      - SSCL
    * - ``overflow_behavior(wrap)``
+     - Wraps
      - No trap
      - Wraps
+     - No report
      - Overrides SSCL
    * - ``overflow_behavior(no_wrap)``
      - Traps
-     - No wrap
+     - Traps
+     - Traps
+     - Reports
      - Overrides SSCL
 
+It is important to note the distinction between signed and unsigned types. For
+unsigned integers, which wrap on overflow by default, ``overflow_behavior(no_wrap)``
+is particularly useful for enabling overflow checks. For signed integers, whose
+overflow behavior is undefined by default, ``overflow_behavior(wrap)`` provides
+a guaranteed wrapping behavior.
+
 The ``overflow_behavior`` attribute can be used to override the behavior of
-entries from :doc:`SanitizerSpecialCaseList`. This is useful for allowlisting
+entries from a :doc:`SanitizerSpecialCaseList`. This is useful for allowlisting
 specific types into overflow instrumentation.
 
 Promotion Rules
@@ -101,7 +120,8 @@ Promotion Rules
 
 The promotion rules for overflow behavior types are designed to preserve the
 specified overflow behavior throughout an arithmetic expression. They differ
-from standard C/C++ integer promotions but in a predictable way.
+from standard C/C++ integer promotions but in a predictable way, similar to
+how ``_Complex`` and ``_BitInt`` have their own promotion rules.
 
 * **OBT and Standard Integer Type**: In an operation involving an overflow
   behavior type (OBT) and a standard integer type, the result will have the
