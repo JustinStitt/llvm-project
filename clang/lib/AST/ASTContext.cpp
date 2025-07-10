@@ -11510,6 +11510,48 @@ static QualType mergeEnumWithInteger(ASTContext &Context, const EnumType *ET,
   return {};
 }
 
+std::optional<QualType> ASTContext::tryMergeOverflowBehaviorTypes(
+    QualType LHS, QualType RHS, bool OfBlockPointer, bool Unqualified,
+    bool BlockReturnType, bool IsConditionalOperator) {
+  const auto *LHSOBT = LHS->getAs<OverflowBehaviorType>();
+  const auto *RHSOBT = RHS->getAs<OverflowBehaviorType>();
+
+  if (!LHSOBT && !RHSOBT)
+    return std::nullopt;
+
+  if (LHSOBT) {
+    if (RHSOBT) {
+      // Both are OverflowBehaviorTypes.
+      if (LHSOBT->getBehaviorKind() != RHSOBT->getBehaviorKind())
+        return QualType(); // Incompatible if behaviors differ.
+
+      QualType MergedUnderlying = mergeTypes(
+          LHSOBT->getUnderlyingType(), RHSOBT->getUnderlyingType(),
+          OfBlockPointer, Unqualified, BlockReturnType, IsConditionalOperator);
+
+      if (MergedUnderlying.isNull())
+        return QualType();
+
+      // If the merged underlying type is the same as one of the original
+      // underlying types, we can return the original OBT to preserve typedefs.
+      if (getCanonicalType(MergedUnderlying) ==
+          getCanonicalType(LHSOBT->getUnderlyingType()))
+        return LHS;
+      if (getCanonicalType(MergedUnderlying) ==
+          getCanonicalType(RHSOBT->getUnderlyingType()))
+        return RHS;
+
+      return getOverflowBehaviorType(LHSOBT->getBehaviorKind(),
+                                     MergedUnderlying);
+    }
+    return mergeTypes(LHSOBT->getUnderlyingType(), RHS, OfBlockPointer,
+                      Unqualified, BlockReturnType, IsConditionalOperator);
+  }
+
+  return mergeTypes(LHS, RHSOBT->getUnderlyingType(), OfBlockPointer,
+                    Unqualified, BlockReturnType, IsConditionalOperator);
+}
+
 QualType ASTContext::mergeTypes(QualType LHS, QualType RHS, bool OfBlockPointer,
                                 bool Unqualified, bool BlockReturnType,
                                 bool IsConditionalOperator) {
@@ -11530,43 +11572,10 @@ QualType ASTContext::mergeTypes(QualType LHS, QualType RHS, bool OfBlockPointer,
   if (LHSRefTy || RHSRefTy)
     return {};
 
-  // Handle OverflowBehaviorType merging upfront.
-  if (const auto *LHSBT = LHS->getAs<OverflowBehaviorType>()) {
-    if (const auto *RHSBT = RHS->getAs<OverflowBehaviorType>()) {
-      // Both are OverflowBehaviorTypes.
-      if (LHSBT->getBehaviorKind() != RHSBT->getBehaviorKind())
-        return {}; // Incompatible if behaviors differ
-
-      QualType MergedUnderlying =
-          mergeTypes(LHSBT->getUnderlyingType(), RHSBT->getUnderlyingType(),
-                     OfBlockPointer, Unqualified, BlockReturnType,
-                     IsConditionalOperator);
-
-      if (MergedUnderlying.isNull())
-        return {};
-
-      // If the merged underlying type is the same as one of the original
-      // underlying types, we can return the original OBT to preserve typedefs
-      if (getCanonicalType(MergedUnderlying) ==
-          getCanonicalType(LHSBT->getUnderlyingType()))
-        return LHS;
-      if (getCanonicalType(MergedUnderlying) ==
-          getCanonicalType(RHSBT->getUnderlyingType()))
-        return RHS;
-
-      // Otherwise, create a new OBT with the merged underlying type.
-      return getOverflowBehaviorType(LHSBT->getBehaviorKind(),
-                                     MergedUnderlying);
-    }
-    // LHS is OBT, RHS is not. Merge with underlying type.
-    return mergeTypes(LHSBT->getUnderlyingType(), RHS, OfBlockPointer,
-                      Unqualified, BlockReturnType, IsConditionalOperator);
-  }
-  if (const auto *RHSBT = RHS->getAs<OverflowBehaviorType>()) {
-    // RHS is OBT, LHS is not. Merge with underlying type.
-    return mergeTypes(LHS, RHSBT->getUnderlyingType(), OfBlockPointer,
-                      Unqualified, BlockReturnType, IsConditionalOperator);
-  }
+  if (std::optional<QualType> MergedOBT = tryMergeOverflowBehaviorTypes(
+          LHS, RHS, OfBlockPointer, Unqualified, BlockReturnType,
+          IsConditionalOperator))
+    return *MergedOBT;
 
   if (Unqualified) {
     LHS = LHS.getUnqualifiedType();

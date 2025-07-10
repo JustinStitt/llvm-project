@@ -949,6 +949,15 @@ public:
   comments::FullComment *getCommentForDecl(const Decl *D,
                                            const Preprocessor *PP) const;
 
+  /// Attempts to merge two types that may be OverflowBehaviorTypes.
+  ///
+  /// \returns A QualType if the types were handled, std::nullopt otherwise.
+  /// A null QualType indicates an incompatible merge.
+  std::optional<QualType>
+  tryMergeOverflowBehaviorTypes(QualType LHS, QualType RHS, bool OfBlockPointer,
+                                bool Unqualified, bool BlockReturnType,
+                                bool IsConditionalOperator);
+
   /// Return parsed documentation comment attached to a given declaration.
   /// Returns nullptr if no comment is attached. Does not look at any
   /// redeclarations of the declaration.
