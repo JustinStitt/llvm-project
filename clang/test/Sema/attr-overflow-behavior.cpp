@@ -3,7 +3,7 @@
 typedef int __attribute__((overflow_behavior)) bad_arg_count; // expected-error {{'overflow_behavior' attribute takes one argument}}
 typedef int __attribute__((overflow_behavior(not_real))) bad_arg_spec; // expected-error {{'not_real' is not a valid argument to attribute 'overflow_behavior'}}
 typedef int __attribute__((overflow_behavior("not_real"))) bad_arg_spec_str; // expected-error {{'not_real' is not a valid argument to attribute 'overflow_behavior'}}
-typedef char* __attribute__((overflow_behavior("wrap"))) bad_type; // expected-warning {{'overflow_behavior' attribute cannot be applied to non-integer type char *}}
+typedef char* __attribute__((overflow_behavior("wrap"))) bad_type; // expected-warning {{'overflow_behavior' attribute cannot be applied to non-integer type 'char *'; attribute ignored}}
 
 typedef int __attribute__((overflow_behavior(wrap))) ok_wrap; // OK
 typedef long __attribute__((overflow_behavior(no_wrap))) ok_nowrap; // OK
@@ -68,7 +68,7 @@ void func(int i); // Overload, not invalid redeclaration
 
 // TODO: make this diagnostic message more descriptive
 template <typename Ty>
-void func2(__no_wrap Ty i) {} // expected-warning {{'overflow_behavior' attribute cannot be applied to non-integer type Ty}}
+void func2(__no_wrap Ty i) {} // expected-warning {{'overflow_behavior' attribute cannot be applied to non-integer type 'Ty'; attribute ignored}}
 
 template <typename Ty>
 struct S {};

@@ -1889,16 +1889,33 @@ ExprResult Sema::CreateGenericSelectionExpr(
   for (unsigned i = 0; i < NumAssocs; ++i) {
     if (!Types[i])
       DefaultIndex = i;
-    else if (ControllingExpr &&
-             Context.typesAreCompatible(
-                 ControllingExpr->getType().getCanonicalType(),
-                 Types[i]->getType()))
-      CompatIndices.push_back(i);
-    else if (ControllingType &&
-             Context.typesAreCompatible(
-                 ControllingType->getType().getCanonicalType(),
-                 Types[i]->getType()))
-      CompatIndices.push_back(i);
+    else {
+      bool Compatible;
+      QualType ControllingQT =
+          ControllingExpr ? ControllingExpr->getType().getCanonicalType()
+                          : ControllingType->getType().getCanonicalType();
+      QualType AssocQT = Types[i]->getType();
+
+      const auto *ControllingOBT =
+          ControllingQT->getAs<OverflowBehaviorType>();
+      const auto *AssocOBT = AssocQT.getCanonicalType()->getAs<OverflowBehaviorType>();
+
+      if (ControllingOBT || AssocOBT) {
+        if (ControllingOBT && AssocOBT) {
+          if (ControllingOBT->getBehaviorKind() == AssocOBT->getBehaviorKind())
+            Compatible = Context.typesAreCompatible(
+                ControllingOBT->getUnderlyingType(),
+                AssocOBT->getUnderlyingType());
+          else
+            Compatible = false;
+        } else
+          Compatible = false;
+      } else
+        Compatible = Context.typesAreCompatible(ControllingQT, AssocQT);
+
+      if (Compatible)
+        CompatIndices.push_back(i);
+    }
   }
 
   auto GetControllingRangeAndType = [](Expr *ControllingExpr,

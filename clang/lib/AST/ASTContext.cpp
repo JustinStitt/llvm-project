@@ -11530,6 +11530,44 @@ QualType ASTContext::mergeTypes(QualType LHS, QualType RHS, bool OfBlockPointer,
   if (LHSRefTy || RHSRefTy)
     return {};
 
+  // Handle OverflowBehaviorType merging upfront.
+  if (const auto *LHSBT = LHS->getAs<OverflowBehaviorType>()) {
+    if (const auto *RHSBT = RHS->getAs<OverflowBehaviorType>()) {
+      // Both are OverflowBehaviorTypes.
+      if (LHSBT->getBehaviorKind() != RHSBT->getBehaviorKind())
+        return {}; // Incompatible if behaviors differ
+
+      QualType MergedUnderlying =
+          mergeTypes(LHSBT->getUnderlyingType(), RHSBT->getUnderlyingType(),
+                     OfBlockPointer, Unqualified, BlockReturnType,
+                     IsConditionalOperator);
+
+      if (MergedUnderlying.isNull())
+        return {};
+
+      // If the merged underlying type is the same as one of the original
+      // underlying types, we can return the original OBT to preserve typedefs
+      if (getCanonicalType(MergedUnderlying) ==
+          getCanonicalType(LHSBT->getUnderlyingType()))
+        return LHS;
+      if (getCanonicalType(MergedUnderlying) ==
+          getCanonicalType(RHSBT->getUnderlyingType()))
+        return RHS;
+
+      // Otherwise, create a new OBT with the merged underlying type.
+      return getOverflowBehaviorType(LHSBT->getBehaviorKind(),
+                                     MergedUnderlying);
+    }
+    // LHS is OBT, RHS is not. Merge with underlying type.
+    return mergeTypes(LHSBT->getUnderlyingType(), RHS, OfBlockPointer,
+                      Unqualified, BlockReturnType, IsConditionalOperator);
+  }
+  if (const auto *RHSBT = RHS->getAs<OverflowBehaviorType>()) {
+    // RHS is OBT, LHS is not. Merge with underlying type.
+    return mergeTypes(LHS, RHSBT->getUnderlyingType(), OfBlockPointer,
+                      Unqualified, BlockReturnType, IsConditionalOperator);
+  }
+
   if (Unqualified) {
     LHS = LHS.getUnqualifiedType();
     RHS = RHS.getUnqualifiedType();
@@ -11627,16 +11665,6 @@ QualType ASTContext::mergeTypes(QualType LHS, QualType RHS, bool OfBlockPointer,
       if (!AT->isDeduced() && AT->isGNUAutoType())
         return LHS;
     }
-    // Allow OverflowBehaviorTypes to merge with types that match its
-    // underlying type.
-    if (const OverflowBehaviorType *OBT = LHS->getAs<OverflowBehaviorType>()) {
-      return mergeTypes(OBT->getUnderlyingType(), RHS, OfBlockPointer,
-                        Unqualified, BlockReturnType, IsConditionalOperator);
-    }
-    if (const OverflowBehaviorType *OBT = RHS->getAs<OverflowBehaviorType>()) {
-      return mergeTypes(LHS, OBT->getUnderlyingType(), OfBlockPointer,
-                        Unqualified, BlockReturnType, IsConditionalOperator);
-    }
     return {};
   }
 
@@ -11662,6 +11690,7 @@ QualType ASTContext::mergeTypes(QualType LHS, QualType RHS, bool OfBlockPointer,
   case Type::VariableArray:
   case Type::FunctionProto:
   case Type::ExtVector:
+  case Type::OverflowBehavior:
     llvm_unreachable("Types are eliminated above");
 
   case Type::Pointer:
@@ -11892,16 +11921,6 @@ QualType ASTContext::mergeTypes(QualType LHS, QualType RHS, bool OfBlockPointer,
         LHSTy->getContainedType() == RHSTy->getContainedType())
       return LHS;
     return {};
-  }
-  case Type::OverflowBehavior: {
-    const OverflowBehaviorType *LHSTy = LHS->castAs<OverflowBehaviorType>();
-    const OverflowBehaviorType *RHSTy = RHS->castAs<OverflowBehaviorType>();
-
-    assert(LHSTy->getUnderlyingType() == RHSTy->getUnderlyingType());
-
-    if (LHSTy->getBehaviorKind() != RHSTy->getBehaviorKind())
-      return {};
-    return LHS;
   }
   }
 
