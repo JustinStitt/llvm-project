@@ -77,6 +77,11 @@ QualType clang::desugarForDiagnostic(ASTContext &Context, QualType QT,
       QT = AT->desugar();
       continue;
     }
+    // ... or an overflow behavior type.
+    if (const OverflowBehaviorType *OBT = dyn_cast<OverflowBehaviorType>(Ty)) {
+      QT = OBT->desugar();
+      continue;
+    }
 
     // Desugar FunctionType if return type or any parameter type should be
     // desugared. Preserve nullability attribute on desugared types.

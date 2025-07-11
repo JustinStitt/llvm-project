@@ -15,7 +15,7 @@ void pointer_compatibility_test(int* i_ptr) {
   __nowrap int* nowrap_ptr;
 
   // static_cast should fail.
-  nowrap_ptr = static_cast<__nowrap int*>(i_ptr); // expected-error {{static_cast from 'int *' to '__no_wrap int *' (aka 'int *') is not allowed}}
+  nowrap_ptr = static_cast<__nowrap int*>(i_ptr); // expected-error {{static_cast from 'int *' to '__no_wrap int *' is not allowed}}
 
   // reinterpret_cast should succeed.
   nowrap_ptr = reinterpret_cast<__nowrap int*>(i_ptr);
