@@ -6291,7 +6291,7 @@ public:
     return BehaviorKind;
   }
 
-  bool isSugared() const { return true; }
+  bool isSugared() const { return false; }
   QualType desugar() const { return getUnderlyingType(); }
 
   void Profile(llvm::FoldingSetNodeID &ID) {
