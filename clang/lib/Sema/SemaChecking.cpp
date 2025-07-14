@@ -11813,6 +11813,22 @@ void Sema::CheckImplicitConversion(Expr *E, QualType T, SourceLocation CC,
     }
   }
 
+  // Diagnose potentially problematic implicit casts from an overflow behavior
+  // type to an integer type.
+  if (const auto *OBT = Source->getAs<OverflowBehaviorType>()) {
+    if (Target->isIntegerType() && !Target->isOverflowBehaviorType()) {
+      // Implicit casts from unsigned wrap types to unsigned types are less
+      // problematic but still warrant some diagnostic
+      if (OBT->isUnsignedIntegerType() && OBT->isWrapKind() &&
+          Target->isUnsignedIntegerType())
+        return DiagnoseImpCast(
+            *this, E, T, CC,
+            diag::warn_implicitly_discarded_overflow_behavior_pedantic);
+      return DiagnoseImpCast(*this, E, T, CC,
+                             diag::warn_implicitly_discarded_overflow_behavior);
+    }
+  }
+
   // If the we're converting a constant to an ObjC BOOL on a platform where BOOL
   // is a typedef for signed char (macOS), then that constant value has to be 1
   // or 0.

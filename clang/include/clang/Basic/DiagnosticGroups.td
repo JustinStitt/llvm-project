@@ -113,6 +113,11 @@ def Shorten64To32 : DiagGroup<"shorten-64-to-32">;
 def ImplicitIntConversion : DiagGroup<"implicit-int-conversion",
                                      [Shorten64To32,
                                       ObjCSignedCharBoolImplicitIntConversion]>;
+def ImplicitlyDiscardedOverflowBehaviorPedantic :
+  DiagGroup<"implicitly-discarded-overflow-behavior-pedantic">;
+def ImplicitlyDiscardedOverflowBehavior :
+  DiagGroup<"implicitly-discarded-overflow-behavior",
+   [ImplicitlyDiscardedOverflowBehaviorPedantic]>;
 def ImplicitConstIntFloatConversion : DiagGroup<"implicit-const-int-float-conversion">;
 def ImplicitIntFloatConversion : DiagGroup<"implicit-int-float-conversion",
  [ImplicitConstIntFloatConversion]>;

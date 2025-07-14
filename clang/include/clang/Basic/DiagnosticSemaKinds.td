@@ -3954,6 +3954,12 @@ def warn_overflow_behavior_attribute_disabled
     : Warning<"%0 attribute is ignored because it is not enabled; pass "
               "-foverflow-behavior-types">,
       InGroup<OverflowBehaviorAttributeIgnored>;
+def warn_implicitly_discarded_overflow_behavior : Warning<
+  "implicit conversion from %0 to %1 discards overflow behavior">,
+  InGroup<ImplicitlyDiscardedOverflowBehavior>;
+def warn_implicitly_discarded_overflow_behavior_pedantic : Warning<
+  "implicit conversion from %0 to %1 discards overflow behavior">,
+  InGroup<ImplicitlyDiscardedOverflowBehaviorPedantic>;
 
 // Availability attribute
 def warn_availability_unknown_platform : Warning<
