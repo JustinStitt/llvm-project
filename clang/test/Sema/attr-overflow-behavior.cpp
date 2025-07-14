@@ -84,11 +84,11 @@ template <>
 struct S<int> {};
 
 void ptr(int a) {
-  int __no_wrap *p = &a; // expected-error {{cannot initialize a variable of type '__no_wrap int *'}} {{.*}} {{with an rvalue of type 'int *'}}
+  int __no_wrap *p = &a; // expected-error-re {{cannot initialize a variable of type '__no_wrap int *' {{.*}}with an rvalue of type 'int *'}}
 }
 
 void ptr2(__no_wrap int a) {
-  int *p = &a; // expected-error {{cannot initialize a variable of type 'int *'}} {{.*}} {{with an rvalue of type '__no_wrap int *'}}
+  int *p = &a; // expected-error-re {{cannot initialize a variable of type 'int *' {{.*}}with an rvalue of type '__no_wrap int *'}}
 }
 
 void overloadme(__no_wrap int a); // expected-note {{candidate function}}
