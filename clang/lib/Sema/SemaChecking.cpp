@@ -11818,7 +11818,7 @@ void Sema::CheckImplicitConversion(Expr *E, QualType T, SourceLocation CC,
   if (const auto *OBT = Source->getAs<OverflowBehaviorType>()) {
     if (Target->isIntegerType() && !Target->isOverflowBehaviorType()) {
       // Implicit casts from unsigned wrap types to unsigned types are less
-      // problematic but still warrant some diagnostic
+      // problematic but still warrant some diagnostic.
       if (OBT->isUnsignedIntegerType() && OBT->isWrapKind() &&
           Target->isUnsignedIntegerType())
         return DiagnoseImpCast(

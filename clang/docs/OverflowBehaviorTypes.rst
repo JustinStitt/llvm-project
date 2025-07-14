@@ -151,8 +151,80 @@ how ``_Complex`` and ``_BitInt`` have their own promotion rules.
     auto result = a + b;
 
 * **Two OBTs of Different Kinds**: In an operation between a ``wrap`` and a
-  ``no_wrap`` type, the result is the ``no_wrap`` type. It is recommended to
-  avoid such operations, as Clang may emit a warning for such cases in the
-  future. Regardless, the resulting type matches the bit-width, sign and
-  behavior of the ``no_wrap`` type.
+  ``no_wrap`` type, a ``no_wrap`` is produced. It is recommended to avoid such
+  operations, as Clang may emit a warning for such cases in the future.
+  Regardless, the resulting type matches the bit-width, sign and behavior of
+  the ``no_wrap`` type.
 
+Diagnostics
+===========
+
+Clang provides diagnostics to help developers manage overflow behavior types.
+
+-Wimplicitly-discarded-overflow-behavior
+----------------------------------------
+
+This warning is issued when an overflow behavior type is implicitly converted
+to a standard integer type, which may lead to the loss of the specified
+overflow behavior.
+
+.. code-block:: c++
+
+  typedef int __attribute__((overflow_behavior(wrap))) wrapping_int;
+
+  void some_function(int);
+
+  void another_function(wrapping_int w) {
+    some_function(w); // warning: implicit conversion from 'wrapping_int' to
+                      // 'int' discards overflow behavior
+  }
+
+To fix this, you can explicitly cast the overflow behavior type to a standard
+integer type.
+
+.. code-block:: c++
+
+  typedef int __attribute__((overflow_behavior(wrap))) wrapping_int;
+
+  void some_function(int);
+
+  void another_function(wrapping_int w) {
+    some_function(static_cast<int>(w)); // OK
+  }
+
+-Wimplicitly-discarded-overflow-behavior-pedantic
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+A less severe version of the warning, ``-Wimplicitly-discarded-overflow-behavior-pedantic``,
+is issued for implicit conversions from an unsigned wrapping type to a standard
+unsigned integer type. This is considered less problematic because both types
+have well-defined wrapping behavior, but the conversion still discards the
+explicit ``overflow_behavior`` attribute.
+
+.. code-block:: c++
+
+  typedef unsigned int __attribute__((overflow_behavior(wrap))) wrapping_uint;
+
+  void some_function(unsigned int);
+
+  void another_function(wrapping_uint w) {
+    some_function(w); // warning: implicit conversion from 'wrapping_uint' to
+                      // 'unsigned int' discards overflow behavior
+                      // [-Wimplicitly-discarded-overflow-behavior-pedantic]
+  }
+
+-Woverflow-behavior-attribute-ignored
+-------------------------------------
+
+This warning is issued when the ``overflow_behavior`` attribute is applied to
+a type that is not an integer type.
+
+.. code-block:: c++
+
+  typedef float __attribute__((overflow_behavior(wrap))) wrapping_float;
+  // warning: 'overflow_behavior' attribute only applies to integer types;
+  // attribute is ignored [-Woverflow-behavior-attribute-ignored]
+
+  typedef struct S { int i; } __attribute__((overflow_behavior(wrap))) S_t;
+  // warning: 'overflow_behavior' attribute only applies to integer types;
+  // attribute is ignored [-Woverflow-behavior-attribute-ignored]
