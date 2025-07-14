@@ -33,3 +33,7 @@ void imp_disc_test(unsigned __attribute__((overflow_behavior(wrap))) a) {
   imp_disc_pedantic(a); // expected-warning {{implicit conversion from '__wrap unsigned int' to 'unsigned int' discards overflow behavior}}
   imp_disc(a); // expected-warning {{implicit conversion from '__wrap unsigned int' to 'int' discards overflow behavior}}
 }
+
+void assignment_disc_test(unsigned __attribute__((overflow_behavior(wrap))) a) {
+  int b = a; // expected-warning {{implicit conversion from '__wrap unsigned int' to 'int' during assignment discards overflow behavior}}
+}

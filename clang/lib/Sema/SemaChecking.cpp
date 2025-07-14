@@ -11816,9 +11816,17 @@ void Sema::CheckImplicitConversion(Expr *E, QualType T, SourceLocation CC,
   // Diagnose potentially problematic implicit casts from an overflow behavior
   // type to an integer type.
   if (const auto *OBT = Source->getAs<OverflowBehaviorType>()) {
+    bool DiscardedDuringAssignment = false;
+    if (const DeclRefExpr *DRE = dyn_cast<DeclRefExpr>(E))
+      DiscardedDuringAssignment = DRE->isOverflowBehaviorDiscarded();
+
     if (Target->isIntegerType() && !Target->isOverflowBehaviorType()) {
       // Implicit casts from unsigned wrap types to unsigned types are less
       // problematic but still warrant some diagnostic.
+      if (DiscardedDuringAssignment)
+        return DiagnoseImpCast(
+            *this, E, T, CC,
+            diag::warn_implicitly_discarded_overflow_behavior_assignment);
       if (OBT->isUnsignedIntegerType() && OBT->isWrapKind() &&
           Target->isUnsignedIntegerType())
         return DiagnoseImpCast(

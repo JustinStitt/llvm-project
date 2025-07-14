@@ -115,9 +115,12 @@ def ImplicitIntConversion : DiagGroup<"implicit-int-conversion",
                                       ObjCSignedCharBoolImplicitIntConversion]>;
 def ImplicitlyDiscardedOverflowBehaviorPedantic :
   DiagGroup<"implicitly-discarded-overflow-behavior-pedantic">;
+def ImplicitlyDiscardedOverflowBehaviorAssignment :
+  DiagGroup<"implicitly-discarded-overflow-behavior-assignment">;
 def ImplicitlyDiscardedOverflowBehavior :
   DiagGroup<"implicitly-discarded-overflow-behavior",
-   [ImplicitlyDiscardedOverflowBehaviorPedantic]>;
+   [ImplicitlyDiscardedOverflowBehaviorPedantic,
+   ImplicitlyDiscardedOverflowBehaviorAssignment]>;
 def ImplicitConstIntFloatConversion : DiagGroup<"implicit-const-int-float-conversion">;
 def ImplicitIntFloatConversion : DiagGroup<"implicit-int-float-conversion",
  [ImplicitConstIntFloatConversion]>;

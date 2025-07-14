@@ -3960,7 +3960,9 @@ def warn_implicitly_discarded_overflow_behavior : Warning<
 def warn_implicitly_discarded_overflow_behavior_pedantic : Warning<
   "implicit conversion from %0 to %1 discards overflow behavior">,
   InGroup<ImplicitlyDiscardedOverflowBehaviorPedantic>;
-
+def warn_implicitly_discarded_overflow_behavior_assignment : Warning<
+  "implicit conversion from %0 to %1 during assignment discards overflow behavior">,
+  InGroup<ImplicitlyDiscardedOverflowBehaviorAssignment>;
 // Availability attribute
 def warn_availability_unknown_platform : Warning<
   "unknown platform %0 in availability macro">, InGroup<Availability>;

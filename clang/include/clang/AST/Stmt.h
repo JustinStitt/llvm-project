@@ -449,6 +449,9 @@ protected:
     LLVM_PREFERRED_TYPE(bool)
     unsigned IsImmediateEscalating : 1;
 
+    LLVM_PREFERRED_TYPE(bool)
+    unsigned IsOverflwBehaviorDiscarded : 1;
+
     /// The location of the declaration name itself.
     SourceLocation Loc;
   };
