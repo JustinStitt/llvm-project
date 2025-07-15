@@ -192,8 +192,12 @@ integer type.
     some_function(static_cast<int>(w)); // OK
   }
 
+This warning acts as a group that includes
+``-Wimplicitly-discarded-overflow-behavior-pedantic`` and
+``-Wimplicitly-discarded-overflow-behavior-assignment``.
+
 -Wimplicitly-discarded-overflow-behavior-pedantic
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+-------------------------------------------------
 
 A less severe version of the warning, ``-Wimplicitly-discarded-overflow-behavior-pedantic``,
 is issued for implicit conversions from an unsigned wrapping type to a standard
@@ -213,6 +217,40 @@ explicit ``overflow_behavior`` attribute.
                       // [-Wimplicitly-discarded-overflow-behavior-pedantic]
   }
 
+-Wimplicitly-discarded-overflow-behavior-assignment
+---------------------------------------------------
+
+This warning is issued when an overflow behavior type is implicitly converted
+to a standard integer type as part of an assignment, which may lead to the
+loss of the specified overflow behavior. This is a more specific version of
+the ``-Wimplicitly-discarded-overflow-behavior`` warning, and it is off by
+default.
+
+.. code-block:: c++
+
+  typedef int __attribute__((overflow_behavior(wrap))) wrapping_int;
+
+  void some_function() {
+    wrapping_int w = 1;
+    int i = w; // warning: implicit conversion from 'wrapping_int' to 'int'
+               // discards overflow behavior
+               // [-Wimplicitly-discarded-overflow-behavior-assignment]
+  }
+
+To fix this, you can explicitly cast the overflow behavior type to a standard
+integer type.
+
+.. code-block:: c++
+
+  typedef int __attribute__((overflow_behavior(wrap))) wrapping_int;
+
+  void some_function() {
+    wrapping_int w = 1;
+    int i = static_cast<int>(w); // OK
+    int j = (int)w; // C-style OK
+  }
+
+
 -Woverflow-behavior-attribute-ignored
 -------------------------------------
 
@@ -228,3 +266,4 @@ a type that is not an integer type.
   typedef struct S { int i; } __attribute__((overflow_behavior(wrap))) S_t;
   // warning: 'overflow_behavior' attribute only applies to integer types;
   // attribute is ignored [-Woverflow-behavior-attribute-ignored]
+
