@@ -872,7 +872,8 @@ ExprResult Sema::ImpCastExprToType(Expr *E, QualType Ty,
       IsExplicitCast) {
     if (const auto *SourceOBT = E->getType()->getAs<OverflowBehaviorType>()) {
       if (Ty->isIntegerType() && !Ty->isOverflowBehaviorType()) {
-        Ty = Context.getOverflowBehaviorType(SourceOBT->getBehaviorKind(), Ty);
+        Ty = Context.getOverflowBehaviorType(SourceOBT->getBehaviorKind(), Ty,
+                                               SourceOBT->getHandlerLabel());
       }
     }
   }

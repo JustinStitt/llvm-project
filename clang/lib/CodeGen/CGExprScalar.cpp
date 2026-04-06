@@ -4444,6 +4444,41 @@ Value *ScalarExprEmitter::EmitOverflowCheckedBinOp(const BinOpInfo &Ops) {
   Value *result = Builder.CreateExtractValue(resultAndOverflow, 0);
   Value *overflow = Builder.CreateExtractValue(resultAndOverflow, 1);
 
+  // Check for OBT handler label — branch to label on overflow instead of
+  // trapping.
+  if (const auto *OBT = Ops.Ty->getAs<OverflowBehaviorType>()) {
+    if (OBT->hasHandlerLabel()) {
+      const IdentifierInfo *LabelII = OBT->getHandlerLabel();
+      // Look up the LabelDecl by scanning the function's DeclContext.
+      // Labels are in IDNS_Label, so DeclContext::lookup won't find them.
+      const LabelDecl *LD = nullptr;
+      if (const auto *FD = dyn_cast_or_null<FunctionDecl>(CGF.CurFuncDecl)) {
+        for (const auto *D : FD->decls()) {
+          if (const auto *L = dyn_cast<LabelDecl>(D)) {
+            if (L->getIdentifier() == LabelII) {
+              LD = L;
+              break;
+            }
+          }
+        }
+      }
+      assert(LD && "Handler label should have been validated by Sema");
+
+      llvm::BasicBlock *ContinueBB =
+          CGF.createBasicBlock("nooverflow", CGF.CurFn);
+      llvm::BasicBlock *OverflowBB =
+          CGF.createBasicBlock("overflow.handler", CGF.CurFn);
+
+      Builder.CreateCondBr(overflow, OverflowBB, ContinueBB);
+
+      Builder.SetInsertPoint(OverflowBB);
+      CGF.EmitBranchThroughCleanup(CGF.getJumpDestForLabel(LD));
+
+      Builder.SetInsertPoint(ContinueBB);
+      return result;
+    }
+  }
+
   // Handle overflow with llvm.trap if no custom handler has been specified.
   const std::string *handlerName =
     &CGF.getLangOpts().OverflowHandler;

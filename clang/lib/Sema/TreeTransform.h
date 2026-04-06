@@ -7937,8 +7937,8 @@ QualType TreeTransform<Derived>::TransformOverflowBehaviorType(
 
   QualType Result = TL.getType();
   if (getDerived().AlwaysRebuild() || InnerTy != OldTy->getUnderlyingType()) {
-    Result = SemaRef.Context.getOverflowBehaviorType(OldTy->getBehaviorKind(),
-                                                     InnerTy);
+    Result = SemaRef.Context.getOverflowBehaviorType(
+        OldTy->getBehaviorKind(), InnerTy, OldTy->getHandlerLabel());
     if (Result.isNull())
       return QualType();
   }

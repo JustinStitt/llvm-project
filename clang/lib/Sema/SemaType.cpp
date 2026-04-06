@@ -302,8 +302,10 @@ namespace {
     /// attribute.
     QualType
     getOverflowBehaviorType(OverflowBehaviorType::OverflowBehaviorKind Kind,
-                            QualType UnderlyingType) {
-      return sema.Context.getOverflowBehaviorType(Kind, UnderlyingType);
+                            QualType UnderlyingType,
+                            const IdentifierInfo *HandlerLabel = nullptr) {
+      return sema.Context.getOverflowBehaviorType(Kind, UnderlyingType,
+                                                   HandlerLabel);
     }
 
     /// Completely replace the \c auto in \p TypeWithAuto by
@@ -6727,8 +6729,8 @@ static void HandleOverflowBehaviorAttr(QualType &Type, const ParsedAttr &Attr,
     return;
   }
 
-  // Check the number of attribute arguments.
-  if (Attr.getNumArgs() != 1) {
+  // Check the number of attribute arguments (1 required, 1 optional label).
+  if (Attr.getNumArgs() < 1 || Attr.getNumArgs() > 2) {
     S.Diag(Attr.getLoc(), diag::err_attribute_wrong_number_arguments)
         << Attr << 1;
     Attr.setInvalid();
@@ -6779,6 +6781,31 @@ static void HandleOverflowBehaviorAttr(QualType &Type, const ParsedAttr &Attr,
     return;
   }
 
+  // Parse optional handler label (second argument).
+  const IdentifierInfo *HandlerLabel = nullptr;
+  if (Attr.getNumArgs() == 2) {
+    if (Kind != OverflowBehaviorType::OverflowBehaviorKind::Trap) {
+      S.Diag(Attr.getLoc(), diag::err_overflow_label_only_with_trap);
+      Attr.setInvalid();
+      return;
+    }
+    if (Attr.isArgIdent(1)) {
+      HandlerLabel = Attr.getArgAsIdent(1)->getIdentifierInfo();
+    } else {
+      S.Diag(Attr.getLoc(), diag::err_attribute_argument_type)
+          << Attr << AANT_ArgumentIdentifier;
+      Attr.setInvalid();
+      return;
+    }
+
+    // If we're inside a function scope, register the label as a forward
+    // reference so that CheckPoppedLabel will diagnose if it's never defined.
+    if (S.getCurScope() && S.getCurScope()->getFnParent()) {
+      S.LookupOrCreateLabel(
+          const_cast<IdentifierInfo *>(HandlerLabel), Attr.getLoc());
+    }
+  }
+
   // Check for mixed specifier/attribute usage
   const DeclSpec &DS = State.getDeclarator().getDeclSpec();
   if (DS.isWrapSpecified() || DS.isTrapSpecified()) {
@@ -6808,13 +6835,13 @@ static void HandleOverflowBehaviorAttr(QualType &Type, const ParsedAttr &Attr,
     if (ExistingKind != Kind) {
       S.Diag(Attr.getLoc(), diag::err_conflicting_overflow_behaviors) << 0;
       if (Kind == OverflowBehaviorType::OverflowBehaviorKind::Trap) {
-        Type = State.getOverflowBehaviorType(Kind,
-                                             ExistingOBT->getUnderlyingType());
+        Type = State.getOverflowBehaviorType(
+            Kind, ExistingOBT->getUnderlyingType(), HandlerLabel);
       }
       return;
     }
   } else {
-    Type = State.getOverflowBehaviorType(Kind, Type);
+    Type = State.getOverflowBehaviorType(Kind, Type, HandlerLabel);
   }
 }
 

@@ -1463,15 +1463,22 @@ static QualType handleOverflowBehaviorTypeConversion(Sema &S, ExprResult &LHS,
   QualType LHSConvType = LHSUnderlyingType;
   QualType RHSConvType = RHSUnderlyingType;
   if (DominantBehavior) {
+    // Propagate handler label from the operand that has one (prefer LHS).
+    const IdentifierInfo *DominantLabel = nullptr;
+    if (LhsOBT && LhsOBT->hasHandlerLabel())
+      DominantLabel = LhsOBT->getHandlerLabel();
+    else if (RhsOBT && RhsOBT->hasHandlerLabel())
+      DominantLabel = RhsOBT->getHandlerLabel();
+
     if (!LhsOBT || LhsOBT->getBehaviorKind() != *DominantBehavior)
-      LHSConvType = S.Context.getOverflowBehaviorType(*DominantBehavior,
-                                                      LHSUnderlyingType);
+      LHSConvType = S.Context.getOverflowBehaviorType(
+          *DominantBehavior, LHSUnderlyingType, DominantLabel);
     else
       LHSConvType = LHSType;
 
     if (!RhsOBT || RhsOBT->getBehaviorKind() != *DominantBehavior)
-      RHSConvType = S.Context.getOverflowBehaviorType(*DominantBehavior,
-                                                      RHSUnderlyingType);
+      RHSConvType = S.Context.getOverflowBehaviorType(
+          *DominantBehavior, RHSUnderlyingType, DominantLabel);
     else
       RHSConvType = RHSType;
   }

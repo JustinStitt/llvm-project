@@ -6805,9 +6805,11 @@ private:
 
   QualType UnderlyingType;
   OverflowBehaviorKind BehaviorKind;
+  const IdentifierInfo *HandlerLabel;
 
   OverflowBehaviorType(QualType Canon, QualType Underlying,
-                       OverflowBehaviorKind Kind);
+                       OverflowBehaviorKind Kind,
+                       const IdentifierInfo *HandlerLabel = nullptr);
 
 public:
   QualType getUnderlyingType() const { return UnderlyingType; }
@@ -6816,17 +6818,23 @@ public:
   bool isWrapKind() const { return BehaviorKind == OverflowBehaviorKind::Wrap; }
   bool isTrapKind() const { return BehaviorKind == OverflowBehaviorKind::Trap; }
 
+  /// Returns the handler label for this OBT, or nullptr if none specified.
+  const IdentifierInfo *getHandlerLabel() const { return HandlerLabel; }
+  bool hasHandlerLabel() const { return HandlerLabel != nullptr; }
+
   bool isSugared() const { return false; }
   QualType desugar() const { return getUnderlyingType(); }
 
   void Profile(llvm::FoldingSetNodeID &ID) {
-    Profile(ID, UnderlyingType, BehaviorKind);
+    Profile(ID, UnderlyingType, BehaviorKind, HandlerLabel);
   }
 
   static void Profile(llvm::FoldingSetNodeID &ID, QualType Underlying,
-                      OverflowBehaviorKind Kind) {
+                      OverflowBehaviorKind Kind,
+                      const IdentifierInfo *HandlerLabel = nullptr) {
     ID.AddPointer(Underlying.getAsOpaquePtr());
     ID.AddInteger((int)Kind);
+    ID.AddPointer(HandlerLabel);
   }
 
   static bool classof(const Type *T) {

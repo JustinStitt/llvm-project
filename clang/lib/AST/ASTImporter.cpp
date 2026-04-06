@@ -2047,8 +2047,8 @@ ExpectedType clang::ASTNodeImporter::VisitOverflowBehaviorType(
   if (Err)
     return std::move(Err);
 
-  return Importer.getToContext().getOverflowBehaviorType(ToKind,
-                                                         ToUnderlyingType);
+  return Importer.getToContext().getOverflowBehaviorType(
+      ToKind, ToUnderlyingType, T->getHandlerLabel());
 }
 
 ExpectedType clang::ASTNodeImporter::VisitHLSLAttributedResourceType(

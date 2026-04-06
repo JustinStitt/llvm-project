@@ -1199,7 +1199,8 @@ public:
         T->getUnderlyingType().getAsOpaquePtr())
       return QualType(T, 0);
 
-    return Ctx.getOverflowBehaviorType(T->getBehaviorKind(), UnderlyingType);
+    return Ctx.getOverflowBehaviorType(T->getBehaviorKind(), UnderlyingType,
+                                       T->getHandlerLabel());
   }
 
   QualType VisitFunctionNoProtoType(const FunctionNoProtoType *T) {
@@ -4142,9 +4143,11 @@ void TypeCoupledDeclRefInfo::setFromOpaqueValue(void *V) {
 
 OverflowBehaviorType::OverflowBehaviorType(
     QualType Canon, QualType Underlying,
-    OverflowBehaviorType::OverflowBehaviorKind Kind)
+    OverflowBehaviorType::OverflowBehaviorKind Kind,
+    const IdentifierInfo *HandlerLabel)
     : Type(OverflowBehavior, Canon, Underlying->getDependence()),
-      UnderlyingType(Underlying), BehaviorKind(Kind) {}
+      UnderlyingType(Underlying), BehaviorKind(Kind),
+      HandlerLabel(HandlerLabel) {}
 
 BoundsAttributedType::BoundsAttributedType(TypeClass TC, QualType Wrapped,
                                            QualType Canon)

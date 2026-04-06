@@ -3811,7 +3811,8 @@ ASTContext::adjustType(QualType Orig,
   case Type::OverflowBehavior: {
     const auto *OB = dyn_cast<OverflowBehaviorType>(Orig);
     return getOverflowBehaviorType(OB->getBehaviorKind(),
-                                   adjustType(OB->getUnderlyingType(), Adjust));
+                                   adjustType(OB->getUnderlyingType(), Adjust),
+                                   OB->getHandlerLabel());
   }
 
   case Type::Paren:
@@ -5791,7 +5792,9 @@ QualType ASTContext::getBTFTagAttributedType(const BTFTypeTagAttr *BTFAttr,
 
 QualType ASTContext::getOverflowBehaviorType(const OverflowBehaviorAttr *Attr,
                                              QualType Underlying) const {
-  const IdentifierInfo *II = Attr->getBehaviorKind();
+  if (Attr->args_size() < 1)
+    return Underlying;
+  const IdentifierInfo *II = *Attr->args_begin();
   StringRef IdentName = II->getName();
   OverflowBehaviorType::OverflowBehaviorKind Kind;
   if (IdentName == "wrap") {
@@ -5802,33 +5805,41 @@ QualType ASTContext::getOverflowBehaviorType(const OverflowBehaviorAttr *Attr,
     return Underlying;
   }
 
-  return getOverflowBehaviorType(Kind, Underlying);
+  const IdentifierInfo *HandlerLabel = nullptr;
+  if (Attr->args_size() >= 2)
+    HandlerLabel = *(Attr->args_begin() + 1);
+
+  return getOverflowBehaviorType(Kind, Underlying, HandlerLabel);
 }
 
 QualType ASTContext::getOverflowBehaviorType(
-    OverflowBehaviorType::OverflowBehaviorKind Kind,
-    QualType Underlying) const {
+    OverflowBehaviorType::OverflowBehaviorKind Kind, QualType Underlying,
+    const IdentifierInfo *HandlerLabel) const {
   assert(!Underlying->isOverflowBehaviorType() &&
          "Cannot have underlying types that are themselves OBTs");
   llvm::FoldingSetNodeID ID;
-  OverflowBehaviorType::Profile(ID, Underlying, Kind);
   llvm::FoldingSetInsertToken Token;
+  OverflowBehaviorType::Profile(ID, Underlying, Kind, HandlerLabel);
 
   if (OverflowBehaviorType *OBT = OverflowBehaviorTypes.lookup(ID, Token)) {
     return QualType(OBT, 0);
   }
 
   QualType Canonical;
-  if (!Underlying.isCanonical() || Underlying.hasLocalQualifiers()) {
+  if (!Underlying.isCanonical() || Underlying.hasLocalQualifiers() ||
+      HandlerLabel) {
     SplitQualType canonSplit = getCanonicalType(Underlying).split();
-    Canonical = getOverflowBehaviorType(Kind, QualType(canonSplit.Ty, 0));
+    // Canonical types omit the handler label so that different labels are
+    // type-compatible (same canonical type).
+    Canonical = getOverflowBehaviorType(Kind, QualType(canonSplit.Ty, 0),
+                                        /*HandlerLabel=*/nullptr);
     Canonical = getQualifiedType(Canonical, canonSplit.Quals);
     assert(!OverflowBehaviorTypes.lookup(ID, Token) &&
            "Shouldn't be in the map");
   }
 
   OverflowBehaviorType *Ty = new (*this, alignof(OverflowBehaviorType))
-      OverflowBehaviorType(Canonical, Underlying, Kind);
+      OverflowBehaviorType(Canonical, Underlying, Kind, HandlerLabel);
 
   Types.push_back(Ty);
   OverflowBehaviorTypes.insert(Ty, Token);
@@ -8350,7 +8361,8 @@ QualType ASTContext::getPromotedIntegerType(QualType Promotable) const {
   if (const auto *OBT = Promotable->getAs<OverflowBehaviorType>()) {
     QualType PromotedUnderlying =
         getPromotedIntegerType(OBT->getUnderlyingType());
-    return getOverflowBehaviorType(OBT->getBehaviorKind(), PromotedUnderlying);
+    return getOverflowBehaviorType(OBT->getBehaviorKind(), PromotedUnderlying,
+                                    OBT->getHandlerLabel());
   }
 
   if (const auto *BT = Promotable->getAs<BuiltinType>()) {
@@ -11845,13 +11857,15 @@ std::optional<QualType> ASTContext::tryMergeOverflowBehaviorTypes(
           return getCommonSugaredType(LHS, RHS);
         return getOverflowBehaviorType(
             LHSOBT->getBehaviorKind(),
-            getCanonicalType(LHSOBT->getUnderlyingType()));
+            getCanonicalType(LHSOBT->getUnderlyingType()),
+            LHSOBT->getHandlerLabel());
       }
 
       // For different underlying types that successfully merge, wrap the
       // merged underlying type with the common overflow behavior
       return getOverflowBehaviorType(LHSOBT->getBehaviorKind(),
-                                     MergedUnderlying);
+                                     MergedUnderlying,
+                                     LHSOBT->getHandlerLabel());
     }
     return mergeTypes(LHSOBT->getUnderlyingType(), RHS, OfBlockPointer,
                       Unqualified, BlockReturnType, IsConditionalOperator);
@@ -12423,7 +12437,8 @@ QualType ASTContext::getCorrespondingUnsignedType(QualType T) const {
   if (const auto *OBT = T->getAs<OverflowBehaviorType>())
     return getOverflowBehaviorType(
         OBT->getBehaviorKind(),
-        getCorrespondingUnsignedType(OBT->getUnderlyingType()));
+        getCorrespondingUnsignedType(OBT->getUnderlyingType()),
+        OBT->getHandlerLabel());
 
   // For enums, get the underlying integer type of the enum, and let the general
   // integer type signchanging code handle it.
@@ -14636,7 +14651,8 @@ static QualType getCommonNonSugarTypeNode(const ASTContext &Ctx, const Type *X,
     return Ctx.getOverflowBehaviorType(
         NX->getBehaviorKind(),
         getCommonTypeWithQualifierLifting(Ctx, NX->getUnderlyingType(),
-                                          NY->getUnderlyingType(), QX, QY));
+                                          NY->getUnderlyingType(), QX, QY),
+        NX->getHandlerLabel());
   }
   case Type::UnaryTransform: {
     const auto *TX = cast<UnaryTransformType>(X),

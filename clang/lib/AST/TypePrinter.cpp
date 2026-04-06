@@ -2178,13 +2178,26 @@ void TypePrinter::printBTFTagAttributedAfter(const BTFTagAttributedType *T,
 
 void TypePrinter::printOverflowBehaviorBefore(const OverflowBehaviorType *T,
                                               raw_ostream &OS) {
-  switch (T->getBehaviorKind()) {
-  case clang::OverflowBehaviorType::OverflowBehaviorKind::Wrap:
-    OS << "__ob_wrap ";
-    break;
-  case clang::OverflowBehaviorType::OverflowBehaviorKind::Trap:
-    OS << "__ob_trap ";
-    break;
+  if (T->hasHandlerLabel()) {
+    OS << "__attribute__((overflow_behavior(";
+    switch (T->getBehaviorKind()) {
+    case clang::OverflowBehaviorType::OverflowBehaviorKind::Wrap:
+      OS << "wrap";
+      break;
+    case clang::OverflowBehaviorType::OverflowBehaviorKind::Trap:
+      OS << "trap";
+      break;
+    }
+    OS << ", " << T->getHandlerLabel()->getName() << "))) ";
+  } else {
+    switch (T->getBehaviorKind()) {
+    case clang::OverflowBehaviorType::OverflowBehaviorKind::Wrap:
+      OS << "__ob_wrap ";
+      break;
+    case clang::OverflowBehaviorType::OverflowBehaviorKind::Trap:
+      OS << "__ob_trap ";
+      break;
+    }
   }
   printBefore(T->getUnderlyingType(), OS);
 }

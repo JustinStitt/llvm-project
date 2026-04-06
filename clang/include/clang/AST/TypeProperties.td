@@ -664,9 +664,14 @@ let Class = OverflowBehaviorType in {
   def : Property<"underlyingType", QualType> {
     let Read = [{ node->getUnderlyingType() }];
   }
+  def : Property<"handlerLabel", Optional<Identifier>> {
+    let Read = [{ makeOptionalFromPointer(
+        const_cast<const IdentifierInfo *>(node->getHandlerLabel())) }];
+  }
 
   def : Creator<[{
-    return ctx.getOverflowBehaviorType(behaviorKind, underlyingType);
+    return ctx.getOverflowBehaviorType(behaviorKind, underlyingType,
+                                       makePointerFromOptional(handlerLabel));
   }]>;
 }
 

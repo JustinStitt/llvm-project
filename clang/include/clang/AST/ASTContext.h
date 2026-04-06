@@ -2060,7 +2060,8 @@ public:
 
   QualType
   getOverflowBehaviorType(OverflowBehaviorType::OverflowBehaviorKind Kind,
-                          QualType Wrapped) const;
+                          QualType Wrapped,
+                          const IdentifierInfo *HandlerLabel = nullptr) const;
 
   QualType getHLSLAttributedResourceType(
       QualType Wrapped, QualType Contained,

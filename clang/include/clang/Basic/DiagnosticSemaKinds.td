@@ -4246,6 +4246,11 @@ def warn_impcast_overflow_behavior_assignment_pedantic
               "overflow behavior">,
       InGroup<ImplicitOverflowBehaviorConversionAssignmentPedantic>,
       DefaultIgnore;
+def err_overflow_label_only_with_trap
+    : Error<"overflow handler label can only be specified with 'trap' behavior">;
+def err_overflow_label_undefined
+    : Error<"overflow handler label '%0' is not defined in function '%1'">;
+
 def warn_impcast_overflow_behavior_pedantic
     : Warning<"implicit conversion from %0 to %1 discards overflow behavior">,
       InGroup<ImplicitOverflowBehaviorConversionPedantic>,
