@@ -1545,12 +1545,14 @@ void CodeGenFunction::GenerateCode(GlobalDecl GD, llvm::Function *Fn,
 
     // Initialize helper which will detect jumps which can cause invalid
     // lifetime markers or bypass trivial auto var init.
-    bool NeedsBypassDetection =
-        ShouldEmitLifetimeMarkers ||
-        (CGM.getLangOpts().getTrivialAutoVarInit() !=
-         LangOptions::TrivialAutoVarInitKind::Uninitialized);
-    if (NeedsBypassDetection)
-      Bypasses.Init(CGM, Body);
+    // bool NeedsBypassDetection =
+    //     ShouldEmitLifetimeMarkers ||
+    //     (CGM.getLangOpts().getTrivialAutoVarInit() !=
+    //      LangOptions::TrivialAutoVarInitKind::Uninitialized);
+    // if (NeedsBypassDetection)
+
+    // HACK: unconditionally Init so we can run performance checks.
+    Bypasses.Init(CGM, Body);
   }
 
   // Emit the standard function prologue.
