@@ -16,6 +16,31 @@
 using namespace clang;
 using namespace CodeGen;
 
+/// Cheap iterative pre-scan: returns true iff the body contains any statement
+/// that could bypass a variable declaration (goto, switch, indirect goto).
+/// Avoids the per-stmt allocation/DenseMap/runWithSufficientStackSpace cost
+/// of the full scope-building pass for the common case of jump-free bodies.
+static bool hasJumpStmts(const Stmt *Body) {
+  llvm::SmallVector<const Stmt *, 32> Worklist;
+  Worklist.push_back(Body);
+  while (!Worklist.empty()) {
+    const Stmt *S = Worklist.pop_back_val();
+    if (!S)
+      continue;
+    switch (S->getStmtClass()) {
+    case Stmt::GotoStmtClass:
+    case Stmt::SwitchStmtClass:
+    case Stmt::IndirectGotoStmtClass:
+      return true;
+    default:
+      break;
+    }
+    for (const Stmt *Child : S->children())
+      Worklist.push_back(Child);
+  }
+  return false;
+}
+
 /// Clear the object and pre-process for the given statement, usually function
 /// body statement.
 void VarBypassDetector::Init(CodeGenModule &CGM, const Stmt *Body) {
@@ -24,6 +49,9 @@ void VarBypassDetector::Init(CodeGenModule &CGM, const Stmt *Body) {
   Bypasses.clear();
   BypassedVarsAtSource.clear();
   Scopes = {{~0U, nullptr}};
+  AlwaysBypassed = false;
+  if (!hasJumpStmts(Body))
+    return;
   unsigned ParentScope = 0;
   AlwaysBypassed = !BuildScopeInformation(CGM, Body, ParentScope);
   if (!AlwaysBypassed)
