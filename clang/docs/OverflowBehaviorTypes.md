@@ -761,6 +761,91 @@ The format string checker uses the underlying type to determine compatibility,
 so `int __ob_wrap` is fully compatible with `%d`, `%i`, `%x`, etc.,
 just like a regular `int` would be.
 
+### Handler Labels
+
+The ``overflow_behavior`` attribute supports an optional second argument that
+specifies a label to branch to when overflow is detected. This allows for
+graceful overflow recovery instead of a hard trap.
+
+**Syntax:**
+
+```c++
+  int __attribute__((overflow_behavior(trap, handler_label))) a;
+```
+
+When arithmetic on ``a`` overflows, control flow jumps to the label
+``handler_label`` instead of trapping. This is a goto-style branch — control
+flow leaves the expression entirely and continues at the label.
+
+**Requirements:**
+
+* Handler labels can only be used with ``trap`` behavior (not ``wrap``).
+* The specified label must be defined in the function where the variable is used.
+  If the label is not found, a compile-time error is issued.
+* Handler labels are allowed on local variables, function parameters, typedefs,
+  and global variables. For typedefs and globals, the label is validated when
+  the type is used inside a function.
+
+**Example:**
+
+```c++
+#include <stdio.h>
+#include <limits.h>
+
+void checked_add(int a, int b) {
+int __attribute__((overflow_behavior(trap, on_overflow))) result;
+result = a;
+result = result + b;
+printf("result: %d\n", result);
+return;
+
+on_overflow:
+printf("overflow detected in addition!\n");
+}
+```
+
+In this example, if ``result + b`` overflows, control jumps to the
+``on_overflow`` label where the overflow can be handled gracefully.
+
+**With typedefs:**
+
+```c++
+typedef int __attribute__((overflow_behavior(trap, handle_it))) safe_int;
+
+void foo() {
+safe_int x = INT_MAX;
+x = x + 1; // overflows → jumps to handle_it
+return;
+
+handle_it:
+// recovery logic
+}
+```
+
+**Type compatibility:**
+
+Different handler labels produce distinct type nodes in the AST but share the
+same canonical type. This means variables with different handler labels are
+assignment-compatible:
+
+```c++
+void bar() {
+int __attribute__((overflow_behavior(trap, label_a))) a;
+int __attribute__((overflow_behavior(trap, label_b))) b;
+a = b; // OK: same canonical type
+
+label_a:
+label_b:
+return;
+}
+```
+
+**Promotion rules:**
+
+When an expression involves operands with handler labels, the label propagates
+through integer promotions. In binary expressions where both operands have
+``trap`` behavior, the left-hand operand's label takes precedence.
+
 ### Incompatibility With Non-Integer Types
 
 An error is issued when attempting to create an overflow behavior type from
